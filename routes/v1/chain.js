@@ -8,12 +8,16 @@ router.options('/');
 router.post('/bitcoin/start', function (req, res) {
 
   function handleSuccess() {
-    res.json({});
+    res.json({
+      chain: 'bitcoin',
+      status: 'running'
+    });
   }
 
   function handleError(error) {
-    logger.error('Unable to generate address', 'address', error);
-    res.status(500).json('Unable to generate address');
+    var stringError = 'Unable to start bitcoin chain';
+    logger.error(stringError, 'chain', error);
+    res.status(500).json(stringError);
   }
 
   applicationLogic.start('bitcoin')
@@ -23,7 +27,22 @@ router.post('/bitcoin/start', function (req, res) {
 
 router.options('/');
 router.post('/bitcoin/stop', function (req, res) {
+  function handleSuccess() {
+    res.json({
+      chain: 'bitcoin',
+      status: 'stopped'
+    });
+  }
 
+  function handleError(error) {
+    var stringError = 'Unable to stop bitcoin chain';
+    logger.error(stringError, 'chain', error);
+    res.status(500).json(stringError);
+  }
+
+  applicationLogic.stop('bitcoin')
+    .then(handleSuccess)
+    .catch(handleError);
 });
 
 router.options('/');

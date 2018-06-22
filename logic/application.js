@@ -26,6 +26,29 @@ function start(application) {
   return deferred.promise;
 }
 
+function stop(application) {
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  if(application === 'bitcoin') {
+    docker.stop('3bc4cc0ed2a1')
+      .then(handleSuccess)
+      .catch(handleError)
+  } else {
+    deferred.reject('unknown application: ' + application)
+  }
+
+  return deferred.promise;
+}
+
 module.exports = {
-  start: start
+  start: start,
+  stop: stop
 };

@@ -100,7 +100,8 @@ function runImage(image) {
     Tty: true,
     Cmd: ['/bin/bash'],
     OpenStdin: false,
-    StdinOnce: false
+    StdinOnce: false,
+    Name: 'testing'
   }).then(function(container) {
     deferred.resolve(container.start());
   }).catch(function(error) {
@@ -111,8 +112,22 @@ function runImage(image) {
   return deferred.promise;
 }
 
+function stop(containerName) {
+  docker.getContainer(containerName).stop();
+}
+
+function stopAll() {
+  docker.listContainers(function (err, containers) {
+    containers.forEach(function (containerInfo) {
+      docker.getContainer(containerInfo.Id).stop(cb);
+    });
+  });
+}
+
 module.exports = {
   getImage: getImage,
   pullImage: pullImage,
-  runImage: runImage
+  runImage: runImage,
+  stop: stop,
+  stopAll: stopAll
 };
