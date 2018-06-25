@@ -6,6 +6,5 @@ npm-debug.log
 *.env
 logs/
 package-lock.json
-/bin
 *.bak
 lb_settings.json
