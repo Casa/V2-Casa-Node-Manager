@@ -1,4 +1,5 @@
 const docker = require('../services/docker.js');
+const bash = require('../services/bash.js');
 
 var q = require('q');
 
@@ -48,7 +49,53 @@ function stop(application) {
   return deferred.promise;
 }
 
+function install(application) {
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  if(application === 'bitcoin') {
+    docker.dockerComposeUp('bitcoind')
+      .then(handleSuccess)
+      .catch(handleError)
+  } else {
+    deferred.reject('unknown application: ' + application)
+  }
+
+  return deferred.promise;
+}
+
+function uninstall(application) {
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  if(application === 'bitcoin') {
+    docker.stop('3bc4cc0ed2a1')
+      .then(handleSuccess)
+      .catch(handleError)
+  } else {
+    deferred.reject('unknown application: ' + application)
+  }
+
+  return deferred.promise;
+}
+
 module.exports = {
   start: start,
-  stop: stop
+  stop: stop,
+  install: install,
+  uninstall: uninstall
 };

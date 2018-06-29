@@ -2,6 +2,21 @@ var Docker = require('dockerode');
 var docker = new Docker();
 var q = require('q');
 
+const ARCH = 'x86';
+
+function dockerComposeUp(fileName) {
+  docker.run('casacomputer/docker-compose:' + ARCH, ['--file /usr/local/current-app-yaml/hello-world.yaml', 'up'], {},
+    {
+    'HostConfig': {
+      'Binds': ['/var/run/docker.sock:/var/run/docker.sock',
+        '/usr/bin/docker:/usr/bin/docker',
+        '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
+      ]
+    }
+  }, function (err, data, container) {
+    console.log(data.StatusCode);
+  });
+}
 
 function getDigestFromPullOutput(events) {
   var digest = '';
@@ -125,6 +140,7 @@ function stopAll() {
 }
 
 module.exports = {
+  dockerComposeUp: dockerComposeUp,
   getImage: getImage,
   pullImage: pullImage,
   runImage: runImage,
