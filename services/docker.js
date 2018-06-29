@@ -3,18 +3,27 @@ var docker = new Docker();
 var q = require('q');
 
 const ARCH = 'x86';
+const DOCKER_DIR={
+  'ARM':'/usr/bin/docker:/usr/bin/docker',
+  'x86':'/usr/local/bin/docker:/usr/bin/docker'
+};
 
 function dockerComposeUp(fileName) {
-  docker.run('casacomputer/docker-compose:' + ARCH, ['--file /usr/local/current-app-yaml/hello-world.yaml', 'up'], {},
+  docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
+    process.stdout,
     {
-    'HostConfig': {
-      'Binds': ['/var/run/docker.sock:/var/run/docker.sock',
-        '/usr/bin/docker:/usr/bin/docker',
-        '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
-      ]
-    }
-  }, function (err, data, container) {
-    console.log(data.StatusCode);
+      HostConfig: {
+        Binds: ['/var/run/docker.sock:/var/run/docker.sock',
+          DOCKER_DIR[ARCH],
+          '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
+        ]
+      },
+      WorkingDir: '/usr/local/current-app-yaml'
+    }, function (error, data, container) {
+      if(error) {
+        console.log('error starting: ' + fileName)
+      }
+      console.log(data.StatusCode);
   });
 }
 
