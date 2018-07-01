@@ -1,5 +1,5 @@
 const docker = require('../services/docker.js');
-const bash = require('../services/bash.js');
+const disk = require('../services/disk.js');
 
 var q = require('q');
 
@@ -61,7 +61,10 @@ function install(application) {
   }
 
   if(application === 'bitcoin') {
-    docker.dockerComposeUp('bitcoind')
+
+    disk.copyFileToWorkingDir('hello-world')
+      .then(docker.dockerComposeUp)
+      .then(disk.deleteFileInWorkingDir)
       .then(handleSuccess)
       .catch(handleError)
   } else {

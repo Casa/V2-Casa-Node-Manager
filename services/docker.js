@@ -8,7 +8,14 @@ const DOCKER_DIR={
   'x86':'/usr/local/bin/docker:/usr/bin/docker'
 };
 
-function dockerComposeUp(fileName) {
+/*
+Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
+docker-compuse up and start the image.
+
+TODO we should use the --file command and explicity call out which docker compose file we are using. This avoids
+having to copy the file into a directory on its own.
+ */
+function dockerComposeUp() {
   docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
     process.stdout,
     {
@@ -18,10 +25,13 @@ function dockerComposeUp(fileName) {
           '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
         ]
       },
-      WorkingDir: '/usr/local/current-app-yaml'
+  //    WorkingDir: '/usr/local/current-app-yaml',
+      Env: [
+        '--file=/usr/local/current-app-yaml/hello-world.yaml'
+      ]
     }, function (error, data, container) {
       if(error) {
-        console.log('error starting: ' + fileName)
+        console.log('error starting:' + error + data)
       }
       console.log(data.StatusCode);
   });
