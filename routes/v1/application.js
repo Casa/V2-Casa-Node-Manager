@@ -5,6 +5,27 @@ const applicationLogic = require('../../logic/application.js');
 var q = require('q');
 
 router.options('/');
+router.post('/hello-world/install', function (req, res) {
+
+  function handleSuccess() {
+    res.json({
+      chain: 'hello-world',
+      status: 'running'
+    });
+  }
+
+  function handleError(error) {
+    var stringError = 'Unable to start hello-world';
+    logger.error(stringError, 'application', error);
+    res.status(500).json(stringError);
+  }
+
+  applicationLogic.install('hello-world')
+    .then(handleSuccess)
+    .catch(handleError);
+});
+
+router.options('/');
 router.post('/plex/install', function (req, res) {
 
   function handleSuccess() {
@@ -15,8 +36,8 @@ router.post('/plex/install', function (req, res) {
   }
 
   function handleError(error) {
-    var stringError = 'Unable to start bitcoin chain';
-    logger.error(stringError, 'chain', error);
+    var stringError = 'Unable to start plex';
+    logger.error(stringError, 'application', error);
     res.status(500).json(stringError);
   }
 
@@ -35,8 +56,8 @@ router.post('/plex/uninstall', function (req, res) {
   }
 
   function handleError(error) {
-    var stringError = 'Unable to stop bitcoin chain';
-    logger.error(stringError, 'chain', error);
+    var stringError = 'Unable to uninstall plex';
+    logger.error(stringError, 'application', error);
     res.status(500).json(stringError);
   }
 

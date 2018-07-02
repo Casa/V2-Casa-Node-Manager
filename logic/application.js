@@ -49,6 +49,11 @@ function stop(application) {
   return deferred.promise;
 }
 
+/*
+Install an image to this device.
+
+//TODO provision space and permissions on hard drive.
+ */
 function install(application) {
   var deferred = q.defer();
 
@@ -60,9 +65,28 @@ function install(application) {
     deferred.reject(error);
   }
 
+  //TODO make this more generic.
+  //how should we handle mulitple implementations of chains
   if(application === 'bitcoin') {
-
+    disk.copyFileToWorkingDir('bitcoind-testnet')
+      .then(docker.dockerComposeUp)
+      .then(disk.deleteFileInWorkingDir)
+      .then(handleSuccess)
+      .catch(handleError)
+  } else if (application === 'hello-world') {
     disk.copyFileToWorkingDir('hello-world')
+      .then(docker.dockerComposeUp)
+      .then(disk.deleteFileInWorkingDir)
+      .then(handleSuccess)
+      .catch(handleError)
+  } else if (application === 'litecoin') {
+    disk.copyFileToWorkingDir('litecoind-testnet')
+      .then(docker.dockerComposeUp)
+      .then(disk.deleteFileInWorkingDir)
+      .then(handleSuccess)
+      .catch(handleError)
+  } else if (application === 'plex') {
+    disk.copyFileToWorkingDir('plex')
       .then(docker.dockerComposeUp)
       .then(disk.deleteFileInWorkingDir)
       .then(handleSuccess)

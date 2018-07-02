@@ -9,6 +9,7 @@ const logger = require('./resources/logger.js');
 
 const morgan = require('morgan');
 
+const application = require('./routes/v1/application.js');
 const chain = require('./routes/v1/chain.js');
 const container = require('./routes/v1/container.js');
 const helloworld = require('./routes/helloworld.js');
@@ -38,6 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(requestCorrelationMiddleware);
 app.use(morgan(logger.morganConfiguration));
 
+app.use('/v1/application', application);
 app.use('/v1/chain', chain);
 app.use('/v1/container', container);
 app.use('/helloworld', helloworld);
