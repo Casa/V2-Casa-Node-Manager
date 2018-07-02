@@ -18,7 +18,41 @@ having to copy the file into a directory on its own.
 function dockerComposeUp() {
   var deferred = q.defer();
 
-  docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
+  docker.createContainer({
+    Image: 'casacomputer/docker-compose:' + ARCH,
+    AttachStdin: false,
+    AttachStdout: false,
+    AttachStderr: false,
+    Tty: false,
+    //TODO maybe add `'-c'`, `tail -f logs` here as additional
+    Cmd: ['up'],
+    OpenStdin: false,
+    StdinOnce: false,
+    HostConfig: {
+      Binds: ['/var/run/docker.sock:/var/run/docker.sock',
+        DOCKER_DIR[ARCH],
+        '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
+      ]
+    },
+    WorkingDir: '/usr/local/current-app-yaml'
+  }).then(function(container) {
+    return container.start();
+  }).then(function(container) {
+    /*
+    //TODO this will need to be fixed
+    For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
+    completes.
+     */
+    return container.stop();
+  }).then(function(container) {
+    deferred.resolve(container.id);
+  }).catch(function(error) {
+    console.log(error);
+    deferred.reject(error);
+  });
+
+
+  /*docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
     process.stdout,
     {
       HostConfig: {
@@ -38,7 +72,7 @@ function dockerComposeUp() {
       }
       console.log(data.StatusCode);
       deferred.resolve();
-  });
+  });*/
 
   return deferred.promise;
 }
