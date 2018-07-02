@@ -17,13 +17,13 @@ Getting Started
 
 Running with Docker
   1. Build new image `docker build . -t casacomputer/manager-api`
-  1. (Optional run in docker on raspberry pi) `sudo docker run -d \
+  1. (Optional run in docker on raspberry pi) `sudo docker run -d -p 3000:3000 \
                                    -v /var/run/docker.sock:/var/run/docker.sock \
                                    -v /usr/bin/docker:/usr/bin/docker \
                                    -v /usr/local/all-app-yamls:/usr/local/all-app-yamls \
                                    -v /usr/local/current-app-yaml:/usr/local/current-app-yaml \
                                    casacomputer/manager-api`
-  1. (Optional run in docker on mac) `sudo docker run -d \
+  1. (Optional run in docker on mac) `docker run -d -p 3000:3000 \
                                         -v /var/run/docker.sock:/var/run/docker.sock \
                                         -v /usr/local/bin/docker:/usr/bin/docker \
                                         -v /usr/local/all-app-yamls:/usr/local/all-app-yamls \
