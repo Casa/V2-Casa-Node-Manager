@@ -5,7 +5,7 @@ const winston = require('winston');
 const {format} = require('winston');
 const {combine, timestamp, printf} = format;
 const getNamespace = require('continuation-local-storage').getNamespace;
-const LOCAL = 'local'
+const LOCAL = 'local';
 require('winston-daily-rotate-file');
 
 //TODO: from config, absolute
