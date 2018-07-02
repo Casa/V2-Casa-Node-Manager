@@ -16,6 +16,8 @@ TODO we should use the --file command and explicity call out which docker compos
 having to copy the file into a directory on its own.
  */
 function dockerComposeUp() {
+  var deferred = q.defer();
+
   docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
     process.stdout,
     {
@@ -25,16 +27,20 @@ function dockerComposeUp() {
           '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
         ]
       },
-  //    WorkingDir: '/usr/local/current-app-yaml',
+      WorkingDir: '/usr/local/current-app-yaml',
       Env: [
         '--file=/usr/local/current-app-yaml/hello-world.yaml'
       ]
     }, function (error, data, container) {
       if(error) {
-        console.log('error starting:' + error + data)
+        console.log('error starting:' + error + data);
+        deferred.reject(error);
       }
       console.log(data.StatusCode);
+      deferred.resolve();
   });
+
+  return deferred.promise;
 }
 
 function getDigestFromPullOutput(events) {
