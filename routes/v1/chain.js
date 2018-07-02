@@ -47,11 +47,51 @@ router.post('/bitcoin/stop', function (req, res) {
 
 router.options('/');
 router.post('/bitcoin/install', function (req, res) {
+  function handleSuccess() {
+    res.json({
+      chain: 'bitcoin',
+      status: 'installed'
+    });
+  }
 
+  function handleError(error) {
+    var stringError = 'Unable to start bitcoin chain';
+    logger.error(stringError, 'chain', error);
+    res.status(500).json(stringError);
+  }
+
+  applicationLogic.install('bitcoin')
+    .then(handleSuccess)
+    .catch(handleError);
 });
 
 router.options('/');
 router.delete('/bitcoin/uninstall', function (req, res) {
+
+});
+
+router.options('/');
+router.post('/litecoin/install', function (req, res) {
+  function handleSuccess() {
+    res.json({
+      chain: 'litecoin',
+      status: 'installed'
+    });
+  }
+
+  function handleError(error) {
+    var stringError = 'Unable to start litecoin chain';
+    logger.error(stringError, 'chain', error);
+    res.status(500).json(stringError);
+  }
+
+  applicationLogic.install('litecoin')
+    .then(handleSuccess)
+    .catch(handleError);
+});
+
+router.options('/');
+router.delete('/litecoin/uninstall', function (req, res) {
 
 });
 

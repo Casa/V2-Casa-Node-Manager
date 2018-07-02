@@ -2,6 +2,46 @@ var Docker = require('dockerode');
 var docker = new Docker();
 var q = require('q');
 
+const ARCH = 'x86';
+const DOCKER_DIR={
+  'ARM':'/usr/bin/docker:/usr/bin/docker',
+  'x86':'/usr/local/bin/docker:/usr/bin/docker'
+};
+
+/*
+Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
+docker-compuse up and start the image.
+
+TODO we should use the --file command and explicity call out which docker compose file we are using. This avoids
+having to copy the file into a directory on its own.
+ */
+function dockerComposeUp() {
+  var deferred = q.defer();
+
+  docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
+    process.stdout,
+    {
+      HostConfig: {
+        Binds: ['/var/run/docker.sock:/var/run/docker.sock',
+          DOCKER_DIR[ARCH],
+          '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
+        ]
+      },
+      WorkingDir: '/usr/local/current-app-yaml',
+      Env: [
+        '--file=/usr/local/current-app-yaml/hello-world.yaml'
+      ]
+    }, function (error, data, container) {
+      if(error) {
+        console.log('error starting:' + error + data);
+        deferred.reject(error);
+      }
+      console.log(data.StatusCode);
+      deferred.resolve();
+  });
+
+  return deferred.promise;
+}
 
 function getDigestFromPullOutput(events) {
   var digest = '';
@@ -125,6 +165,7 @@ function stopAll() {
 }
 
 module.exports = {
+  dockerComposeUp: dockerComposeUp,
   getImage: getImage,
   pullImage: pullImage,
   runImage: runImage,
