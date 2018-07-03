@@ -3,6 +3,26 @@ const disk = require('../services/disk.js');
 
 var q = require('q');
 
+function getAvailable() {
+  var deferred = q.defer();
+
+  function handleSuccess(applicationNames) {
+    deferred.resolve(applicationNames);
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  //TODO get from warehouse instead of local disk
+  //we need to make the warehouse public first
+  disk.getAllApplicationNames()
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
 function start(application) {
   var deferred = q.defer();
 
@@ -121,6 +141,7 @@ function uninstall(application) {
 }
 
 module.exports = {
+  getAvailable: getAvailable,
   start: start,
   stop: stop,
   install: install,

@@ -13,6 +13,7 @@ const application = require('./routes/v1/application.js');
 const chain = require('./routes/v1/chain.js');
 const container = require('./routes/v1/container.js');
 const helloworld = require('./routes/helloworld.js');
+const install = require('./routes/v1/install.js');
 const app = express();
 
 // view engine setup
@@ -43,6 +44,7 @@ app.use('/v1/application', application);
 app.use('/v1/chain', chain);
 app.use('/v1/container', container);
 app.use('/helloworld', helloworld);
+app.use('/v1/install', install);
 
 app.use(function(req, res) {
   res.status(404).json();

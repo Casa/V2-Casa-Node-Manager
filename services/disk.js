@@ -48,6 +48,22 @@ function deleteFileInWorkingDir() {
   return deleteFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME)
 }
 
+function getAllApplicationNames() {
+  var deferred = q.defer();
+
+  fs.readdir(All_YAMLS_DIR, function(error, files) {
+
+    if(error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(files);
+    }
+
+  });
+
+  return deferred.promise;
+}
+
 function getDeviceSerial() {
   var deferred = q.defer();
 
@@ -68,5 +84,6 @@ function getDeviceSerial() {
 module.exports = {
   copyFileToWorkingDir: copyFileToWorkingDir,
   deleteFileInWorkingDir: deleteFileInWorkingDir,
+  getAllApplicationNames: getAllApplicationNames,
   getDeviceSerial: getDeviceSerial
 };
