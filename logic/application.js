@@ -1,13 +1,24 @@
 const docker = require('../services/docker.js');
 const disk = require('../services/disk.js');
+const _ = require('underscore');
 
 var q = require('q');
 
-function getAvailable() {
+function getAvailable(application) {
+
   var deferred = q.defer();
 
   function handleSuccess(applicationNames) {
-    deferred.resolve(applicationNames);
+
+    var fileredList = [];
+
+    _.each(applicationNames, function(applicationName) {
+      if(applicationName.includes(application)) {
+        fileredList.push(applicationName);
+      }
+    });
+
+    deferred.resolve(fileredList);
   }
 
   function handleError(error) {

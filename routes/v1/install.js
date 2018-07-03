@@ -7,17 +7,19 @@ var q = require('q');
 router.options('/available');
 router.get('/available', function (req, res) {
 
+  const application = req.query.application || '';
+
   function handleSuccess(applicationNames) {
     res.json(applicationNames);
   }
 
   function handleError(error) {
-    var stringError = 'Unable to start bitcoin chain';
-    logger.error(stringError, 'chain', error);
+    var stringError = 'Unable to find any available applications';
+    logger.error(stringError, 'install', error);
     res.status(500).json(stringError);
   }
 
-  applicationLogic.getAvailable()
+  applicationLogic.getAvailable(application)
     .then(handleSuccess)
     .catch(handleError);
 });
