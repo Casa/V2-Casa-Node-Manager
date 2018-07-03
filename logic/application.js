@@ -1,3 +1,7 @@
+/*
+All business logic goes here.
+ */
+
 const dockerLogic = require('../logic/docker.js');
 const diskLogic = require('../logic/disk.js');
 const _ = require('underscore');
@@ -117,10 +121,30 @@ function install(name, chain) {
   }
 
   function ensureApplicationNotInstalled(fileName) {
+
+    var deferred2 = q.defer();
+
+    function handleSuccess() {
+      //an existing image is found. We should not install this application again.
+      deferred2.reject({
+        code: 'APPLICATION_ALREADY_INSTALLED',
+        text: 'Application has already been installed: ' + fileName
+      });
+    }
+
+    function handleError() {
+      //an existing image is not found. We should install this application.
+      deferred2.resolve(fileName);
+    }
+
     //example chain fileName bitcoind_testnet.yml
     //example application fileName = plex.yml
     const dockerContainerName = fileName.split('.')[0];
-    return dockerLogic.getContainer(dockerContainerName);
+    dockerLogic.getContainer(dockerContainerName)
+      .then(handleSuccess)
+      .catch(handleError);
+
+    return deferred2.promise;
   }
 
   function handleSuccess() {
@@ -134,9 +158,9 @@ function install(name, chain) {
   getAvailable(name, chain)
     .then(ensureOneApplicationAvailable)
     .then(ensureApplicationNotInstalled)
-    .then(disk.copyFileToWorkingDir)
-    .then(docker.dockerComposeUp)
-    .then(disk.deleteFileInWorkingDir)
+    .then(diskLogic.copyFileToWorkingDir)
+    .then(dockerLogic.composeUp)
+    .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
 

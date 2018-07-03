@@ -1,10 +1,10 @@
+/*
+All disk manager code goes here.
+ */
+
 var q = require('q');
 var rl = require('readline');
 var fs = require('fs');
-
-const All_YAMLS_DIR = '/usr/local/all-app-yamls';
-const WORKING_DIR = '/usr/local/current-app-yaml';
-const DEFAULT_DOCKER_COMPOSE__FILE_NAME = 'docker-compose.yaml';
 
 function copyFile(source, target) {
   var deferred = q.defer();
@@ -25,12 +25,6 @@ function copyFile(source, target) {
   return deferred.promise;
 }
 
-function copyFileToWorkingDir(fileName) {
-
-  return copyFile(All_YAMLS_DIR + '/' + fileName, WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME);
-
-}
-
 function deleteFile(filePath) {
   var deferred = q.defer();
 
@@ -44,14 +38,10 @@ function deleteFile(filePath) {
   return deferred.promise;
 }
 
-function deleteFileInWorkingDir() {
-  return deleteFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME)
-}
-
-function getAllApplicationNames() {
+function getFileNamesInDirectory(directory) {
   var deferred = q.defer();
 
-  fs.readdir(All_YAMLS_DIR, function(error, files) {
+  fs.readdir(directory, function(error, files) {
 
     if(error) {
       deferred.reject(error);
@@ -82,8 +72,8 @@ function getDeviceSerial() {
 }
 
 module.exports = {
-  copyFileToWorkingDir: copyFileToWorkingDir,
-  deleteFileInWorkingDir: deleteFileInWorkingDir,
-  getAllApplicationNames: getAllApplicationNames,
+  copyFile: copyFile,
+  deleteFile: deleteFile,
+  getFileNamesInDirectory: getFileNamesInDirectory,
   getDeviceSerial: getDeviceSerial
 };
