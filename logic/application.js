@@ -4,7 +4,13 @@ const _ = require('underscore');
 
 var q = require('q');
 
-function getAvailable(application) {
+/*
+Gets all applications available to install. You can filter by application name and chain.
+ */
+function getAvailable(application, chain) {
+
+  application = application || '';
+  chain = chain || '';
 
   var deferred = q.defer();
 
@@ -13,7 +19,7 @@ function getAvailable(application) {
     var fileredList = [];
 
     _.each(applicationNames, function(applicationName) {
-      if(applicationName.includes(application)) {
+      if(applicationName.includes(application) && applicationName.includes(chain)) {
         fileredList.push(applicationName);
       }
     });
@@ -96,35 +102,11 @@ function install(application) {
     deferred.reject(error);
   }
 
-  //TODO make this more generic.
-  //how should we handle mulitple implementations of chains
-  if(application === 'bitcoin') {
-    disk.copyFileToWorkingDir('bitcoind-testnet')
-      .then(docker.dockerComposeUp)
-      .then(disk.deleteFileInWorkingDir)
-      .then(handleSuccess)
-      .catch(handleError)
-  } else if (application === 'hello-world') {
-    disk.copyFileToWorkingDir('hello-world')
-      .then(docker.dockerComposeUp)
-      .then(disk.deleteFileInWorkingDir)
-      .then(handleSuccess)
-      .catch(handleError)
-  } else if (application === 'litecoin') {
-    disk.copyFileToWorkingDir('litecoind-testnet')
-      .then(docker.dockerComposeUp)
-      .then(disk.deleteFileInWorkingDir)
-      .then(handleSuccess)
-      .catch(handleError)
-  } else if (application === 'plex') {
-    disk.copyFileToWorkingDir('plex')
-      .then(docker.dockerComposeUp)
-      .then(disk.deleteFileInWorkingDir)
-      .then(handleSuccess)
-      .catch(handleError)
-  } else {
-    deferred.reject('unknown application: ' + application)
-  }
+  disk.copyFileToWorkingDir(application)
+    .then(docker.dockerComposeUp)
+    .then(disk.deleteFileInWorkingDir)
+    .then(handleSuccess)
+    .catch(handleError);
 
   return deferred.promise;
 }

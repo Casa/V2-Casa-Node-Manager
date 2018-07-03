@@ -27,7 +27,7 @@ function copyFile(source, target) {
 
 function copyFileToWorkingDir(fileName) {
 
-  return copyFile(All_YAMLS_DIR + '/' + fileName + '.yaml', WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME);
+  return copyFile(All_YAMLS_DIR + '/' + fileName, WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME);
 
 }
 
