@@ -77,6 +77,10 @@ function dockerComposeUp() {
   return deferred.promise;
 }
 
+function getContainer(containerName) {
+  return docker.getContainer(containerName);
+}
+
 function getContainers(all) {
   var deferred = q.defer();
 
@@ -224,6 +228,7 @@ function stopAll() {
 module.exports = {
   dockerComposeUp: dockerComposeUp,
   getAllContainers: getAllContainers,
+  getContainer: getContainer,
   getImage: getImage,
   getRunningContainers: getRunningContainers,
   pullImage: pullImage,

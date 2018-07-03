@@ -1,5 +1,5 @@
-const docker = require('../services/docker.js');
-const disk = require('../services/disk.js');
+const dockerLogic = require('../logic/docker.js');
+const diskLogic = require('../logic/disk.js');
 const _ = require('underscore');
 
 var q = require('q');
@@ -33,13 +33,16 @@ function getAvailable(application, chain) {
 
   //TODO get from warehouse instead of local disk
   //we need to make the warehouse public first
-  disk.getAllApplicationNames()
+  diskLogic.getAllApplicationNames()
     .then(handleSuccess)
     .catch(handleError);
 
   return deferred.promise;
 }
 
+
+//TODO cleanup
+/*
 function start(application) {
   var deferred = q.defer();
 
@@ -85,22 +88,7 @@ function stop(application) {
 
   return deferred.promise;
 }
-
-function ensureOneApplicationAvailable(applications) {
-  if(applications.length === 0) {
-    throw {
-      code: 'NO_APPLICATION_FOUND',
-      text: 'There are no applications that meet the given specifications.'
-    }
-  } else if(applications.length > 1) {
-    throw {
-      code: 'MULTIPLE_APPLICATIONS_FOUND',
-      text: 'Multiple applications meet the given specifications. Please be more specific.'
-    }
-  }
-
-  return applications[0];
-}
+*/
 
 /*
 Install an image to this device.
@@ -112,6 +100,29 @@ function install(name, chain) {
 
   chain = chain || '';
 
+  function ensureOneApplicationAvailable(applications) {
+    if(applications.length === 0) {
+      throw {
+        code: 'NO_APPLICATION_FOUND',
+        text: 'There are no applications that meet the given specifications.'
+      }
+    } else if(applications.length > 1) {
+      throw {
+        code: 'MULTIPLE_APPLICATIONS_FOUND',
+        text: 'Multiple applications meet the given specifications. Please be more specific.'
+      }
+    }
+
+    return applications[0];
+  }
+
+  function ensureApplicationNotInstalled(fileName) {
+    //example chain fileName bitcoind_testnet.yml
+    //example application fileName = plex.yml
+    const dockerContainerName = fileName.split('.')[0];
+    return dockerLogic.getContainer(dockerContainerName);
+  }
+
   function handleSuccess() {
     deferred.resolve();
   }
@@ -122,6 +133,7 @@ function install(name, chain) {
 
   getAvailable(name, chain)
     .then(ensureOneApplicationAvailable)
+    .then(ensureApplicationNotInstalled)
     .then(disk.copyFileToWorkingDir)
     .then(docker.dockerComposeUp)
     .then(disk.deleteFileInWorkingDir)
@@ -155,8 +167,8 @@ function uninstall(application) {
 
 module.exports = {
   getAvailable: getAvailable,
-  start: start,
-  stop: stop,
+  //start: start,
+  //stop: stop,
   install: install,
   uninstall: uninstall
 };
