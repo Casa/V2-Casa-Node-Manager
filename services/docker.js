@@ -77,6 +77,29 @@ function dockerComposeUp() {
   return deferred.promise;
 }
 
+function getContainers(all) {
+  var deferred = q.defer();
+
+  docker.listContainers({all: all}, function (error, containers) {
+
+    if(error)  {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(containers);
+    }
+  });
+
+  return deferred.promise;
+}
+
+function getRunningContainers() {
+  return getContainers(false);
+}
+
+function getAllContainers() {
+  return getContainers(true);
+}
+
 function getDigestFromPullOutput(events) {
   var digest = '';
 
@@ -200,7 +223,9 @@ function stopAll() {
 
 module.exports = {
   dockerComposeUp: dockerComposeUp,
+  getAllContainers: getAllContainers,
   getImage: getImage,
+  getRunningContainers: getRunningContainers,
   pullImage: pullImage,
   runImage: runImage,
   stop: stop,

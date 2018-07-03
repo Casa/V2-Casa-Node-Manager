@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../resources/logger.js');
+const docker = require('../../services/docker.js');
 var q = require('q');
-
-var Docker = require('dockerode');
-var docker = new Docker();
 
 router.options('/');
 router.get('/', function (req, res) {
+
+  const all = JSON.parse(req.query.all || 'false');
 
   function handleSuccess(containers) {
     var result = {
@@ -17,27 +17,20 @@ router.get('/', function (req, res) {
     res.json(result);
   }
 
-  function getImages() {
-    var deferred = q.defer();
-
-    docker.listContainers(function (error, containers) {
-
-      if(error)  {
-        deferred.reject(error);
-      } else {
-        deferred.resolve(containers);
-      }
-    });
-
-    return deferred.promise;
-  }
-
   function handleError(error) {
     logger.error('Unable to generate address', 'address', error);
     res.status(500).json('Unable to generate address');
   }
 
-  getImages()
+  //TODO this should call logic layer, not services directly
+  var promise;
+  if(all == true) {
+    promise = docker.getAllContainers();
+  } else {
+    promise = docker.getRunningContainers();
+  }
+
+  promise
     .then(handleSuccess)
     .catch(handleError);
 });

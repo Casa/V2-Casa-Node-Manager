@@ -56,8 +56,12 @@ router.post('/chain/:name/:chain', function (req, res) {
     return applications[0];
   }
 
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
+  function handleSuccess() {
+    res.json({
+      application: name,
+      chain: chain,
+      status: 'installed'
+    });
   }
 
   function handleError(error) {
@@ -101,8 +105,11 @@ router.post('/application/:name/', function (req, res) {
     return applications[0];
   }
 
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
+  function handleSuccess() {
+    res.json({
+      application: name,
+      status: 'installed'
+    });
   }
 
   function handleError(error) {
