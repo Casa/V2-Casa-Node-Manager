@@ -40,22 +40,6 @@ router.post('/chain/:name/:chain', function (req, res) {
     return;
   }
 
-  function ensureOneApplicationAvailable(applications) {
-    if(applications.length === 0) {
-      throw {
-        code: 'NO_APPLICATION_FOUND',
-        text: 'There are no applications that meet the given specifications.'
-      }
-    } else if(applications.length > 1) {
-      throw {
-        code: 'MULTIPLE_APPLICATIONS_FOUND',
-        text: 'Multiple applications meet the given specifications. Please be more specific.'
-      }
-    }
-
-    return applications[0];
-  }
-
   function handleSuccess() {
     res.json({
       application: name,
@@ -70,9 +54,7 @@ router.post('/chain/:name/:chain', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.getAvailable(name, chain)
-    .then(ensureOneApplicationAvailable)
-    .then(applicationLogic.install)
+  applicationLogic.install(name, chain)
     .then(handleSuccess)
     .catch(handleError);
 });
@@ -89,22 +71,6 @@ router.post('/application/:name/', function (req, res) {
     return;
   }
 
-  function ensureOneApplicationAvailable(applications) {
-    if(applications.length === 0) {
-      throw {
-        code: 'NO_APPLICATION_FOUND',
-        text: 'There are no applications that meet the given specifications.'
-      }
-    } else if(applications.length > 1) {
-      throw {
-        code: 'MULTIPLE_APPLICATIONS_FOUND',
-        text: 'Multiple applications meet the given specifications. Please be more specific.'
-      }
-    }
-
-    return applications[0];
-  }
-
   function handleSuccess() {
     res.json({
       application: name,
@@ -118,9 +84,7 @@ router.post('/application/:name/', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.getAvailable(name)
-    .then(ensureOneApplicationAvailable)
-    .then(applicationLogic.install)
+  applicationLogic.install(name)
     .then(handleSuccess)
     .catch(handleError);
 });

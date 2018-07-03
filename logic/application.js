@@ -86,13 +86,31 @@ function stop(application) {
   return deferred.promise;
 }
 
+function ensureOneApplicationAvailable(applications) {
+  if(applications.length === 0) {
+    throw {
+      code: 'NO_APPLICATION_FOUND',
+      text: 'There are no applications that meet the given specifications.'
+    }
+  } else if(applications.length > 1) {
+    throw {
+      code: 'MULTIPLE_APPLICATIONS_FOUND',
+      text: 'Multiple applications meet the given specifications. Please be more specific.'
+    }
+  }
+
+  return applications[0];
+}
+
 /*
 Install an image to this device.
 
 //TODO provision space and permissions on hard drive.
  */
-function install(application) {
+function install(name, chain) {
   var deferred = q.defer();
+
+  chain = chain || '';
 
   function handleSuccess() {
     deferred.resolve();
@@ -102,7 +120,9 @@ function install(application) {
     deferred.reject(error);
   }
 
-  disk.copyFileToWorkingDir(application)
+  getAvailable(name, chain)
+    .then(ensureOneApplicationAvailable)
+    .then(disk.copyFileToWorkingDir)
     .then(docker.dockerComposeUp)
     .then(disk.deleteFileInWorkingDir)
     .then(handleSuccess)
