@@ -8,22 +8,27 @@ var q = require('q');
 
 const All_YAMLS_DIR = '/usr/local/all-app-yamls';
 const WORKING_DIR = '/usr/local/current-app-yaml';
-const DEFAULT_DOCKER_COMPOSE__FILE_NAME = 'docker-compose.yaml';
+const DEFAULT_DOCKER_COMPOSE_FILE_NAME = 'docker-compose.yaml';
 
 function copyFileToWorkingDir(fileName) {
-  return diskService.copyFile(All_YAMLS_DIR + '/' + fileName, WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME);
+  return diskService.copyFile(All_YAMLS_DIR + '/' + fileName, WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE_FILE_NAME);
 }
 
 function deleteFileInWorkingDir() {
-  return diskService.deleteFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE__FILE_NAME)
+  return diskService.deleteFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE_FILE_NAME)
 }
 
 function getAllApplicationNames() {
   return diskService.getFileNamesInDirectory(All_YAMLS_DIR);
 }
 
+function readCurrentDockerComposeFile() {
+  return diskService.readFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE_FILE_NAME);
+}
+
 module.exports = {
   copyFileToWorkingDir: copyFileToWorkingDir,
   deleteFileInWorkingDir: deleteFileInWorkingDir,
-  getAllApplicationNames: getAllApplicationNames
+  getAllApplicationNames: getAllApplicationNames,
+  readCurrentDockerComposeFile: readCurrentDockerComposeFile
 };

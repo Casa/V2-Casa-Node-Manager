@@ -71,9 +71,24 @@ function getDeviceSerial() {
   return deferred.promise;
 }
 
+function readFile(filePath) {
+  var deferred = q.defer();
+
+  fs.readFile(filePath, 'utf8', function (error, data) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(data);
+    }
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   copyFile: copyFile,
   deleteFile: deleteFile,
   getFileNamesInDirectory: getFileNamesInDirectory,
-  getDeviceSerial: getDeviceSerial
+  getDeviceSerial: getDeviceSerial,
+  readFile: readFile
 };

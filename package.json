@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "body-parser": "^1.18.2",
+    "config": "^1.30.0",
     "continuation-local-storage": "^3.2.1",
     "cors": "^2.8.4",
     "debug": "^2.6.1",
     "dockerode": "^2.5.5",
+    "dotenv": "^6.0.0",
     "express": "^4.16.1",
     "express-session": "^1.15.6",
     "fs": "0.0.1-security",

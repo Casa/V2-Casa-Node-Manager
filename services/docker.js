@@ -6,6 +6,14 @@ var Docker = require('dockerode');
 var docker = new Docker();
 var q = require('q');
 
+const auth = {
+  username: process.env.DOCKER_USERNAME,
+  password: process.env.DOCKER_PASSWORD,
+  serveraddress: 'https://index.docker.io/v1',
+  //auth: '',
+  email: 'borglin.me@gmail.com',
+};
+
 /*
 Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
 docker-compuse up and start the image.
@@ -150,7 +158,8 @@ function getImage(digest) {
 function pullImage(applicationName) {
   var deferred = q.defer();
 
-  docker.pull(applicationName, function (error, stream) {
+  //TODO remove auth once casacomputer images are made public
+  docker.pull(applicationName, { authConfig: auth },function (error, stream) {
     // streaming output from pull...
 
     if(error)  {

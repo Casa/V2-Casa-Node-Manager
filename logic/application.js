@@ -139,7 +139,10 @@ function install(name, chain) {
 
     //example chain fileName bitcoind_testnet.yml
     //example application fileName = plex.yml
-    const dockerContainerName = fileName.split('.')[0];
+    var dockerContainerName = fileName.split('.')[0];
+    //switch - for _
+    dockerContainerName = dockerContainerName.replace('-', '_');
+
     dockerLogic.getContainer(dockerContainerName)
       .then(handleSuccess)
       .catch(handleError);
@@ -159,6 +162,8 @@ function install(name, chain) {
     .then(ensureOneApplicationAvailable)
     .then(ensureApplicationNotInstalled)
     .then(diskLogic.copyFileToWorkingDir)
+    .then(dockerLogic.getCurrentComposeFileImageName)
+    //.then(dockerLogic.pullImage)
     .then(dockerLogic.composeUp)
     .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)

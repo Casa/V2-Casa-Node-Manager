@@ -3,6 +3,7 @@ All docker business logic goes here.
  */
 
 const dockerService = require('../services/docker.js');
+const diskLogic = require('../logic/disk.js');
 
 var _ = require('underscore');
 var q = require('q');
@@ -35,12 +36,12 @@ function getContainer(name) {
 
   function findContainer(containers) {
 
-    _.each(containers, function(container) {
-      if(_.contains(container.Names, '/' + name)) {
-        deferred.resolve(container);
+    for(var i = 0; i < containers.length; i++) {
+      if(_.contains(containers[i].Names, '/' + name)) {
+        deferred.resolve(containers[i]);
         return;
       }
-    });
+    }
 
     deferred.reject({
       code: 'CONTAINER_NOT_FOUND',
@@ -55,13 +56,49 @@ function getContainer(name) {
 
 }
 
+function getCurrentComposeFileImageName() {
+  var deferred = q.defer();
+
+  function handleSuccess(fileContents) {
+    try {
+      var secondHalf = fileContents.split('image:')[1];
+      //clean up edges
+      secondHalf = secondHalf.trim();
+      //split on whitespace and take the first chunk
+      var imageName = secondHalf.split(/(\s+)/)[0];
+      deferred.resolve(imageName);
+    } catch (error) {
+      deferred.reject({
+        code: 'COULD_NOT_PARSE_YML',
+        text: 'Could not parse the yml file to find the image.'
+      })
+    }
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  diskLogic.readCurrentDockerComposeFile()
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
 function getRunningContainers() {
   return dockerService.getRunningContainers();
+}
+
+function pullImage(imageName) {
+  return dockerService.pullImage(imageName);
 }
 
 module.exports = {
   composeUp: composeUp,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
-  getRunningContainers: getRunningContainers
+  getCurrentComposeFileImageName: getCurrentComposeFileImageName,
+  getRunningContainers: getRunningContainers,
+  pullImage: pullImage
 };

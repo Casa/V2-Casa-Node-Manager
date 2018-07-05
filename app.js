@@ -3,11 +3,12 @@ const path = require('path');
 
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const requestCorrelationMiddleware = require('./resources/requestCorrelationId.js');
-
-const logger = require('./resources/logger.js');
 
 const morgan = require('morgan');
+require('dotenv').config();
+
+const requestCorrelationMiddleware = require('./resources/requestCorrelationId.js');
+const logger = require('./resources/logger.js');
 
 const application = require('./routes/v1/application.js');
 const chain = require('./routes/v1/chain.js');

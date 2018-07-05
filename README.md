@@ -13,6 +13,7 @@ Getting Started
   1. Install brew `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
   1. Install node `brew install node`
   1. Run `npm install`
+  1. Copy .env.default file to .env and supply environment variables
   1. Run `npm start`
 
 Running with Docker
