@@ -3,6 +3,7 @@ All docker business logic goes here.
  */
 
 const dockerService = require('../services/docker.js');
+const bashService = require('../services/bash.js');
 const diskLogic = require('../logic/disk.js');
 
 var _ = require('underscore');
@@ -13,6 +14,27 @@ const DOCKER_DIR={
   'ARM':'/usr/bin/docker:/usr/bin/docker',
   'x86':'/usr/local/bin/docker:/usr/bin/docker'
 };
+
+function up() {
+
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    console.log('done');
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    console.log('something went wrong:', error.message);
+    deferred.reject(error);
+  }
+
+  bashService.up({ cwd: '/usr/local/current-app-yaml', log: true })
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
 
 function composeUp() {
 
@@ -100,5 +122,6 @@ module.exports = {
   getContainer: getContainer,
   getCurrentComposeFileImageName: getCurrentComposeFileImageName,
   getRunningContainers: getRunningContainers,
-  pullImage: pullImage
+  pullImage: pullImage,
+  up: up
 };

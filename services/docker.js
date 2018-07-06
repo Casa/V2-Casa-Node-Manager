@@ -46,6 +46,13 @@ function composeUp(image, binds, workingDir) {
     For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
     completes.
      */
+    return container.attach();
+  }).then(function(container) {
+    /*
+    //TODO this will need to be fixed
+    For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
+    completes.
+     */
     return container.stop();
   }).then(function(container) {
     deferred.resolve(container.id);

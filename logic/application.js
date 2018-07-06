@@ -164,7 +164,7 @@ function install(name, chain) {
     .then(diskLogic.copyFileToWorkingDir)
     .then(dockerLogic.getCurrentComposeFileImageName)
     //.then(dockerLogic.pullImage)
-    .then(dockerLogic.composeUp)
+    .then(dockerLogic.up)
     .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
