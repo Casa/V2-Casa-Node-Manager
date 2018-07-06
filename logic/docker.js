@@ -20,12 +20,10 @@ function up() {
   var deferred = q.defer();
 
   function handleSuccess() {
-    console.log('done');
     deferred.resolve();
   }
 
   function handleError(error) {
-    console.log('something went wrong:', error.message);
     deferred.reject(error);
   }
 
@@ -36,6 +34,7 @@ function up() {
   return deferred.promise;
 }
 
+//TODO delete
 function composeUp() {
 
   const image = 'casacomputer/docker-compose:' + ARCH;
