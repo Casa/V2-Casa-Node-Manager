@@ -103,6 +103,7 @@ function install(name, chain) {
   var deferred = q.defer();
 
   chain = chain || '';
+  var fileName = '';
 
   function ensureOneApplicationAvailable(applications) {
     if(applications.length === 0) {
@@ -117,37 +118,48 @@ function install(name, chain) {
       }
     }
 
-    return applications[0];
+    fileName = applications[0];
   }
 
-  function ensureApplicationNotInstalled(fileName) {
+  function ensureApplicationNotInstalled() {
 
     var deferred2 = q.defer();
 
-    function handleSuccess() {
-      //an existing image is found. We should not install this application again.
-      deferred2.reject({
-        code: 'APPLICATION_ALREADY_INSTALLED',
-        text: 'Application has already been installed: ' + fileName
-      });
-    }
+    function handleSuccess(applicationNames) {
 
-    function handleError() {
+      for(let i = 0; i < applicationNames.length; i++) {
+        if(fileName === applicationNames[i]) {
+          //an existing image is found. We should not install this application again.
+          deferred2.reject({
+            code: 'APPLICATION_ALREADY_INSTALLED',
+            text: 'Application has already been installed: ' + fileName
+          });
+          return;
+        }
+      }
+
       //an existing image is not found. We should install this application.
       deferred2.resolve(fileName);
     }
 
+    //TODO this is not handling errors properly
+    function handleError(error) {
+      deferred2.reject(error);
+    }
+
     //example chain fileName bitcoind_testnet.yml
     //example application fileName = plex.yml
-    var dockerContainerName = fileName.split('.')[0];
-    //switch - for _
-    dockerContainerName = dockerContainerName.replace('-', '_');
+    var applicationName = fileName.split('.')[0];
 
-    dockerLogic.getContainer(dockerContainerName)
+    diskLogic.getInstalledApplicationNames(applicationName)
       .then(handleSuccess)
       .catch(handleError);
 
     return deferred2.promise;
+  }
+
+  function copyFileToInstallDir() {
+    return diskLogic.copyFileToInstallDir(fileName);
   }
 
   function handleSuccess() {
@@ -165,6 +177,7 @@ function install(name, chain) {
     .then(dockerLogic.getCurrentComposeFileImageName)
     //.then(dockerLogic.pullImage)
     .then(dockerLogic.up)
+    .then(copyFileToInstallDir)
     .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
