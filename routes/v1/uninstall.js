@@ -21,7 +21,7 @@ router.get('/available', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.getAvailable(application)
+  applicationLogic.getUninstallAvailable(application)
     .then(handleSuccess)
     .catch(handleError);
 });

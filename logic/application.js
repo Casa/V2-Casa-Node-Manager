@@ -45,6 +45,43 @@ function getAvailable(application, chain) {
 }
 
 
+/*
+Gets all applications available to install. You can filter by application name and chain.
+ */
+function getUninstallAvailable(application, chain) {
+
+  application = application || '';
+  chain = chain || '';
+
+  var deferred = q.defer();
+
+  function handleSuccess(applicationNames) {
+
+    var fileredList = [];
+
+    _.each(applicationNames, function(applicationName) {
+      if(applicationName.includes(application) && applicationName.includes(chain)) {
+        fileredList.push(applicationName);
+      }
+    });
+
+    deferred.resolve(fileredList);
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  //TODO get from warehouse instead of local disk
+  //we need to make the warehouse public first
+  diskLogic.getInstalledApplicationNames()
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+
 //TODO cleanup
 /*
 function start(application) {
@@ -196,19 +233,14 @@ function uninstall(application) {
     deferred.reject(error);
   }
 
-  if(application === 'bitcoin') {
-    docker.stop('3bc4cc0ed2a1')
-      .then(handleSuccess)
-      .catch(handleError)
-  } else {
-    deferred.reject('unknown application: ' + application)
-  }
+  diskLogic.getInstalledApplicationNames()
 
   return deferred.promise;
 }
 
 module.exports = {
   getAvailable: getAvailable,
+  getUninstallAvailable: getUninstallAvailable,
   //start: start,
   //stop: stop,
   install: install,
