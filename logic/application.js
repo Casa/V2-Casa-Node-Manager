@@ -200,7 +200,12 @@ function install(name, network) {
   }
 
   function copyFileToInstallDir() {
-    return diskLogic.copyFileToInstallDir(fileName);
+    var toFileName = fileName;
+    if(network !== '') {
+      var parts = fileName.split('.');
+      toFileName = parts[0] + '-' + network + '.' + parts[1];
+    }
+    return diskLogic.copyFileToInstallDir(toFileName);
   }
 
   /*
@@ -243,12 +248,20 @@ function uninstall(application, network) {
   var fileName = '';
 
   function ensureOneApplicationAvailable(applications) {
-    if(applications.length === 0) {
+
+    var applicationsFound = 0;
+    for(let i = 0; i < applications.length; i++) {
+      if(applications[i].includes(application)) {
+        applicationsFound++;
+      }
+    }
+
+    if(applicationsFound === 0) {
       throw {
         code: 'NO_APPLICATION_FOUND',
         text: 'There are no applications that meet the given specifications.'
       }
-    } else if(applications.length > 1) {
+    } else if(applicationsFound > 1) {
       throw {
         code: 'MULTIPLE_APPLICATIONS_FOUND',
         text: 'Multiple applications meet the given specifications. Please be more specific.'

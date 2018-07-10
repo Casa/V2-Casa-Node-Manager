@@ -4,13 +4,18 @@ All business logic for disk manager goes here.
 
 const diskService = require('../services/disk.js');
 
-var q = require('q');
-
 const All_YAMLS_DIR = '/usr/local/all-app-yamls';
 const INSTALLED_DIR = '/usr/local/installed';
 const WORKING_DIR = '/usr/local/current-app-yaml';
 const DEFAULT_DOCKER_COMPOSE_FILE_NAME = 'docker-compose.yaml';
 
+/**
+ * Public
+ * Copy the default docker-compose.yml file from the working directory to the install directory. Use the given file
+ * name as the new file name.
+ * @param fileName
+ * @returns {*}
+ */
 function copyFileToInstallDir(fileName) {
   return diskService.copyFile(WORKING_DIR + '/' + DEFAULT_DOCKER_COMPOSE_FILE_NAME, INSTALLED_DIR + '/' + fileName);
 }
