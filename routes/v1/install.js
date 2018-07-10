@@ -27,14 +27,14 @@ router.get('/available', function (req, res) {
 });
 
 router.options('/chain');
-router.post('/chain/:name/:chain', function (req, res) {
+router.post('/chain/:name/:network', function (req, res) {
 
   const name = req.params.name;
-  const chain = req.params.chain;
+  const network = req.params.network;
 
   try {
     validator.isAlphanumeric(name);
-    validator.isValidChain(chain);
+    validator.isValidNetwork(network);
   } catch (error) {
     res.status(400).json(error);
     return;
@@ -43,7 +43,7 @@ router.post('/chain/:name/:chain', function (req, res) {
   function handleSuccess() {
     res.json({
       application: name,
-      chain: chain,
+      network: network,
       status: 'installed'
     });
   }
@@ -54,7 +54,7 @@ router.post('/chain/:name/:chain', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.install(name, chain)
+  applicationLogic.install(name, network)
     .then(handleSuccess)
     .catch(handleError);
 });

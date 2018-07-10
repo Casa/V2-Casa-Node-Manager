@@ -11,10 +11,10 @@ var q = require('q');
 /*
 Gets all applications available to install. You can filter by application name and chain.
  */
-function getAvailable(application, chain) {
+function getAvailable(application, network) {
 
   application = application || '';
-  chain = chain || '';
+  network = network || '';
 
   var deferred = q.defer();
 
@@ -22,8 +22,12 @@ function getAvailable(application, chain) {
 
     var fileredList = [];
 
+    //TODO we should verify network somehow
+    //I think we should add a config file along side the yaml which has meta data about the application
+    //then verify it here
+
     _.each(applicationNames, function(applicationName) {
-      if(applicationName.includes(application) && applicationName.includes(chain)) {
+      if(applicationName.includes(application)) {
         fileredList.push(applicationName);
       }
     });
@@ -136,11 +140,15 @@ Install an image to this device.
 
 //TODO provision space and permissions on hard drive.
  */
-function install(name, chain) {
+function install(name, network) {
   var deferred = q.defer();
 
+<<<<<<< HEAD
   chain = chain || '';
   var fileName = '';
+=======
+  network = network || '';
+>>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
 
   function ensureOneApplicationAvailable(applications) {
     if(applications.length === 0) {
@@ -195,8 +203,18 @@ function install(name, chain) {
     return deferred2.promise;
   }
 
+<<<<<<< HEAD
   function copyFileToInstallDir() {
     return diskLogic.copyFileToInstallDir(fileName);
+=======
+  /*
+  Pass options to docker compose up. These will typically be environment variables.
+   */
+  function passOptions() {
+    return { env: {
+        NETWORK: network
+      }};
+>>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
   }
 
   function handleSuccess() {
@@ -207,12 +225,13 @@ function install(name, chain) {
     deferred.reject(error);
   }
 
-  getAvailable(name, chain)
+  getAvailable(name, network)
     .then(ensureOneApplicationAvailable)
     .then(ensureApplicationNotInstalled)
     .then(diskLogic.copyFileToWorkingDir)
     .then(dockerLogic.getCurrentComposeFileImageName)
     //.then(dockerLogic.pullImage)
+    .then(passOptions)
     .then(dockerLogic.up)
     .then(copyFileToInstallDir)
     .then(diskLogic.deleteFileInWorkingDir)

@@ -11,9 +11,10 @@ const auth = {
   password: process.env.DOCKER_PASSWORD,
   serveraddress: 'https://index.docker.io/v1',
   //auth: '',
-  email: 'borglin.me@gmail.com',
+  //email: 'borglin.me@gmail.com'
 };
 
+<<<<<<< HEAD
 /*
 Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
 docker-compuse up and start the image.
@@ -104,6 +105,8 @@ function composeUp(image, binds, workingDir) {
  * @param containerName
  * @returns {Container}
  */
+=======
+>>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
 function getContainer(containerName) {
   return docker.getContainer(containerName);
 }
@@ -258,7 +261,6 @@ function stopAll() {
 }
 
 module.exports = {
-  composeUp: composeUp,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
   getImageByDigest: getImageByDigest,

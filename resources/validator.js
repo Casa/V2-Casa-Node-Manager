@@ -36,12 +36,12 @@ function isDefined(object) {
 
 /*
 Validate we support the given chain.
-//TODO support simnet
  */
 
-function isValidChain(chain) {
-  if(chain === 'mainnet' ||
-    chain === 'testnet') {
+function isValidNetwork(network) {
+  if(network === 'mainnet' ||
+    network === 'testnet' ||
+    network === 'simnet') {
     return;
   } else {
     throw {
@@ -54,5 +54,5 @@ function isValidChain(chain) {
 module.exports = {
   isAlpha: isAlpha,
   isAlphanumeric: isAlphanumeric,
-  isValidChain: isValidChain
+  isValidNetwork: isValidNetwork
 };
