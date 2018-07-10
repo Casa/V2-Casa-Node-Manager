@@ -11,93 +11,8 @@ const auth = {
   password: process.env.DOCKER_PASSWORD,
   serveraddress: 'https://index.docker.io/v1',
   //auth: '',
-  email: 'borglin.me@gmail.com',
+  //email: 'borglin.me@gmail.com'
 };
-
-/*
-Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
-docker-compuse up and start the image.
-
-TODO we should use the --file command and explicity call out which docker compose file we are using. This avoids
-having to copy the file into a directory on its own.
- */
-function composeUp(image, binds, workingDir) {
-  var deferred = q.defer();
-
-  docker.createContainer({
-    Image: image,
-    AttachStdin: false,
-    AttachStdout: false,
-    AttachStderr: false,
-    Tty: false,
-    //TODO maybe add `'-c'`, `tail -f logs` here as additional
-    Cmd: ['up'],
-    OpenStdin: false,
-    StdinOnce: false,
-    HostConfig: {
-      Binds: binds
-    },
-    WorkingDir: workingDir
-  }).then(function(container) {
-    return container.start();
-  }).then(function(container) {
-    /*
-    //TODO this will need to be fixed
-    For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
-    completes.
-     */
-    return container.attach();
-  }).then(function(container) {
-    /*
-    //TODO this will need to be fixed
-    For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
-    completes.
-     */
-    return container.stop();
-  }).then(function(container) {
-    deferred.resolve(container.id);
-  }).catch(function(error) {
-    console.log(error);
-    deferred.reject(error);
-  });
-
-/*
-  docker.run('casacomputer/docker-compose:' + ARCH, ['up'],
-    process.stdout,
-    {
-      HostConfig: {
-        Binds: ['/var/run/docker.sock:/var/run/docker.sock',
-          DOCKER_DIR[ARCH],
-          '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
-        ]
-      },
-      WorkingDir: '/usr/local/current-app-yaml',
-    }, function (error, data, container) {
-      if (error) {
-        console.log('error starting:' + error + data);
-        deferred.reject(error);
-        return;
-      }
-
-      container.start()
-        .then(function (container) {
-
-        //TODO this will need to be fixed
-        For some reason docker-compose doesn't stop after it completes. This will make it stop after the up command.
-        completes.
-
-          return container.stop();
-        }).then(function (container) {
-        deferred.resolve(container.id);
-      }).catch(function (error) {
-        console.log(error);
-        deferred.reject(error);
-      });
-    });
-  */
-
-  return deferred.promise;
-}
 
 function getContainer(containerName) {
   return docker.getContainer(containerName);
@@ -249,7 +164,6 @@ function stopAll() {
 }
 
 module.exports = {
-  composeUp: composeUp,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
   getImage: getImage,
