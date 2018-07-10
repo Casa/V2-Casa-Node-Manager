@@ -21,7 +21,7 @@ router.get('/available', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.getAvailable(application)
+  applicationLogic.getUninstallAvailable(application)
     .then(handleSuccess)
     .catch(handleError);
 });
@@ -44,7 +44,7 @@ router.post('/chain/:name/:network', function (req, res) {
     res.json({
       application: name,
       network: network,
-      status: 'installed'
+      status: 'uninstalled'
     });
   }
 
@@ -54,7 +54,7 @@ router.post('/chain/:name/:network', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.install(name, network)
+  applicationLogic.uninstall(name, network)
     .then(handleSuccess)
     .catch(handleError);
 });

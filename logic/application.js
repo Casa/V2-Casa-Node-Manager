@@ -49,6 +49,43 @@ function getAvailable(application, network) {
 }
 
 
+/*
+Gets all applications available to install. You can filter by application name and chain.
+ */
+function getUninstallAvailable(application, chain) {
+
+  application = application || '';
+  chain = chain || '';
+
+  var deferred = q.defer();
+
+  function handleSuccess(applicationNames) {
+
+    var fileredList = [];
+
+    _.each(applicationNames, function(applicationName) {
+      if(applicationName.includes(application) && applicationName.includes(chain)) {
+        fileredList.push(applicationName);
+      }
+    });
+
+    deferred.resolve(fileredList);
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  //TODO get from warehouse instead of local disk
+  //we need to make the warehouse public first
+  diskLogic.getInstalledApplicationNames()
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+
 //TODO cleanup
 /*
 function start(application) {
@@ -107,6 +144,7 @@ function install(name, network) {
   var deferred = q.defer();
 
   network = network || '';
+  var fileName = '';
 
   function ensureOneApplicationAvailable(applications) {
     if(applications.length === 0) {
@@ -121,37 +159,48 @@ function install(name, network) {
       }
     }
 
-    return applications[0];
+    fileName = applications[0];
   }
 
-  function ensureApplicationNotInstalled(fileName) {
+  function ensureApplicationNotInstalled() {
 
     var deferred2 = q.defer();
 
-    function handleSuccess() {
-      //an existing image is found. We should not install this application again.
-      deferred2.reject({
-        code: 'APPLICATION_ALREADY_INSTALLED',
-        text: 'Application has already been installed: ' + fileName
-      });
-    }
+    function handleSuccess(applicationNames) {
 
-    function handleError() {
+      for(let i = 0; i < applicationNames.length; i++) {
+        if(fileName === applicationNames[i]) {
+          //an existing image is found. We should not install this application again.
+          deferred2.reject({
+            code: 'APPLICATION_ALREADY_INSTALLED',
+            text: 'Application has already been installed: ' + fileName
+          });
+          return;
+        }
+      }
+
       //an existing image is not found. We should install this application.
       deferred2.resolve(fileName);
     }
 
+    //TODO this is not handling errors properly
+    function handleError(error) {
+      deferred2.reject(error);
+    }
+
     //example chain fileName bitcoind_testnet.yml
     //example application fileName = plex.yml
-    var dockerContainerName = fileName.split('.')[0];
-    //switch - for _
-    dockerContainerName = dockerContainerName.replace('-', '_');
+    var applicationName = fileName.split('.')[0];
 
-    dockerLogic.getContainer(dockerContainerName)
+    diskLogic.getInstalledApplicationNames(applicationName)
       .then(handleSuccess)
       .catch(handleError);
 
     return deferred2.promise;
+  }
+
+  function copyFileToInstallDir() {
+    return diskLogic.copyFileToInstallDir(fileName);
   }
 
   /*
@@ -179,6 +228,7 @@ function install(name, network) {
     //.then(dockerLogic.pullImage)
     .then(passOptions)
     .then(dockerLogic.up)
+    .then(copyFileToInstallDir)
     .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
@@ -186,8 +236,65 @@ function install(name, network) {
   return deferred.promise;
 }
 
-function uninstall(application) {
+function uninstall(application, network) {
   var deferred = q.defer();
+
+  network = network || '';
+  var fileName = '';
+
+  function ensureOneApplicationAvailable(applications) {
+    if(applications.length === 0) {
+      throw {
+        code: 'NO_APPLICATION_FOUND',
+        text: 'There are no applications that meet the given specifications.'
+      }
+    } else if(applications.length > 1) {
+      throw {
+        code: 'MULTIPLE_APPLICATIONS_FOUND',
+        text: 'Multiple applications meet the given specifications. Please be more specific.'
+      }
+    }
+
+    fileName = applications[0];
+  }
+
+
+  function stopContainer() {
+
+    //every docker image with the following format
+    //implementation_network
+    //ex bitcoind_mainnet
+    return dockerLogic.stop(application + '_' + network);
+  }
+
+  function removeContainer() {
+
+    //every docker image with the following format
+    //implementation_network
+    //ex bitcoind_mainnet
+    return dockerLogic.removeContainer(application + '_' + network);
+  }
+
+  function removeVolume() {
+    //every docker image with the following format
+    //implementation-network
+    //ex bitcoind-mainnet
+    return dockerLogic.removeVolume('current-app-yaml_' + application + '-data');
+  }
+
+  //TODO clean this process way up. It's gross
+  function replaceVersion(string) {
+    return string.replace('${VERSION}', process.env.VERSION);
+  }
+
+  function getComposeFileImageName() {
+    return dockerLogic.getInstalledComposeFileImageName(fileName)
+      .then(replaceVersion)
+  }
+
+  function removeFileFromInstallDir() {
+    return diskLogic.deleteFileInInstalledDir(fileName);
+  }
 
   function handleSuccess() {
     deferred.resolve();
@@ -197,19 +304,24 @@ function uninstall(application) {
     deferred.reject(error);
   }
 
-  if(application === 'bitcoin') {
-    docker.stop('3bc4cc0ed2a1')
-      .then(handleSuccess)
-      .catch(handleError)
-  } else {
-    deferred.reject('unknown application: ' + application)
-  }
+  diskLogic.getInstalledApplicationNames()
+    .then(ensureOneApplicationAvailable)
+    .then(stopContainer)
+    .then(removeContainer)
+    .then(getComposeFileImageName)
+    .then(dockerLogic.removeImage)
+    .then(getComposeFileImageName)
+    .then(removeVolume)
+    .then(removeFileFromInstallDir)
+    .then(handleSuccess)
+    .catch(handleError);
 
   return deferred.promise;
 }
 
 module.exports = {
   getAvailable: getAvailable,
+  getUninstallAvailable: getUninstallAvailable,
   //start: start,
   //stop: stop,
   install: install,
