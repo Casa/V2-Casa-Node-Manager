@@ -14,6 +14,7 @@ const container = require('./routes/v1/container.js');
 const helloworld = require('./routes/helloworld.js');
 const install = require('./routes/v1/install.js');
 const uninstall = require('./routes/v1/uninstall.js');
+const volume = require('./routes/v1/volume.js');
 const app = express();
 
 // view engine setup
@@ -43,6 +44,7 @@ app.use('/v1/container', container);
 app.use('/helloworld', helloworld);
 app.use('/v1/install', install);
 app.use('/v1/uninstall', uninstall);
+app.use('/v1/volume', volume);
 
 app.use(function(req, res) {
   res.status(404).json();

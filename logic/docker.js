@@ -143,6 +143,26 @@ function getRunningContainers() {
 }
 
 /**
+ * Public
+ * Return a docker volume object.
+ * @param volumeName
+ * @returns {Volume}
+ */
+function getVolume(volumeName) {
+  return dockerService.getVolume(volumeName);
+}
+
+/**
+ * Public
+ * Return information about all docker volumes.
+ * @param volumeName
+ * @returns {Volume}
+ */
+function getVolumes() {
+  return dockerService.getVolumes();
+}
+
+/**
  * Private
  * Stops the given container. Returns a promise.
  * @param container
@@ -165,12 +185,12 @@ function stop(containerName) {
 
 /**
  * Private
- * Removes the given container from docker.
- * @param container
+ * Removes the given object from docker.
+ * @param dockerObject
  * @returns {*}
  */
-function remove(container) {
-  return container.remove();
+function remove(dockerObject) {
+  return dockerObject.remove();
 }
 
 /**
@@ -184,15 +204,23 @@ function removeContainer(containerName) {
     .then(remove);
 }
 
+/**
+ * Removes the given image from docker.
+ * @param imageName
+ * @returns {*}
+ */
 function removeImage(imageName) {
-  var image = dockerService.getImageByName(imageName)
-  var t=  image.remove();
-  return t;
+  return dockerService.getImageByName(imageName).remove();
 }
 
+/**
+ * Removes the docker volume with the given name.
+ * @param volumeName
+ * @returns {Request|*|PromiseLike<T>|Promise<T>}
+ */
 function removeVolume(volumeName) {
- //return dockerService.removeVolume(volumeName);
-  return;
+  return getVolume(volumeName)
+    .then(remove);
 }
 
 function pullImage(imageName) {
@@ -205,6 +233,8 @@ module.exports = {
   getCurrentComposeFileImageName: getCurrentComposeFileImageName,
   getInstalledComposeFileImageName: getInstalledComposeFileImageName,
   getRunningContainers: getRunningContainers,
+  getVolume: getVolume,
+  getVolumes: getVolumes,
   pullImage: pullImage,
   removeContainer: removeContainer,
   removeImage: removeImage,

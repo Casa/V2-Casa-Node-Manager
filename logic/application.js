@@ -143,12 +143,8 @@ Install an image to this device.
 function install(name, network) {
   var deferred = q.defer();
 
-<<<<<<< HEAD
-  chain = chain || '';
-  var fileName = '';
-=======
   network = network || '';
->>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
+  var fileName = '';
 
   function ensureOneApplicationAvailable(applications) {
     if(applications.length === 0) {
@@ -203,10 +199,10 @@ function install(name, network) {
     return deferred2.promise;
   }
 
-<<<<<<< HEAD
   function copyFileToInstallDir() {
     return diskLogic.copyFileToInstallDir(fileName);
-=======
+  }
+
   /*
   Pass options to docker compose up. These will typically be environment variables.
    */
@@ -214,7 +210,6 @@ function install(name, network) {
     return { env: {
         NETWORK: network
       }};
->>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
   }
 
   function handleSuccess() {
@@ -269,9 +264,7 @@ function uninstall(application, network) {
     //every docker image with the following format
     //implementation_network
     //ex bitcoind_mainnet
-    var tag = fileName.split('.')[0];
-    tag = tag.replace('-', '_');
-    return dockerLogic.stop(tag);
+    return dockerLogic.stop(application + '_' + network);
   }
 
   function removeContainer() {
@@ -279,22 +272,24 @@ function uninstall(application, network) {
     //every docker image with the following format
     //implementation_network
     //ex bitcoind_mainnet
-    var tag = fileName.split('.')[0];
-    tag = tag.replace('-', '_');
-    return dockerLogic.removeContainer(tag);
+    return dockerLogic.removeContainer(application + '_' + network);
   }
 
   function removeVolume() {
     //every docker image with the following format
     //implementation-network
     //ex bitcoind-mainnet
-    var volumeName = fileName.split('-')[0];
-    volumeName = volumeName + '-data';
-    return dockerLogic.removeVolume(volumeName);
+    return dockerLogic.removeVolume('current-app-yaml_' + application + '-data');
+  }
+
+  //TODO clean this process way up. It's gross
+  function replaceVersion(string) {
+    return string.replace('${VERSION}', process.env.VERSION);
   }
 
   function getComposeFileImageName() {
-    return dockerLogic.getInstalledComposeFileImageName(fileName);
+    return dockerLogic.getInstalledComposeFileImageName(fileName)
+      .then(replaceVersion)
   }
 
   function removeFileFromInstallDir() {

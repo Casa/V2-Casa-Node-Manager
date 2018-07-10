@@ -14,7 +14,6 @@ const auth = {
   //email: 'borglin.me@gmail.com'
 };
 
-<<<<<<< HEAD
 /*
 Run the docker compose image in the working directory. It looks for a file called docker-compose.yaml. It will run
 docker-compuse up and start the image.
@@ -105,8 +104,6 @@ function composeUp(image, binds, workingDir) {
  * @param containerName
  * @returns {Container}
  */
-=======
->>>>>>> ffa1446ff5ae9d2b428a1dcd341b99d18a0ed83c
 function getContainer(containerName) {
   return docker.getContainer(containerName);
 }
@@ -132,6 +129,39 @@ function getRunningContainers() {
 
 function getAllContainers() {
   return getContainers(true);
+}
+
+/**
+ * Public
+ * Return a list of all volumes with their metadata.
+ * @returns {*|PromiseLike<any>}
+ */
+function getVolumes() {
+  var deferred = q.defer();
+
+  docker.listVolumes(function (error, images) {
+
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(images);
+    }
+  });
+
+  return deferred.promise;
+}
+
+/**
+ * Public
+ * Return a docker volume object.
+ * @param volumeName
+ * @returns {Volume}
+ */
+
+function getVolume(volumeName) {
+  var deferred = q.defer();
+  deferred.resolve(docker.getVolume(volumeName));
+  return deferred.promise;
 }
 
 function getDigestFromPullOutput(events) {
@@ -266,6 +296,8 @@ module.exports = {
   getImageByDigest: getImageByDigest,
   getImageByName: getImageByName,
   getRunningContainers: getRunningContainers,
+  getVolume: getVolume,
+  getVolumes: getVolumes,
   pullImage: pullImage,
   runImage: runImage,
   stop: stop,

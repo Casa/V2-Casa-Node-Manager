@@ -34,7 +34,7 @@ router.post('/chain/:name/:network', function (req, res) {
 
   try {
     validator.isAlphanumeric(name);
-    validator.isValidChain(network);
+    validator.isValidNetwork(network);
   } catch (error) {
     res.status(400).json(error);
     return;
