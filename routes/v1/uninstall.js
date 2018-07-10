@@ -43,8 +43,8 @@ router.post('/chain/:name/:network', function (req, res) {
   function handleSuccess() {
     res.json({
       application: name,
-      chain: chain,
-      status: 'installed'
+      network: network,
+      status: 'uninstalled'
     });
   }
 

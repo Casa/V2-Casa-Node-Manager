@@ -99,6 +99,11 @@ function composeUp(image, binds, workingDir) {
   return deferred.promise;
 }
 
+/**
+ * Returns the container for the given name.
+ * @param containerName
+ * @returns {Container}
+ */
 function getContainer(containerName) {
   return docker.getContainer(containerName);
 }
@@ -140,7 +145,7 @@ function getDigestFromPullOutput(events) {
   return digest;
 }
 
-function getImage(digest) {
+function getImageByDigest(digest) {
 
   var deferred = q.defer();
 
@@ -160,6 +165,10 @@ function getImage(digest) {
     .then(returnImage);
 
   return deferred.promise;
+}
+
+function getImageByName(imageName) {
+  return docker.getImage(imageName);
 }
 
 function pullImage(applicationName) {
@@ -252,7 +261,8 @@ module.exports = {
   composeUp: composeUp,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
-  getImage: getImage,
+  getImageByDigest: getImageByDigest,
+  getImageByName: getImageByName,
   getRunningContainers: getRunningContainers,
   pullImage: pullImage,
   runImage: runImage,

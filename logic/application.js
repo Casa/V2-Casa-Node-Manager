@@ -222,8 +222,65 @@ function install(name, chain) {
   return deferred.promise;
 }
 
-function uninstall(application) {
+function uninstall(application, network) {
   var deferred = q.defer();
+
+  network = network || '';
+  var fileName = '';
+
+  function ensureOneApplicationAvailable(applications) {
+    if(applications.length === 0) {
+      throw {
+        code: 'NO_APPLICATION_FOUND',
+        text: 'There are no applications that meet the given specifications.'
+      }
+    } else if(applications.length > 1) {
+      throw {
+        code: 'MULTIPLE_APPLICATIONS_FOUND',
+        text: 'Multiple applications meet the given specifications. Please be more specific.'
+      }
+    }
+
+    fileName = applications[0];
+  }
+
+
+  function stopContainer() {
+
+    //every docker image with the following format
+    //implementation_network
+    //ex bitcoind_mainnet
+    var tag = fileName.split('.')[0];
+    tag = tag.replace('-', '_');
+    return dockerLogic.stop(tag);
+  }
+
+  function removeContainer() {
+
+    //every docker image with the following format
+    //implementation_network
+    //ex bitcoind_mainnet
+    var tag = fileName.split('.')[0];
+    tag = tag.replace('-', '_');
+    return dockerLogic.removeContainer(tag);
+  }
+
+  function removeVolume() {
+    //every docker image with the following format
+    //implementation-network
+    //ex bitcoind-mainnet
+    var volumeName = fileName.split('-')[0];
+    volumeName = volumeName + '-data';
+    return dockerLogic.removeVolume(volumeName);
+  }
+
+  function getComposeFileImageName() {
+    return dockerLogic.getInstalledComposeFileImageName(fileName);
+  }
+
+  function removeFileFromInstallDir() {
+    return diskLogic.deleteFileInInstalledDir(fileName);
+  }
 
   function handleSuccess() {
     deferred.resolve();
@@ -234,6 +291,16 @@ function uninstall(application) {
   }
 
   diskLogic.getInstalledApplicationNames()
+    .then(ensureOneApplicationAvailable)
+    .then(stopContainer)
+    .then(removeContainer)
+    .then(getComposeFileImageName)
+    .then(dockerLogic.removeImage)
+    .then(getComposeFileImageName)
+    .then(removeVolume)
+    .then(removeFileFromInstallDir)
+    .then(handleSuccess)
+    .catch(handleError);
 
   return deferred.promise;
 }
