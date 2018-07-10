@@ -166,31 +166,33 @@ function install(name, network) {
 
     var deferred2 = q.defer();
 
+    var applicationName = fileName;
+    if(network !== '') {
+      var parts = fileName.split('.');
+      applicationName = parts[0] + '-' + network + '.' + parts[1];
+    }
+
     function handleSuccess(applicationNames) {
 
       for(let i = 0; i < applicationNames.length; i++) {
-        if(fileName === applicationNames[i]) {
+        if(applicationName === applicationNames[i]) {
           //an existing image is found. We should not install this application again.
           deferred2.reject({
             code: 'APPLICATION_ALREADY_INSTALLED',
-            text: 'Application has already been installed: ' + fileName
+            text: 'Application has already been installed: ' + applicationName
           });
           return;
         }
       }
 
       //an existing image is not found. We should install this application.
-      deferred2.resolve(fileName);
+      deferred2.resolve(applicationName);
     }
 
     //TODO this is not handling errors properly
     function handleError(error) {
       deferred2.reject(error);
     }
-
-    //example chain fileName bitcoind_testnet.yml
-    //example application fileName = plex.yml
-    var applicationName = fileName.split('.')[0];
 
     diskLogic.getInstalledApplicationNames(applicationName)
       .then(handleSuccess)
