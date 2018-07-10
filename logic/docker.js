@@ -9,14 +9,11 @@ const diskLogic = require('../logic/disk.js');
 var _ = require('underscore');
 var q = require('q');
 
-const ARCH = 'x86';
-const DOCKER_DIR={
-  'ARM':'/usr/bin/docker:/usr/bin/docker',
-  'x86':'/usr/local/bin/docker:/usr/bin/docker'
-};
+const WORKING_DIR = '/usr/local/current-app-yaml';
 
-function up() {
+function up(options) {
 
+  const env = options.env || null;
   var deferred = q.defer();
 
   function handleSuccess() {
@@ -27,24 +24,11 @@ function up() {
     deferred.reject(error);
   }
 
-  bashService.up({ cwd: '/usr/local/current-app-yaml', log: true })
+  bashService.up({ cwd: WORKING_DIR, log: true, env: env })
     .then(handleSuccess)
     .catch(handleError);
 
   return deferred.promise;
-}
-
-//TODO delete
-function composeUp() {
-
-  const image = 'casacomputer/docker-compose:' + ARCH;
-  const binds = ['/var/run/docker.sock:/var/run/docker.sock',
-    DOCKER_DIR[ARCH],
-    '/usr/local/current-app-yaml:/usr/local/current-app-yaml'
-  ];
-  const workingDir = '/usr/local/current-app-yaml';
-
-  return dockerService.composeUp(image, binds, workingDir);
 }
 
 function getAllContainers() {
@@ -116,7 +100,6 @@ function pullImage(imageName) {
 }
 
 module.exports = {
-  composeUp: composeUp,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
   getCurrentComposeFileImageName: getCurrentComposeFileImageName,
