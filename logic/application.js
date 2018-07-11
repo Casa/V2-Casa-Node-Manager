@@ -186,7 +186,7 @@ function install(name, network) {
       }
 
       //an existing image is not found. We should install this application.
-      deferred2.resolve(applicationName);
+      deferred2.resolve(fileName);
     }
 
     //TODO this is not handling errors properly
