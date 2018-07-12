@@ -227,6 +227,10 @@ function pullImage(imageName) {
   return dockerService.pullImage(imageName);
 }
 
+function createVolume(volumeName) {
+  return dockerService.createVolume(volumeName);
+}
+
 module.exports = {
   getAllContainers: getAllContainers,
   getContainer: getContainer,
@@ -239,6 +243,7 @@ module.exports = {
   removeContainer: removeContainer,
   removeImage: removeImage,
   removeVolume: removeVolume,
+  createVolume: createVolume,
   stop: stop,
   up: up
 };

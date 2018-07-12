@@ -44,4 +44,23 @@ router.get('/name/:name', function (req, res) {
 
 });
 
+router.options('/');
+router.post('/create', function (req, res) {
+
+  const name = req.body.name;
+
+  function handleSuccess(container) {
+      res.json(container);
+  }
+
+  function handleError(error) {
+      logger.error('Unable to create volume', 'volume', error);
+      res.status(500).json('Unable to create volume');
+  }
+
+  dockerLogic.createVolume(name)
+      .then(handleSuccess)
+      .catch(handleError);
+});
+
 module.exports = router;
