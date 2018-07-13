@@ -140,7 +140,28 @@ Install an image to this device.
 
 //TODO provision space and permissions on hard drive.
  */
-function install(name, network) {
+
+// Promise chain, need unpack the object
+function packedInstall(info) {
+  var defered = q.defer();
+
+  function handleSuccess() {
+    defered.resolve();
+  }
+
+  function handleError(error) {
+    defered.reject(error);
+  }
+
+  install(info.container, '', info.chain)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return defered.promise;
+}
+
+// name != chain for data-transfer container
+function install(name, network, chain) {
   var deferred = q.defer();
 
   network = network || '';
@@ -215,7 +236,8 @@ function install(name, network) {
    */
   function passOptions() {
     return { env: {
-        NETWORK: network
+        NETWORK: network,
+        CHAIN: chain
       }};
   }
 
@@ -340,5 +362,6 @@ module.exports = {
   //start: start,
   //stop: stop,
   install: install,
+  packedInstall: packedInstall,
   uninstall: uninstall
 };
