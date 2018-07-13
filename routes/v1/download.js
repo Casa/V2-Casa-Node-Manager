@@ -7,40 +7,37 @@ const validator = require('../../resources/validator.js');
 
 const applicationLogic = require('../../logic/application.js');
 
-router.get('/:name/:network', function (req, res) {
+router.get('/:chain', function (req, res) {
 
-    const name = req.params.name;
-    const network = req.params.network;
+    const chain = req.params.chain;
 
     try {
-        validator.isAlphanumeric(name);
-        validator.isValidNetwork(network);
+        validator.isAlphanumeric(chain);
     } catch (error) {
         res.status(400).json(error);
         return;
     }
 
-    const volumeName = 'currentappyaml_' + name + '-data';
+    const volumeName = 'currentappyaml_' + chain + '-data';
 
     function injectInfo() {
         return {
             container: 'data-transfer',
-            chain: name
+            chain: chain
         };
     }
 
     function handleSuccess() {
         res.json({
-            application: name,
-            network: network,
-            status: 'installed'
+            chain: chain,
+            status: 'launched data-transfer container'
         });
     }
 
     function handleError(error) {
         console.log(error);
-        var stringError = 'Unable to find any available applications';
-        logger.error(stringError, 'install', error);
+        var stringError = 'Unable to download data';
+        logger.error(stringError, 'data-transfer', error);
         res.status(500).json(stringError);
     }
 
