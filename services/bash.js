@@ -90,7 +90,7 @@ const execCompose = (command, args, options) => new Promise((resolve, reject) =>
  */
 
 const up = function (options) {
-  return execCompose('up', [ '-d', '--force-recreate'], options);
+  return execCompose('up', [ '-d' ], options);
 };
 
 /**
