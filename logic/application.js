@@ -301,7 +301,12 @@ function uninstall(application, network) {
     //every docker image with the following format
     //implementation_network
     //ex bitcoind_mainnet
-    return dockerLogic.stop(application + '_' + network);
+    //ex application plex
+    var name = application + '_' + network;
+    if(network === '') {
+      name = application;
+    }
+    return dockerLogic.stop(name);
   }
 
   function removeContainer() {
@@ -309,13 +314,15 @@ function uninstall(application, network) {
     //every docker image with the following format
     //implementation_network
     //ex bitcoind_mainnet
-    return dockerLogic.removeContainer(application + '_' + network);
+    //ex application plex
+    var name = application + '_' + network;
+    if(network === '') {
+      name = application;
+    }
+    return dockerLogic.removeContainer(name);
   }
 
   function removeVolume() {
-    //every docker image with the following format
-    //implementation-network
-    //ex bitcoind-mainnet
     return dockerLogic.removeVolume('current-app-yaml_' + application + '-data');
   }
 
