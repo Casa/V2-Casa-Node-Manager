@@ -84,7 +84,7 @@ router.post('/application/:name/', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.install(name)
+  applicationLogic.uninstall(name)
     .then(handleSuccess)
     .catch(handleError);
 });
