@@ -49,7 +49,6 @@ router.post('/chain/:name/:network', function (req, res) {
   }
 
   function handleError(error) {
-    console.log(error);
     var stringError = 'Unable to find any available applications';
     logger.error(stringError, 'install', error);
     res.status(500).json(stringError);

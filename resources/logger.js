@@ -76,18 +76,36 @@ const morganConfiguration = {
 
 const localLogger = winston.loggers.get(LOCAL);
 
+function printToStandardOut(data) {
+    if(data) {
+        console.log(data);
+    }
+}
+
 function error(message, _module, data) {
+    printToStandardOut(message);
+    printToStandardOut(_module);
+    printToStandardOut(data);
     localLogger.error(message, {_module: _module, data: data});
 }
 function warn(message, _module, data) {
+    printToStandardOut(message);
+    printToStandardOut(_module);
+    printToStandardOut(data);
     localLogger.warn(message, {_module: _module, data: data});
 }
 
 function info(message, _module, data) {
+    printToStandardOut(message);
+    printToStandardOut(_module);
+    printToStandardOut(data);
     localLogger.info(message, {_module: _module, data: data});
 }
 
 function debug(message, _module, data) {
+    printToStandardOut(message);
+    printToStandardOut(_module);
+    printToStandardOut(data);
     localLogger.debug(message, {_module: _module, data: data});
 }
 
