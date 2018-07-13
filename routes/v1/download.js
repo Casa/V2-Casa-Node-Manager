@@ -7,17 +7,6 @@ const validator = require('../../resources/validator.js');
 
 const applicationLogic = require('../../logic/application.js');
 
-
-router.get('/', function(req, res, next) {
-
-    var result = {
-        version: "0.1"
-    };
-
-    res.json(result);
-});
-
-
 router.get('/:name/:network', function (req, res) {
 
     const name = req.params.name;
