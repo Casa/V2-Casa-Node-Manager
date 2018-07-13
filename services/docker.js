@@ -290,6 +290,20 @@ function stopAll() {
   });
 }
 
+function createVolume(volumeName) {
+  var deferred = q.defer();
+  docker.createVolume({
+      Name: volumeName
+  }).then(function() {
+      deferred.resolve();
+  }).catch(function(error) {
+      console.log(error);
+      deferred.reject(error);
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   getAllContainers: getAllContainers,
   getContainer: getContainer,
@@ -300,6 +314,7 @@ module.exports = {
   getVolumes: getVolumes,
   pullImage: pullImage,
   runImage: runImage,
+  createVolume: createVolume,
   stop: stop,
   stopAll: stopAll
 };
