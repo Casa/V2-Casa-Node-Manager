@@ -74,13 +74,13 @@ router.post('/application/:name/', function (req, res) {
   function handleSuccess() {
     res.json({
       application: name,
-      status: 'installed'
+      status: 'uninstall'
     });
   }
 
   function handleError(error) {
     var stringError = 'Unable to find any available applications';
-    logger.error(stringError, 'install', error);
+    logger.error(stringError, 'uninstall', error);
     res.status(500).json(stringError);
   }
 
