@@ -18,8 +18,11 @@ router.get('/:chain', function (req, res) {
         return;
     }
 
-    const volumeName = 'currentappyaml_' + chain + '-data';
-
+    var volumeName = 'currentappyaml_' + chain + '-data';
+    if(process.env.ARCHITECTURE === 'arm') {
+        volumeName = 'current-app-yaml_' + chain + '-data';
+    }
+    
     function injectInfo() {
         return {
             container: 'data-transfer',
