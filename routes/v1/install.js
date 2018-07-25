@@ -64,6 +64,7 @@ router.options('/application');
 router.post('/application/:name/', function (req, res) {
 
   const name = req.params.name;
+  const network = req.body.network || '';
 
   try {
     validator.isAlphanumeric(name);
@@ -85,7 +86,7 @@ router.post('/application/:name/', function (req, res) {
     res.status(500).json(stringError);
   }
 
-  applicationLogic.install(name)
+  applicationLogic.install(name, network)
     .then(handleSuccess)
     .catch(handleError);
 });
