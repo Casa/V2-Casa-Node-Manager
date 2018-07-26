@@ -228,14 +228,16 @@ function install(name, network, chain) {
       var parts = fileName.split('.');
       toFileName = parts[0] + '-' + network + '.' + parts[1];
     }
-    return diskLogic.copyFileToInstallDir(toFileName);
+    return diskLogic.copyFileToInstallDir(fileName, toFileName);
   }
 
   /*
   Pass options to docker compose up. These will typically be environment variables.
    */
   function passOptions() {
-    return { env: {
+    return {
+      fileName: fileName,
+      env: {
         NETWORK: network,
         CHAIN: chain
       }};
@@ -252,13 +254,9 @@ function install(name, network, chain) {
   getAvailable(name, network)
     .then(ensureOneApplicationAvailable)
     .then(ensureApplicationNotInstalled)
-    .then(diskLogic.copyFileToWorkingDir)
-    .then(dockerLogic.getCurrentComposeFileImageName)
-    //.then(dockerLogic.pullImage)
     .then(passOptions)
-    .then(dockerLogic.up)
+    .then(dockerLogic.dockerComposeUp)
     .then(copyFileToInstallDir)
-    .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
 

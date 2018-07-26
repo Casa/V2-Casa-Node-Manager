@@ -9,12 +9,24 @@ const diskLogic = require('../logic/disk.js');
 var _ = require('underscore');
 var q = require('q');
 
-const WORKING_DIR = '/usr/local/current-app-yaml';
+const WORKING_DIR = '/usr/local/applications';
 
-function up(options) {
+const DOCKER_COMMAND = 'docker';
+const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
-  const env = options.env || null;
+/**
+ * Runs docker-compose down on the manager-api.
+ * @returns {*}
+ */
+function dockerComposeDown(fileName) {
+
   var deferred = q.defer();
+
+  const file = WORKING_DIR + '/' + fileName;
+  const options = {
+    cwd: WORKING_DIR,
+    log: true,
+  };
 
   function handleSuccess() {
     deferred.resolve();
@@ -24,7 +36,64 @@ function up(options) {
     deferred.reject(error);
   }
 
-  bashService.up({ cwd: WORKING_DIR, log: true, env: env })
+  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'down'], options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+/**
+ * Logs into docker.
+ * @returns {*}
+ */
+function dockerLogin() {
+  var deferred = q.defer();
+
+  const options = {
+    log: true
+  };
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  bashService.exec(DOCKER_COMMAND, ['login',
+      '--username=' + process.env.DOCKER_USER,
+      '--password=' + process.env.DOCKER_PASS],
+    options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+/**
+ * Runs docker-compose up for the manager-api.
+ * @returns {*}
+ */
+function dockerComposeUp(options) {
+
+  var deferred = q.defer();
+
+  const file = WORKING_DIR + '/' + options.fileName;
+
+  options.cwd= WORKING_DIR;
+  options.log= true;
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d'], options)
     .then(handleSuccess)
     .catch(handleError);
 
@@ -232,6 +301,9 @@ function createVolume(volumeName) {
 }
 
 module.exports = {
+  dockerComposeDown: dockerComposeDown,
+  dockerComposeUp: dockerComposeUp,
+  dockerLogin: dockerLogin,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
   getCurrentComposeFileImageName: getCurrentComposeFileImageName,
@@ -244,6 +316,5 @@ module.exports = {
   removeImage: removeImage,
   removeVolume: removeVolume,
   createVolume: createVolume,
-  stop: stop,
-  up: up
+  stop: stop
 };
