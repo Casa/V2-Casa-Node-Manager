@@ -180,32 +180,6 @@ function getInstalledComposeFileImageName(fileName) {
   return deferred.promise;
 }
 
-function getCurrentComposeFileImageName() {
-  var deferred = q.defer();
-
-  function handleSuccess(fileContents) {
-    try {
-      var imageName = getImageNameFromComposeFileContents(fileContents);
-      deferred.resolve(imageName);
-    } catch (error) {
-      deferred.reject({
-        code: 'COULD_NOT_PARSE_YML',
-        text: 'Could not parse the yml file to find the image.'
-      })
-    }
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  diskLogic.readCurrentDockerComposeFile()
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
 function getRunningContainers() {
   return dockerService.getRunningContainers();
 }
@@ -262,17 +236,6 @@ function remove(dockerObject) {
 }
 
 /**
- * Removes the given container from docker.
- * @param containerName
- * @returns {*}
- */
-
-function removeContainer(containerName) {
-  return getContainer(containerName)
-    .then(remove);
-}
-
-/**
  * Removes the given image from docker.
  * @param imageName
  * @returns {*}
@@ -305,13 +268,11 @@ module.exports = {
   dockerLogin: dockerLogin,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
-  getCurrentComposeFileImageName: getCurrentComposeFileImageName,
   getInstalledComposeFileImageName: getInstalledComposeFileImageName,
   getRunningContainers: getRunningContainers,
   getVolume: getVolume,
   getVolumes: getVolumes,
   pullImage: pullImage,
-  removeContainer: removeContainer,
   removeImage: removeImage,
   removeVolume: removeVolume,
   createVolume: createVolume,
