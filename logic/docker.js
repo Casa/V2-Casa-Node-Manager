@@ -15,18 +15,17 @@ const DOCKER_COMMAND = 'docker';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
 /**
- * Runs docker-compose down on the manager-api.
+ * Runs docker-compose down on a fileName.
  * @returns {*}
  */
-function dockerComposeDown(fileName) {
+function dockerComposeDown(options) {
 
   var deferred = q.defer();
 
-  const file = WORKING_DIR + '/' + fileName;
-  const options = {
-    cwd: WORKING_DIR,
-    log: true,
-  };
+  const file = WORKING_DIR + '/' + options.fileName;
+
+  options.cwd= WORKING_DIR;
+  options.log= true;
 
   function handleSuccess() {
     deferred.resolve();
