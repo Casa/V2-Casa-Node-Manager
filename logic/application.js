@@ -10,13 +10,13 @@ var q = require('q');
 
 const fs = require('fs');
 //TODO: add constant for docker
-const CONFIG_FILE = "/config/config.json";
+const SETTINGS_FILE = "/settings/settings.json";
 
 function getSettings() {
     var defferred = q.defer();
-    fs.readFile(CONFIG_FILE, 'utf8', function (error, data) {
+    fs.readFile(SETTINGS_FILE, 'utf8', function (error, data) {
         if (error) {
-            logger.error('Unable to read config', MODULE, error.toString())
+            logger.error('Unable to read settings', MODULE, error.toString())
             defferred.reject(error.toString());
         }
         const configJSON = JSON.parse(data);
@@ -253,10 +253,21 @@ function install(name, network, chain) {
    */
   function passOptions(settings) {
     var lndSettings = settings['lnd'];
+    var bitcoindSettings = settings['bitcoind'];
 
+    var envData = {};
+    Object.keys(lndSettings).forEach(function (key) {
+        envData[key.toUpperCase()] = lndSettings[key];
+    });
 
+    Object.keys(bitcoindSettings).forEach(function (key) {
+        envData[key.toUpperCase()] = bitcoindSettings[key];
+    });
 
-    return {env: lndSettings};
+    return {
+      fileName: 'docker-compose.yml',
+      env: envData
+    };
   }
 
   function handleSuccess() {
@@ -266,7 +277,7 @@ function install(name, network, chain) {
   function handleError(error) {
     deferred.reject(error);
   }
-  
+
   //getAvailable(name, network)
    // .then(ensureOneApplicationAvailable)
    // .then(ensureApplicationNotInstalled)
@@ -275,7 +286,7 @@ function install(name, network, chain) {
     //.then(dockerLogic.pullImage)
     getSettings()
     .then(passOptions)
-    .then(dockerLogic.up)
+    .then(dockerLogic.dockerComposeUp)
    // .then(copyFileToInstallDir)
    // .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
