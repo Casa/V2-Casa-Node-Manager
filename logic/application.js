@@ -8,6 +8,23 @@ const _ = require('underscore');
 
 var q = require('q');
 
+const fs = require('fs');
+//TODO: add constant for docker
+const CONFIG_FILE = "/config/config.json";
+
+function getSettings() {
+    var defferred = q.defer();
+    fs.readFile(CONFIG_FILE, 'utf8', function (error, data) {
+        if (error) {
+            logger.error('Unable to read config', MODULE, error.toString())
+            defferred.reject(error.toString());
+        }
+        const configJSON = JSON.parse(data);
+        defferred.resolve(configJSON);
+    });
+
+    return defferred.promise;
+}
 /*
 Gets all applications available to install. You can filter by application name and chain.
  */
@@ -234,11 +251,13 @@ function install(name, network, chain) {
   /*
   Pass options to docker compose up. These will typically be environment variables.
    */
-  function passOptions() {
-    return { env: {
-        NETWORK: network,
-        CHAIN: chain
-      }};
+
+  function passOptions(settings) {
+    var lndSettings = settings['lnd'];
+
+
+
+    return {env: lndSettings};
   }
 
   function handleSuccess() {
@@ -249,16 +268,17 @@ function install(name, network, chain) {
     deferred.reject(error);
   }
 
-  getAvailable(name, network)
-    .then(ensureOneApplicationAvailable)
-    .then(ensureApplicationNotInstalled)
-    .then(diskLogic.copyFileToWorkingDir)
-    .then(dockerLogic.getCurrentComposeFileImageName)
+  //getAvailable(name, network)
+   // .then(ensureOneApplicationAvailable)
+   // .then(ensureApplicationNotInstalled)
+   // .then(diskLogic.copyFileToWorkingDir)
+   // .then(dockerLogic.getCurrentComposeFileImageName)
     //.then(dockerLogic.pullImage)
+    getSettings()
     .then(passOptions)
     .then(dockerLogic.up)
-    .then(copyFileToInstallDir)
-    .then(diskLogic.deleteFileInWorkingDir)
+   // .then(copyFileToInstallDir)
+   // .then(diskLogic.deleteFileInWorkingDir)
     .then(handleSuccess)
     .catch(handleError);
 
