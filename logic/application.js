@@ -245,13 +245,12 @@ function install(name, network, chain) {
       var parts = fileName.split('.');
       toFileName = parts[0] + '-' + network + '.' + parts[1];
     }
-    return diskLogic.copyFileToInstallDir(toFileName);
+    return diskLogic.copyFileToInstallDir(fileName, toFileName);
   }
 
   /*
   Pass options to docker compose up. These will typically be environment variables.
    */
-
   function passOptions(settings) {
     var lndSettings = settings['lnd'];
 
@@ -267,7 +266,7 @@ function install(name, network, chain) {
   function handleError(error) {
     deferred.reject(error);
   }
-
+  
   //getAvailable(name, network)
    // .then(ensureOneApplicationAvailable)
    // .then(ensureApplicationNotInstalled)
@@ -291,6 +290,7 @@ function uninstall(application, network) {
   network = network || '';
   var fileName = '';
 
+  //TODO this function is duplicated
   function ensureOneApplicationAvailable(applications) {
 
     var applicationsFound = 0;
@@ -315,35 +315,19 @@ function uninstall(application, network) {
     fileName = applications[0];
   }
 
-
-  function stopContainer() {
-
-    //every docker image with the following format
-    //implementation_network
-    //ex bitcoind_mainnet
-    //ex application plex
-    var name = application + '_' + network;
-    if(network === '') {
-      name = application;
-    }
-    return dockerLogic.stop(name);
-  }
-
-  function removeContainer() {
-
-    //every docker image with the following format
-    //implementation_network
-    //ex bitcoind_mainnet
-    //ex application plex
-    var name = application + '_' + network;
-    if(network === '') {
-      name = application;
-    }
-    return dockerLogic.removeContainer(name);
-  }
-
   function removeVolume() {
-    return dockerLogic.removeVolume('current-app-yaml_' + application + '-data');
+    return dockerLogic.removeVolume('applications_' + application + '-data');
+  }
+
+  /*
+  Pass options to docker compose up. These will typically be environment variables.
+ */
+  function passOptions() {
+    return {
+      fileName: application + '.yml',
+      env: {
+        NETWORK: network
+      }};
   }
 
   //TODO clean this process way up. It's gross
@@ -370,11 +354,10 @@ function uninstall(application, network) {
 
   diskLogic.getInstalledApplicationNames()
     .then(ensureOneApplicationAvailable)
-    .then(stopContainer)
-    .then(removeContainer)
+    .then(passOptions)
+    .then(dockerLogic.dockerComposeDown)
     .then(getComposeFileImageName)
     .then(dockerLogic.removeImage)
-    .then(getComposeFileImageName)
     .then(removeVolume)
     .then(removeFileFromInstallDir)
     .then(handleSuccess)

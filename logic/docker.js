@@ -9,12 +9,23 @@ const diskLogic = require('../logic/disk.js');
 var _ = require('underscore');
 var q = require('q');
 
-const WORKING_DIR = '/usr/local/current-app-yaml';
+const WORKING_DIR = '/usr/local/applications';
 
-function up(options) {
+const DOCKER_COMMAND = 'docker';
+const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
-  const env = options.env || null;
+/**
+ * Runs docker-compose down on a fileName.
+ * @returns {*}
+ */
+function dockerComposeDown(options) {
+
   var deferred = q.defer();
+
+  const file = WORKING_DIR + '/' + options.fileName;
+
+  options.cwd= WORKING_DIR;
+  options.log= true;
 
   function handleSuccess() {
     deferred.resolve();
@@ -24,7 +35,64 @@ function up(options) {
     deferred.reject(error);
   }
 
-  bashService.up({ cwd: WORKING_DIR, log: true, env: env })
+  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'down'], options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+/**
+ * Logs into docker.
+ * @returns {*}
+ */
+function dockerLogin() {
+  var deferred = q.defer();
+
+  const options = {
+    log: true
+  };
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  bashService.exec(DOCKER_COMMAND, ['login',
+      '--username=' + process.env.DOCKER_USER,
+      '--password=' + process.env.DOCKER_PASS],
+    options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+/**
+ * Runs docker-compose up for the manager-api.
+ * @returns {*}
+ */
+function dockerComposeUp(options) {
+
+  var deferred = q.defer();
+
+  const file = WORKING_DIR + '/' + options.fileName;
+
+  options.cwd= WORKING_DIR;
+  options.log= true;
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d'], options)
     .then(handleSuccess)
     .catch(handleError);
 
@@ -112,32 +180,6 @@ function getInstalledComposeFileImageName(fileName) {
   return deferred.promise;
 }
 
-function getCurrentComposeFileImageName() {
-  var deferred = q.defer();
-
-  function handleSuccess(fileContents) {
-    try {
-      var imageName = getImageNameFromComposeFileContents(fileContents);
-      deferred.resolve(imageName);
-    } catch (error) {
-      deferred.reject({
-        code: 'COULD_NOT_PARSE_YML',
-        text: 'Could not parse the yml file to find the image.'
-      })
-    }
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  diskLogic.readCurrentDockerComposeFile()
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
 function getRunningContainers() {
   return dockerService.getRunningContainers();
 }
@@ -194,17 +236,6 @@ function remove(dockerObject) {
 }
 
 /**
- * Removes the given container from docker.
- * @param containerName
- * @returns {*}
- */
-
-function removeContainer(containerName) {
-  return getContainer(containerName)
-    .then(remove);
-}
-
-/**
  * Removes the given image from docker.
  * @param imageName
  * @returns {*}
@@ -232,18 +263,18 @@ function createVolume(volumeName) {
 }
 
 module.exports = {
+  dockerComposeDown: dockerComposeDown,
+  dockerComposeUp: dockerComposeUp,
+  dockerLogin: dockerLogin,
   getAllContainers: getAllContainers,
   getContainer: getContainer,
-  getCurrentComposeFileImageName: getCurrentComposeFileImageName,
   getInstalledComposeFileImageName: getInstalledComposeFileImageName,
   getRunningContainers: getRunningContainers,
   getVolume: getVolume,
   getVolumes: getVolumes,
   pullImage: pullImage,
-  removeContainer: removeContainer,
   removeImage: removeImage,
   removeVolume: removeVolume,
   createVolume: createVolume,
-  stop: stop,
-  up: up
+  stop: stop
 };
