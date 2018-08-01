@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 
-router.get('/', function(req, res, next) {
+router.get('/', function(req, res) {
 
+    //TODO: constant from file?
     var result = {
-        version: "0.1"
+        version: "manager-0.1"
     };
 
     res.json(result);

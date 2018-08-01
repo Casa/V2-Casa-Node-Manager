@@ -1,280 +1,159 @@
 /*
 All docker business logic goes here.
  */
-
 const dockerService = require('../services/docker.js');
-const bashService = require('../services/bash.js');
-const diskLogic = require('../logic/disk.js');
-
-var _ = require('underscore');
 var q = require('q');
 
-const WORKING_DIR = '/usr/local/applications';
+//TODO: verify counts
+const EXPECTED_VOLUME_COUNT = 4;
+const EXPECTED_IMAGE_COUNT = 12;
+const EXPECTED_CONTAINER_COUNT = 10;
 
-const DOCKER_COMMAND = 'docker';
-const DOCKER_COMPOSE_COMMAND = 'docker-compose';
-
-/**
- * Runs docker-compose down on a fileName.
- * @returns {*}
- */
-function dockerComposeDown(options) {
-
-  var deferred = q.defer();
-
-  const file = WORKING_DIR + '/' + options.fileName;
-
-  options.cwd= WORKING_DIR;
-  options.log= true;
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'down'], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
-/**
- * Logs into docker.
- * @returns {*}
- */
-function dockerLogin() {
-  var deferred = q.defer();
-
-  const options = {
-    log: true
-  };
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMMAND, ['login',
-      '--username=' + process.env.DOCKER_USER,
-      '--password=' + process.env.DOCKER_PASS],
-    options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
-/**
- * Runs docker-compose up for the manager-api.
- * @returns {*}
- */
-function dockerComposeUp(options) {
-
-  var deferred = q.defer();
-
-  const file = WORKING_DIR + '/' + options.fileName;
-
-  options.cwd= WORKING_DIR;
-  options.log= true;
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d'], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
+function getRunningContainers() {
+    return dockerService.getContainers(false);
 }
 
 function getAllContainers() {
-  return dockerService.getAllContainers();
+    return dockerService.getContainers(true);
 }
 
-function getContainer(name) {
-  var deferred = q.defer();
+function getStatuses() {
+    //TODO: check if something is missing
+    var deferred = q.defer();
 
-  deferred.resolve(dockerService.getContainer(name));
-
-  return deferred.promise;
-  /*
-  var deferred = q.defer();
-
-  function findContainer(containers) {
-
-    for(var i = 0; i < containers.length; i++) {
-      if(_.contains(containers[i].Names, '/' + name)) {
-        deferred.resolve(containers[i]);
-        return;
-      }
+    function parseContainerInformation(containers) {
+        var statuses = [];
+        containers.forEach(function (container) {
+            statuses.push({
+                service: container['Labels']['com.docker.compose.service'],
+                status: container['State']
+            });
+        });
+        return statuses;
     }
 
-    deferred.reject({
-      code: 'CONTAINER_NOT_FOUND',
-      text: 'Could not find container with name: ' + name
-    });
-  }
-
-  dockerService.getAllContainers()
-    .then(findContainer);
-
-  return deferred.promise;
-  */
-
-}
-
-/**
- * Given the file contents from a yml file. Parse through it and return the image name.
- * @param fileContents
- * @returns {string}
- */
-function getImageNameFromComposeFileContents(fileContents) {
-  var secondHalf = fileContents.split('image:')[1];
-  //clean up edges
-  secondHalf = secondHalf.trim();
-  //split on whitespace and take the first chunk
-  var imageName = secondHalf.split(/(\s+)/)[0];
-  return imageName;
-}
-
-/**
- * Returns the docker image name that exists in the given compose file. The compose file is located in the install
- * directory.
- * @param fileName
- */
-function getInstalledComposeFileImageName(fileName) {
-  var deferred = q.defer();
-
-  function handleSuccess(fileContents) {
-    try {
-      var imageName = getImageNameFromComposeFileContents(fileContents);
-      deferred.resolve(imageName);
-    } catch (error) {
-      deferred.reject({
-        code: 'COULD_NOT_PARSE_YML',
-        text: 'Could not parse the yml file to find the image.'
-      })
+    function handleSuccess(statuses) {
+        deferred.resolve(statuses);
     }
-  }
 
-  function handleError(error) {
-    deferred.reject(error);
-  }
+    function handleError(error) {
+        deferred.reject(error);
+    }
 
-  diskLogic.readInstalledDockerComposeFile(fileName)
-    .then(handleSuccess)
-    .catch(handleError);
+    getAllContainers()
+        .then(parseContainerInformation)
+        .then(handleSuccess)
+        .catch(handleError);
 
-  return deferred.promise;
+    return deferred.promise;
 }
 
-function getRunningContainers() {
-  return dockerService.getRunningContainers();
+function getVersions() {
+    //TODO: check if something is missing
+    var deferred = q.defer();
+
+    function parseContainerInformation(containers) {
+        var versions = [];
+        containers.forEach(function (container) {
+            versions.push({
+                service: container['Labels']['com.docker.compose.service'],
+                version: container['ImageID'],
+            });
+        });
+        return versions;
+    }
+
+    function handleSuccess(versions) {
+        deferred.resolve(versions);
+    }
+
+    function handleError(error) {
+        deferred.reject(error);
+    }
+
+    getAllContainers()
+        .then(parseContainerInformation)
+        .then(handleSuccess)
+        .catch(handleError);
+
+    return deferred.promise;
 }
 
-/**
- * Public
- * Return a docker volume object.
- * @param volumeName
- * @returns {Volume}
- */
-function getVolume(volumeName) {
-  return dockerService.getVolume(volumeName);
+function getVolumeUsage() {
+    var deferred = q.defer();
+
+    function parseVolumeInfo(df) {
+        var volumeInfo = [];
+        df['Volumes'].forEach(function (volume) {
+            console.log(volume);
+            volumeInfo.push({
+                name: volume['Labels']['com.docker.compose.volume'],
+                usage: volume['UsageData']['Size']
+            });
+        });
+        return volumeInfo;
+    }
+
+    function handleSuccess(volumeInfo) {
+        deferred.resolve(volumeInfo);
+    }
+
+    function handleError(error) {
+        deferred.reject(error);
+    }
+
+    dockerService.getDiskUsage()
+        .then(parseVolumeInfo)
+        .then(handleSuccess)
+        .catch(handleError);
+
+    return deferred.promise;
 }
 
-/**
- * Public
- * Return information about all docker volumes.
- * @param volumeName
- * @returns {Volume}
- */
-function getVolumes() {
-  return dockerService.getVolumes();
+function healthcheckHelper(type, expected, actual) {
+    var data = {}
+    if(actual === expected) {
+        data[type] = ['balanced', expected, actual]
+    } else if( actual <= expected ) {
+        data[type] = ['missing', expected, actual]
+    } else if (actual >= expected ) {
+        data[type] = ['extra', expected, actual]
+    }
+    return data
 }
 
-/**
- * Private
- * Stops the given container. Returns a promise.
- * @param container
- * @returns {*}
- */
-function stopContainer(container) {
-  return container.stop();
-}
+function getSystemHealth() {
+    var deferred = q.defer();
 
-/**
- * Public
- * Stops a container with the given name. Returns a promise.
- * @param containerName
- */
+    function parseDiskUsage(df) {
+        var systemHealth = [];
 
-function stop(containerName) {
-  return getContainer(containerName)
-    .then(stopContainer);
-}
+        systemHealth.push(healthcheckHelper('volumes', EXPECTED_VOLUME_COUNT, df['Volumes'].length));
+        systemHealth.push(healthcheckHelper('containers', EXPECTED_CONTAINER_COUNT, df['Containers'].length));
+        systemHealth.push(healthcheckHelper('images', EXPECTED_IMAGE_COUNT, df['Images'].length));
 
-/**
- * Private
- * Removes the given object from docker.
- * @param dockerObject
- * @returns {*}
- */
-function remove(dockerObject) {
-  return dockerObject.remove();
-}
+        return systemHealth;
+    }
 
-/**
- * Removes the given image from docker.
- * @param imageName
- * @returns {*}
- */
-function removeImage(imageName) {
-  return dockerService.getImageByName(imageName).remove();
-}
+    function handleSuccess(volumeInfo) {
+        deferred.resolve(volumeInfo);
+    }
 
-/**
- * Removes the docker volume with the given name.
- * @param volumeName
- * @returns {Request|*|PromiseLike<T>|Promise<T>}
- */
-function removeVolume(volumeName) {
-  return getVolume(volumeName)
-    .then(remove);
-}
+    function handleError(error) {
+        deferred.reject(error);
+    }
 
-function pullImage(imageName) {
-  return dockerService.pullImage(imageName);
-}
+    dockerService.getDiskUsage()
+        .then(parseDiskUsage)
+        .then(handleSuccess)
+        .catch(handleError);
 
-function createVolume(volumeName) {
-  return dockerService.createVolume(volumeName);
+    return deferred.promise;
 }
 
 module.exports = {
-  dockerComposeDown: dockerComposeDown,
-  dockerComposeUp: dockerComposeUp,
-  dockerLogin: dockerLogin,
-  getAllContainers: getAllContainers,
-  getContainer: getContainer,
-  getInstalledComposeFileImageName: getInstalledComposeFileImageName,
-  getRunningContainers: getRunningContainers,
-  getVolume: getVolume,
-  getVolumes: getVolumes,
-  pullImage: pullImage,
-  removeImage: removeImage,
-  removeVolume: removeVolume,
-  createVolume: createVolume,
-  stop: stop
+    getStatuses: getStatuses,
+    getVersions: getVersions,
+    getVolumeUsage: getVolumeUsage,
+    getSystemHealth: getSystemHealth
 };
