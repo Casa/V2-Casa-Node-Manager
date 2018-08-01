@@ -1,2 +1,11 @@
+.dockerignore
+build-docker.sh
 node_modules
 npm-debug.log
+logs
+README.md
+.git
+.gitignore
+.env.default
+.idea
+Dockerfile

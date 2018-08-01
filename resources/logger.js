@@ -69,7 +69,7 @@ winston.loggers.add(LOCAL, {
 const morganConfiguration = {
     'stream': {
         write: function (message, encoding) {
-            info(message, 'lightning-ramp-api');
+            info(message, 'ln-manager-api');
         }
     }
 };
