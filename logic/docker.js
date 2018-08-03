@@ -111,7 +111,7 @@ function getVolumeUsage() {
 }
 
 function healthcheckHelper(type, expected, actual) {
-    var data = {}
+    var data = {};
     if(actual === expected) {
         data[type] = ['balanced', expected, actual]
     } else if( actual <= expected ) {

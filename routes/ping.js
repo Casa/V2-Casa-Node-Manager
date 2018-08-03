@@ -1,11 +1,10 @@
 const express = require('express');
+const pjson = require('../package.json');
 const router = express.Router();
 
 router.get('/', function(req, res) {
-
-    //TODO: constant from file?
     var result = {
-        version: "manager-0.1"
+        version: "manager-" + pjson.version
     };
 
     res.json(result);
