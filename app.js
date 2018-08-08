@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 
 const requestCorrelationMiddleware = require('./resources/requestCorrelationId.js'); // eslint-disable-line id-length
+const errorHandleMiddleware = require('./resources/errorHandling.js');
 const logger = require('./resources/logger.js');
 
 const ping = require('./routes/ping.js');
@@ -26,6 +27,7 @@ app.use('/ping', ping);
 app.use('/v1/device', device);
 app.use('/v1/telemetry', telemetry);
 
+app.use(errorHandleMiddleware);
 app.use(function(req, res) {
   res.status(404).json(); // eslint-disable-line no-magic-numbers
 });

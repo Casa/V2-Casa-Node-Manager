@@ -23,8 +23,7 @@
               "no-warning-comments": 0,
               "prefer-template": 0,
               "no-sync": 0,
-              "dot-notation": 0,
-              "no-magic-numbers": 0
+              "dot-notation": 0
             }
         }
     ],

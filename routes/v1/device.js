@@ -3,105 +3,51 @@ const router = express.Router();
 
 const applicationLogic = require('../../logic/application.js');
 const validator = require('../../resources/validator.js');
-const logger = require('../../resources/logger.js');
 
-router.post('/start', function(req, res) {
-
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
-  }
-
-  function handleError(error) {
-    var errorMessage = 'Unable to start services';
-    logger.error(errorMessage, 'start', error);
-    res.status(500).json(errorMessage);
-  }
-
+router.post('/start', function(req, res, next) {
   applicationLogic.start()
-    .then(handleSuccess)
-    .catch(handleError);
+    .then(applicationNames => res.json(applicationNames))
+    .catch(next);
 });
 
-router.post('/shutdown', function(req, res) {
-
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
-  }
-
-  function handleError(error) {
-    var errorMessage = 'Unable to shutdown services';
-    logger.error(errorMessage, 'shutdown', error);
-    res.status(500).json(errorMessage);
-  }
-
+router.post('/shutdown', function(req, res, next) {
   applicationLogic.shutdown()
-    .then(handleSuccess)
-    .catch(handleError);
+    .then(applicationNames => res.json(applicationNames))
+    .catch(next);
 });
 
-router.post('/reset', function(req, res) {
-
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
-  }
-
-  function handleError(error) {
-    var errorMessage = 'Unable to reset device';
-    logger.error(errorMessage, 'reset', error);
-    res.status(500).json(errorMessage);
-  }
-
+router.post('/reset', function(req, res, next) {
   applicationLogic.reset()
-    .then(handleSuccess)
-    .catch(handleError);
+    .then(applicationNames => res.json(applicationNames))
+    .catch(next);
 });
 
-router.post('/restart', function(req, res) {
+router.post('/restart', function(req, res, next) {
   const service = req.body.service;
 
   try {
     validator.isKnownService(service);
   } catch (error) {
-    res.status(400).json(error);
-  }
-
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
-  }
-
-  function handleError(error) {
-    var errorMessage = 'Unable to restart service';
-    logger.error(errorMessage, 'restart', error);
-    res.status(500).json(errorMessage);
+    return next(error);
   }
 
   applicationLogic.restart({service: service}) // eslint-disable-line object-shorthand
-    .then(handleSuccess)
-    .catch(handleError);
+    .then(applicationNames => res.json(applicationNames))
+    .catch(next);
 });
 
-router.post('/update', function(req, res) {
+router.post('/update', function(req, res, next) {
   const service = req.body.service;
 
   try {
     validator.isKnownService(service);
   } catch (error) {
-    res.status(400).json(error);
-  }
-
-  function handleSuccess(applicationNames) {
-    res.json(applicationNames);
-  }
-
-  function handleError(error) {
-    var errorMessage = 'Unable to update service';
-    logger.error(errorMessage, 'update', error);
-    res.status(500).json(errorMessage);
+    return next(error);
   }
 
   applicationLogic.update({service: service}) // eslint-disable-line object-shorthand
-    .then(handleSuccess)
-    .catch(handleError);
+    .then(applicationNames => res.json(applicationNames))
+    .catch(next);
 });
 
 module.exports = router;
