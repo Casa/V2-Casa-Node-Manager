@@ -3,11 +3,7 @@ const pjson = require('../package.json');
 const router = express.Router();
 
 router.get('/', function(req, res) {
-    var result = {
-        version: "manager-" + pjson.version
-    };
-
-    res.json(result);
+  res.json({version: 'manager' + pjson.version});
 });
 
 module.exports = router;
