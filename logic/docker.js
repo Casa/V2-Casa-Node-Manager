@@ -3,6 +3,7 @@ All docker business logic goes here.
  */
 const dockerService = require('../services/docker.js');
 var q = require('q'); // eslint-disable-line id-length
+const DockerError = require('../resources/errors.js').DockerError;
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;
@@ -33,8 +34,8 @@ function getStatuses() {
     deferred.resolve(statuses);
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerError('Unable to determine statuses'));
   }
 
   getAllContainers()
@@ -65,8 +66,8 @@ function getVersions() {
     deferred.resolve(versions);
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerError('Unable to determine versions'));
   }
 
   getAllContainers()
@@ -96,8 +97,8 @@ function getVolumeUsage() {
     deferred.resolve(volumeInfo);
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerError('Unable to determine volume info'));
   }
 
   dockerService.getDiskUsage()
@@ -138,8 +139,8 @@ function getSystemHealth() {
     deferred.resolve(volumeInfo);
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerError('Unable to system health'));
   }
 
   dockerService.getDiskUsage()

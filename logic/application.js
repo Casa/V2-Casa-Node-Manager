@@ -5,6 +5,7 @@ var q = require('q'); // eslint-disable-line id-length
 const dockerComposeLogic = require('../logic/docker-compose.js');
 const diskLogic = require('../logic/disk.js');
 const constants = require('../resources/const.js');
+const DockerComposeError = require('../resources/errors.js').DockerComposeError;
 
 function start() {
   var deferred = q.defer();
@@ -33,8 +34,8 @@ function start() {
     deferred.resolve();
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerComposeError('Unable to start services'));
   }
 
   diskLogic.readSettingsFile(constants.SETTINGS_FILE)
@@ -53,8 +54,8 @@ function shutdown() {
     deferred.resolve();
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerComposeError('Unable to shutdown services'));
   }
 
   dockerComposeLogic.dockerComposeDown()
@@ -75,8 +76,8 @@ function reset() {
     deferred.resolve();
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerComposeError('Unable to reset device'));
   }
 
   dockerComposeLogic.dockerComposeDown(options)
@@ -111,8 +112,8 @@ function restart(service) {
     deferred.resolve();
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerComposeError('Unable to restart service'));
   }
 
   dockerComposeLogic.dockerComposeRestart(service)
@@ -133,8 +134,8 @@ function update(service) {
     deferred.resolve();
   }
 
-  function handleError(error) {
-    deferred.reject(error);
+  function handleError() {
+    deferred.reject(new DockerComposeError('Unable to update service'));
   }
 
   dockerComposeLogic.dockerComposePull(service)
