@@ -8,11 +8,9 @@ restarting, installing, and uninstalling all applications, chains, and data.
 
 Getting Started
 
-  1. Install docker for mac https://docs.docker.com/v17.09/docker-for-mac/install/
-  1. Clone this repo
-  1. Install brew `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
-  1. Install node `brew install node`
-  1. Run `npm install`
+*Prerequisites: `node`.*
+
+  1. Run `make install`
   1. Copy .env.default file to .env and supply environment variables
   1. Run `npm start`
 
