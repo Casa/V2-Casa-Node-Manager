@@ -1,5 +1,5 @@
-const UUID = require('./UUID.js');
-const constants = require('./const.js');
+const UUID = require('@resources/UUID.js');
+const constants = require('@resources/const.js');
 const createNamespace = require('continuation-local-storage').createNamespace;
 const apiRequest = createNamespace(constants.REQUEST_CORRELATION_NAMESPACE_KEY);
 

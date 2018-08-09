@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dockerLogic = require('../../logic/docker.js');
+const dockerLogic = require('@logic/docker.js');
 
 router.get('/version', function(req, res, next) {
   dockerLogic.getVersions()
