@@ -7,6 +7,12 @@
     "start": "node ./bin/www",
     "test": "mocha --exit"
   },
+  "_moduleAliases": {
+    "@logic": "logic",
+    "@services": "services",
+    "@resources": "resources",
+    "@routes": "routes"
+  },
   "dependencies": {
     "body-parser": "^1.18.2",
     "child_process": "^1.0.2",
