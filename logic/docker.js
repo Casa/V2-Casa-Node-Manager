@@ -1,9 +1,9 @@
 /*
 All docker business logic goes here.
  */
-const dockerService = require('../services/docker.js');
+const dockerService = require('@services/docker.js');
 var q = require('q'); // eslint-disable-line id-length
-const DockerError = require('../resources/errors.js').DockerError;
+const DockerError = require('@resources/errors.js').DockerError;
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;

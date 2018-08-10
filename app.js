@@ -1,16 +1,16 @@
+require('module-alias/register');
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-
 const morgan = require('morgan');
 
-const requestCorrelationMiddleware = require('./resources/requestCorrelationId.js'); // eslint-disable-line id-length
-const errorHandleMiddleware = require('./resources/errorHandling.js');
-const logger = require('./resources/logger.js');
+const requestCorrelationMiddleware = require('@resources/requestCorrelationId.js'); // eslint-disable-line id-length
+const errorHandleMiddleware = require('@resources/errorHandling.js');
+const logger = require('@resources/logger.js');
 
-const ping = require('./routes/ping.js');
-const telemetry = require('./routes/v1/telemetry.js');
-const device = require('./routes/v1/device.js');
+const ping = require('@routes/ping.js');
+const telemetry = require('@routes/v1/telemetry.js');
+const device = require('@routes/v1/device.js');
 const app = express();
 
 // view engine setup
