@@ -14,20 +14,21 @@ function getAuthenticationToken(organization, repository) {
 
   const options = {
     method: 'GET',
-    uri: authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:' + organization + '/' + repository + ':pull',
+    uri: authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:' + organization
+      + '/' + repository + ':pull',
     json: true,
   };
 
   request(options)
-    .then(function (response) {
+    .then(function(response) {
 
-      if(response.token) {
+      if (response.token) {
         deferred.resolve(response.token);
       } else {
         deferred.reject(new DockerHubError('Unable to parse authentication token'));
       }
     })
-    .catch(function (error) {
+    .catch(function(error) {
       deferred.reject(new DockerHubError('Unable to fetch authentication token', error));
     });
 
@@ -43,21 +44,22 @@ function getDigest(authToken, organization, repository, tag) {
   };
 
   const options = {
-    headers: headers,
+    headers: headers, // eslint-disable-line object-shorthand
     method: 'GET',
     uri: registryBaseUrl + '/v2/' + organization + '/' + repository + '/manifests/' + tag,
     json: true,
   };
 
   request(options)
-    .then(function (response) {
-      if(response.config && response.config.digest) {
+    .then(function(response) {
+      if (response.config && response.config.digest) {
         deferred.resolve(response.config.digest);
       } else {
-        deferred.reject(new DockerHubError('Unable to parse digest for ' + organization + '/' + repository + '/manifests/' + tag));
+        deferred.reject(new DockerHubError('Unable to parse digest for ' + organization + '/' + repository
+          + '/manifests/' + tag));
       }
     })
-    .catch(function (error) {
+    .catch(function(error) {
       deferred.reject(DockerHubError('Unable to fetch authentication token', error));
     });
 

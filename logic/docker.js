@@ -49,20 +49,19 @@ function getStatuses() {
   return deferred.promise;
 }
 
-const getVersions = async () => {
+const getVersions = async() => {
   // TODO: check if something is missing
 
   var versions = [];
 
   var containers = await getAllContainers();
 
-  for(let i = 0; i < containers.length; i++) {
+  for (let index = 0; index < containers.length; index++) {
 
     var version = {
-      service: containers[i]['Labels']['com.docker.compose.service'],
-      version: containers[i]['ImageID'],
-      // upgradeable should default to false
-      upgradeable: false,
+      service: containers[index]['Labels']['com.docker.compose.service'],
+      version: containers[index]['ImageID'],
+      upgradeable: false, // upgradeable should default to false
     };
 
     try {
