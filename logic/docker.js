@@ -2,6 +2,7 @@
 All docker business logic goes here.
  */
 const dockerService = require('../services/docker.js');
+const dockerHubService = require('../services/dockerHub.js');
 var q = require('q'); // eslint-disable-line id-length
 const DockerError = require('../resources/errors.js').DockerError;
 
@@ -50,19 +51,36 @@ function getVersions() {
   // TODO: check if something is missing
   var deferred = q.defer();
 
+  var versions = [];
+
   function parseContainerInformation(containers) {
-    var versions = [];
     containers.forEach(function(container) {
       versions.push({
         service: container['Labels']['com.docker.compose.service'],
         version: container['ImageID'],
       });
     });
-
-    return versions;
   }
 
-  function handleSuccess(versions) {
+  const injectUpgradableField = async () => {
+
+      for(let i = 0; i < versions.length; i++) {
+        try {
+          var authToken = await dockerHubService.getAuthenticationToken('stridentbean', versions[i].service);
+          var digest = await dockerHubService.getDigest(authToken, 'stridentbean', versions[i].service, 'latest');
+
+          versions[i].upgradeable = versions[i].version !== digest;
+        } catch (error) {
+          // if there is an error finding out if a service is upgradeable, leave it as is or default to false
+          versions.forEach(function (container) {
+            container.upgradeable = container.upgradeable || false;
+          });
+        }
+      }
+
+  };
+
+  function handleSuccess() {
     deferred.resolve(versions);
   }
 
@@ -72,6 +90,7 @@ function getVersions() {
 
   getAllContainers()
     .then(parseContainerInformation)
+    .then(injectUpgradableField)
     .then(handleSuccess)
     .catch(handleError);
 
