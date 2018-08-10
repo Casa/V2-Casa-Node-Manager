@@ -56,7 +56,7 @@ const getVersions = async() => {
 
   var containers = await getAllContainers();
 
-  for(let container of containers) {
+  for (const container of containers) {
 
     var version = {
       service: container['Labels']['com.docker.compose.service'],
