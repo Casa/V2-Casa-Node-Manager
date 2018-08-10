@@ -5,7 +5,7 @@ const dockerService = require('@services/docker.js');
 const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
 const DockerError = require('@resources/errors.js').DockerError;
-const ORGANIZATION =  process.env.ORGANIZATION || 'casacomputer';
+const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
 const MOST_RECENT_TAG = 'latest';
 
 // TODO: verify counts
@@ -56,11 +56,11 @@ const getVersions = async() => {
 
   var containers = await getAllContainers();
 
-  for (let index = 0; index < containers.length; index++) {
+  for(let container of containers) {
 
     var version = {
-      service: containers[index]['Labels']['com.docker.compose.service'],
-      version: containers[index]['ImageID'],
+      service: container['Labels']['com.docker.compose.service'],
+      version: container['ImageID'],
       upgradeable: false, // upgradeable should default to false
     };
 
