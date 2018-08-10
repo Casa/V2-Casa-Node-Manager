@@ -11,3 +11,4 @@ README.md
 Dockerfile
 pre-commit
 .eslintrc
+test/

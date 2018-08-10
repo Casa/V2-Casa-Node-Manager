@@ -5,7 +5,7 @@ const dockerService = require('@services/docker.js');
 const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
 const DockerError = require('@resources/errors.js').DockerError;
-const ORGANIZATION = require('@resources/const.js').ORGANIZATION;
+const ORGANIZATION =  process.env.ORGANIZATION || 'casacomputer';
 const MOST_RECENT_TAG = 'latest';
 
 // TODO: verify counts
