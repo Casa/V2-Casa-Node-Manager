@@ -7,6 +7,12 @@
     "start": "node ./bin/www",
     "test": "mocha test/**/*.js --exit"
   },
+  "_moduleAliases": {
+    "@logic": "logic",
+    "@services": "services",
+    "@resources": "resources",
+    "@routes": "routes"
+  },
   "dependencies": {
     "body-parser": "^1.18.2",
     "child_process": "^1.0.2",
@@ -18,6 +24,7 @@
     "express": "^4.16.1",
     "express-session": "^1.15.6",
     "fs": "0.0.1-security",
+    "module-alias": "^2.1.0",
     "morgan": "^1.9.0",
     "npm": "^5.6.0",
     "q": "^1.5.1",

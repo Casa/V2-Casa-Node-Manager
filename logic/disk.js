@@ -1,4 +1,4 @@
-const diskService = require('../services/disk.js');
+const diskService = require('@services/disk.js');
 
 function readSettingsFile(path) {
   return diskService.readFile(path);

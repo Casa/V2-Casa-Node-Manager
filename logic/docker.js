@@ -1,11 +1,11 @@
 /*
 All docker business logic goes here.
  */
-const dockerService = require('../services/docker.js');
-const dockerHubService = require('../services/dockerHub.js');
-var q = require('q'); // eslint-disable-line id-length
-const DockerError = require('../resources/errors.js').DockerError;
-const ORGANIZATION = require('../resources/const.js').ORGANIZATION;
+const dockerService = require('@services/docker.js');
+const dockerHubService = require('@services/dockerHub.js');
+const q = require('q'); // eslint-disable-line id-length
+const DockerError = require('@resources/errors.js').DockerError;
+const ORGANIZATION = require('@resources/const.js').ORGANIZATION;
 const MOST_RECENT_TAG = 'latest';
 
 // TODO: verify counts
