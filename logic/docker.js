@@ -5,6 +5,8 @@ const dockerService = require('../services/docker.js');
 const dockerHubService = require('../services/dockerHub.js');
 var q = require('q'); // eslint-disable-line id-length
 const DockerError = require('../resources/errors.js').DockerError;
+const ORGANIZATION = require('../resources/const.js').ORGANIZATION;
+const MOST_RECENT_TAG = 'latest';
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;
@@ -47,55 +49,36 @@ function getStatuses() {
   return deferred.promise;
 }
 
-function getVersions() {
+const getVersions = async () => {
   // TODO: check if something is missing
-  var deferred = q.defer();
 
   var versions = [];
 
-  function parseContainerInformation(containers) {
-    containers.forEach(function(container) {
-      versions.push({
-        service: container['Labels']['com.docker.compose.service'],
-        version: container['ImageID'],
-      });
-    });
+  var containers = await getAllContainers();
+
+  for(let i = 0; i < containers.length; i++) {
+
+    var version = {
+      service: containers[i]['Labels']['com.docker.compose.service'],
+      version: containers[i]['ImageID'],
+      // upgradeable should default to false
+      upgradeable: false,
+    };
+
+    try {
+      var authToken = await dockerHubService.getAuthenticationToken(ORGANIZATION, version.service);
+      var digest = await dockerHubService.getDigest(authToken, ORGANIZATION, version.service, MOST_RECENT_TAG);
+
+      version.upgradeable = version.version !== digest;
+    } catch (error) {
+      // if there is an error finding out if a service is upgradeable, leave it as is or default to false
+    }
+
+    versions.push(version);
   }
 
-  const injectUpgradableField = async () => {
-
-      for(let i = 0; i < versions.length; i++) {
-        try {
-          var authToken = await dockerHubService.getAuthenticationToken('stridentbean', versions[i].service);
-          var digest = await dockerHubService.getDigest(authToken, 'stridentbean', versions[i].service, 'latest');
-
-          versions[i].upgradeable = versions[i].version !== digest;
-        } catch (error) {
-          // if there is an error finding out if a service is upgradeable, leave it as is or default to false
-          versions.forEach(function (container) {
-            container.upgradeable = container.upgradeable || false;
-          });
-        }
-      }
-
-  };
-
-  function handleSuccess() {
-    deferred.resolve(versions);
-  }
-
-  function handleError() {
-    deferred.reject(new DockerError('Unable to determine versions'));
-  }
-
-  getAllContainers()
-    .then(parseContainerInformation)
-    .then(injectUpgradableField)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
+  return versions;
+};
 
 function getVolumeUsage() {
   var deferred = q.defer();
