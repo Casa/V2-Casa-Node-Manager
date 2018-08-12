@@ -1,9 +1,20 @@
 const childProcess = require('child_process');
 
+
+function extendProcessEnv(env) {
+  Object.keys(env).map(function(objectKey) { // eslint-disable-line array-callback-return
+    process.env[objectKey] = env[objectKey];
+  });
+}
+
 // Executes docker-compose command with common options
 const exec = (command, args, options) => new Promise((resolve, reject) => {
 
   const cwd = options.cwd || null;
+
+  if (options.env) {
+    extendProcessEnv(options.env);
+  }
 
   const childProc = childProcess.spawn(command, args, {cwd});
 
