@@ -1,6 +1,5 @@
 const childProcess = require('child_process');
 
-
 function extendProcessEnv(env) {
   Object.keys(env).map(function(objectKey) { // eslint-disable-line array-callback-return
     process.env[objectKey] = env[objectKey];

@@ -1,8 +1,8 @@
 {
-  "name": "platform-api",
+  "name": "manager",
   "version": "0.0.1",
-  "description": "Manages home compute system docker images",
-  "author": "Second Layer Solutions, INC.",
+  "description": "Manages Lightning Node system docker images",
+  "author": "Casa, INC.",
   "scripts": {
     "start": "node ./bin/www",
     "test": "mocha --exit"
@@ -20,9 +20,7 @@
     "cors": "^2.8.4",
     "debug": "^2.6.1",
     "dockerode": "^2.5.5",
-    "dotenv": "^6.0.0",
     "express": "^4.16.1",
-    "express-session": "^1.15.6",
     "fs": "0.0.1-security",
     "module-alias": "^2.1.0",
     "morgan": "^1.9.0",
