@@ -1,7 +1,7 @@
 {
   "name": "manager",
   "version": "0.0.1",
-  "description": "Manages Lightning Node system docker images",
+  "description": "Manages Casa Lightning Node system docker images",
   "author": "Casa, INC.",
   "scripts": {
     "start": "node ./bin/www",
