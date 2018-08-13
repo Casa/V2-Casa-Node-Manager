@@ -11,3 +11,5 @@ README.md
 Dockerfile
 pre-commit
 .eslintrc
+.eslintignore
+test/

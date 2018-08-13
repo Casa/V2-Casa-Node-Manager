@@ -2,8 +2,11 @@
 All docker business logic goes here.
  */
 const dockerService = require('@services/docker.js');
-var q = require('q'); // eslint-disable-line id-length
+const dockerHubService = require('@services/dockerHub.js');
+const q = require('q'); // eslint-disable-line id-length
 const DockerError = require('@resources/errors.js').DockerError;
+const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
+const MOST_RECENT_TAG = 'latest';
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;
@@ -46,37 +49,35 @@ function getStatuses() {
   return deferred.promise;
 }
 
-function getVersions() {
+const getVersions = async() => {
   // TODO: check if something is missing
-  var deferred = q.defer();
 
-  function parseContainerInformation(containers) {
-    var versions = [];
-    containers.forEach(function(container) {
-      versions.push({
-        service: container['Labels']['com.docker.compose.service'],
-        version: container['ImageID'],
-      });
-    });
+  var versions = [];
 
-    return versions;
+  var containers = await getAllContainers();
+
+  for (const container of containers) {
+
+    var version = {
+      service: container['Labels']['com.docker.compose.service'],
+      version: container['ImageID'],
+      upgradeable: false, // upgradeable should default to false
+    };
+
+    try {
+      var authToken = await dockerHubService.getAuthenticationToken(ORGANIZATION, version.service);
+      var digest = await dockerHubService.getDigest(authToken, ORGANIZATION, version.service, MOST_RECENT_TAG);
+
+      version.upgradeable = version.version !== digest;
+    } catch (error) {
+      // if there is an error finding out if a service is upgradeable, leave it as is or default to false
+    }
+
+    versions.push(version);
   }
 
-  function handleSuccess(versions) {
-    deferred.resolve(versions);
-  }
-
-  function handleError() {
-    deferred.reject(new DockerError('Unable to determine versions'));
-  }
-
-  getAllContainers()
-    .then(parseContainerInformation)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
+  return versions;
+};
 
 function getVolumeUsage() {
   var deferred = q.defer();
