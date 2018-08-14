@@ -60,7 +60,7 @@ function getDigest(authToken, organization, repository, tag) {
       }
     })
     .catch(function(error) {
-      deferred.reject(DockerHubError('Unable to fetch authentication token', error));
+      deferred.reject(new DockerHubError('Unable to fetch authentication token', error));
     });
 
   return deferred.promise;

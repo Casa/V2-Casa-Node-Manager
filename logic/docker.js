@@ -61,15 +61,15 @@ const getVersions = async() => {
     var version = {
       service: container['Labels']['com.docker.compose.service'],
       version: container['ImageID'],
-      upgradeable: false, // upgradeable should default to false
+      updatable: false, // upgradeable should default to false
     };
 
     try {
       var authToken = await dockerHubService.getAuthenticationToken(ORGANIZATION, version.service);
       var digest = await dockerHubService.getDigest(authToken, ORGANIZATION, version.service, MOST_RECENT_TAG);
 
-      version.upgradeable = version.version !== digest;
-    } catch (error) {
+      version.updatable = version.version !== digest;
+    } catch (err) {
       // if there is an error finding out if a service is upgradeable, leave it as is or default to false
     }
 
