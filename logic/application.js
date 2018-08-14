@@ -2,50 +2,49 @@
 All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
+const publicIp = require('public-ip');
 const dockerComposeLogic = require('../logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
 const constants = require('@resources/const.js');
 const DockerComposeError = require('@resources/errors.js').DockerComposeError;
 
-function start() {
-  var deferred = q.defer();
+const EXTERNAL_IP_KEY = 'EXTERNALIP';
 
-  function loadSettings(data) {
-    const settings = JSON.parse(data);
+const start = async() => {
 
-    var lndSettings = settings['lnd'];
-    var bitcoindSettings = settings['bitcoind'];
+  const data = await diskLogic.readSettingsFile(constants.SETTINGS_FILE);
+  const settings = JSON.parse(data);
 
-    var envData = {};
-    Object.keys(lndSettings).forEach(function(key) {
+  var lndSettings = settings['lnd'];
+  var bitcoindSettings = settings['bitcoind'];
+
+  var envData = {};
+  for (const key in lndSettings) {
+    if (Object.prototype.hasOwnProperty.call(lndSettings, key)) {
       envData[key.toUpperCase()] = lndSettings[key];
-    });
+    }
+  }
 
-    Object.keys(bitcoindSettings).forEach(function(key) {
+  for (const key in bitcoindSettings) {
+    if (Object.prototype.hasOwnProperty.call(bitcoindSettings, key)) {
       envData[key.toUpperCase()] = bitcoindSettings[key];
-    });
+    }
+  }
 
-    return {
+  // If the settings file already has an external ip that has been manually set by the user, we should not try to
+  // automatically discover the external ip address.
+  if (!Object.prototype.hasOwnProperty.call(envData, EXTERNAL_IP_KEY)) {
+    envData[EXTERNAL_IP_KEY] = await publicIp.v4();
+  }
+
+  try {
+    await dockerComposeLogic.dockerComposeUp({
       env: envData
-    };
+    });
+  } catch (error) {
+    throw new DockerComposeError('Unable to start services');
   }
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to start services'));
-  }
-
-  diskLogic.readSettingsFile(constants.SETTINGS_FILE)
-    .then(loadSettings)
-    .then(dockerComposeLogic.dockerComposeUp)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
+};
 
 function shutdown() {
   var deferred = q.defer();
