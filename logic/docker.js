@@ -61,7 +61,6 @@ const getVersions = async() => {
     var version = {
       service: container['Labels']['com.docker.compose.service'],
       version: container['ImageID'],
-      updatable: false, // upgradeable should default to false
     };
 
     try {
@@ -70,7 +69,7 @@ const getVersions = async() => {
 
       version.updatable = version.version !== digest;
     } catch (err) {
-      // if there is an error finding out if a service is upgradeable, leave it as is or default to false
+      version.updatable = false; // updatable should default to false
     }
 
     versions.push(version);
