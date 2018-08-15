@@ -8,9 +8,10 @@ function ValidationError(message, statusCode) {
 }
 require('util').inherits(ValidationError, Error);
 
-function DockerComposeError(message, statusCode) {
+function DockerComposeError(message, error, statusCode) {
   Error.captureStackTrace(this, this.constructor);
   this.name = this.constructor.name;
+  this.error = error;
   this.message = message;
   this.statusCode = statusCode;
 }

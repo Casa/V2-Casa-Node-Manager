@@ -6,6 +6,9 @@ var q = require('q'); // eslint-disable-line id-length
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
+const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
+const TAG = process.env.TAG || 'arm';
+
 function composeFile(options) {
   if (options.fileName !== undefined) {
     return WORKING_DIR + '/' + options.fileName;
@@ -14,13 +17,19 @@ function composeFile(options) {
   return WORKING_DIR + '/' + constants.LIGHTNING_NODE_DOCKER_COMPOSE_FILE;
 }
 
+function addDefaultOptions(options) {
+  options.cwd = WORKING_DIR;
+  options.log = true;
+  options.env = options.env || {};
+  options.env.ORGANIZATION = ORGANIZATION;
+  options.env.TAG = TAG;
+}
+
 function dockerComposeUp(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   function handleSuccess() {
     deferred.resolve();
@@ -37,13 +46,11 @@ function dockerComposeUp(options = {}) {
   return deferred.promise;
 }
 
-function dockerComposeDown(options = {}) {
+function dockerComposeDown(options = {env: {}}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   var composeOptions = ['-f', file, 'down'];
 
@@ -67,14 +74,12 @@ function dockerComposeDown(options = {}) {
   return deferred.promise;
 }
 
-function dockerComposeRestart(options) {
+function dockerComposeRestart(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   var composeOptions = ['-f', file, 'restart', service];
 
@@ -93,14 +98,12 @@ function dockerComposeRestart(options) {
   return deferred.promise;
 }
 
-function dockerComposePull(options) {
+function dockerComposePull(options = {env: {}}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   function handleSuccess() {
     deferred.resolve();
@@ -117,14 +120,12 @@ function dockerComposePull(options) {
   return deferred.promise;
 }
 
-function dockerComposeStop(options) {
+function dockerComposeStop(options = {env: {}}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   var composeOptions = ['-f', file, 'stop', service];
 
@@ -143,14 +144,12 @@ function dockerComposeStop(options) {
   return deferred.promise;
 }
 
-function dockerComposeRemove(options) {
+function dockerComposeRemove(options = {env: {}}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   var composeOptions = ['-f', file, 'rm', service, '-f'];
 
@@ -169,14 +168,12 @@ function dockerComposeRemove(options) {
   return deferred.promise;
 }
 
-function dockerComposeUpSingleService(options) { // eslint-disable-line id-length
+function dockerComposeUpSingleService(options = {env: {}}) { // eslint-disable-line id-length
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
-
-  options.cwd = WORKING_DIR;
-  options.log = true;
+  addDefaultOptions(options);
 
   function handleSuccess() {
     deferred.resolve();
