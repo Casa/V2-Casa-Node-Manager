@@ -9,9 +9,11 @@
   },
   "_moduleAliases": {
     "@logic": "logic",
+    "@middlewares": "middlewares",
+    "@models": "models",
+    "@routes": "routes",
     "@services": "services",
-    "@resources": "resources",
-    "@routes": "routes"
+    "@utils": "utils"
   },
   "dependencies": {
     "body-parser": "^1.18.2",

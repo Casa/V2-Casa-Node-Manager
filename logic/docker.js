@@ -4,7 +4,7 @@ All docker business logic goes here.
 const dockerService = require('@services/docker.js');
 const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
-const DockerError = require('@resources/errors.js').DockerError;
+const DockerError = require('@utils/errors.js').DockerError;
 const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
 const MOST_RECENT_TAG = 'latest';
 
