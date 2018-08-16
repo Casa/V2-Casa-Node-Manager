@@ -1,5 +1,5 @@
 const KNOWN_SERVICES = ['lnd', 'bitcoind', 'lnapi'];
-const ValidationError = require('@utils/errors.js').ValidationError;
+const ValidationError = require('@models/errors.js').ValidationError;
 
 function isKnownService(service) {
   if (!KNOWN_SERVICES.includes(service)) {
