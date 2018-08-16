@@ -3,7 +3,7 @@
 
 const request = require('request-promise');
 var q = require('q'); // eslint-disable-line id-length
-const DockerHubError = require('../resources/errors.js').DockerHubError;
+const DockerHubError = require('@models/errors.js').DockerHubError;
 
 const authenticationBaseUrl = 'https://auth.docker.io';
 const registryBaseUrl = 'https://registry.hub.docker.com';

@@ -4,9 +4,9 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 
-const requestCorrelationMiddleware = require('@resources/requestCorrelationId.js'); // eslint-disable-line id-length
-const errorHandleMiddleware = require('@resources/errorHandling.js');
-const logger = require('@resources/logger.js');
+const requestCorrelationMiddleware = require('@middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
+const errorHandleMiddleware = require('@middlewares/errorHandling.js');
+const logger = require('@utils/logger.js');
 
 const ping = require('@routes/ping.js');
 const telemetry = require('@routes/v1/telemetry.js');

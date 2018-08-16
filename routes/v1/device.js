@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const applicationLogic = require('@logic/application.js');
-const validator = require('@resources/validator.js');
+const validator = require('@utils/validator.js');
 
 router.post('/start', function(req, res, next) {
   applicationLogic.start()
