@@ -2,10 +2,10 @@
 All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
-const dockerComposeLogic = require('../logic/docker-compose.js');
+const dockerComposeLogic = require('@logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
-const constants = require('@resources/const.js');
-const DockerComposeError = require('@resources/errors.js').DockerComposeError;
+const constants = require('@utils/const.js');
+const DockerComposeError = require('@models/errors.js').DockerComposeError;
 
 function start() {
   var deferred = q.defer();

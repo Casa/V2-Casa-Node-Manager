@@ -1,4 +1,11 @@
 /* eslint-disable no-magic-numbers */
+function NodeError(message, statusCode) {
+  Error.captureStackTrace(this, this.constructor);
+  this.name = this.constructor.name;
+  this.message = message;
+  this.statusCode = statusCode;
+}
+require('util').inherits(NodeError, Error);
 
 function ValidationError(message, statusCode) {
   Error.captureStackTrace(this, this.constructor);
@@ -35,6 +42,7 @@ function DockerHubError(message, error, statusCode) {
 require('util').inherits(DockerHubError, Error);
 
 module.exports = {
+  NodeError,
   ValidationError,
   DockerComposeError,
   DockerError,

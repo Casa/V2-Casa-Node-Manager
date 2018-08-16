@@ -1,5 +1,5 @@
 const bashService = require('@services/bash.js');
-const constants = require('@resources/const.js');
+const constants = require('@utils/const.js');
 
 var q = require('q'); // eslint-disable-line id-length
 
