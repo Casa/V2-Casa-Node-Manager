@@ -20,7 +20,7 @@ function getAuthenticationToken(organization, repository) {
   }
 
   const options = {
-    headers: headers,
+    headers: headers, // eslint-disable-line object-shorthand
     method: 'GET',
     uri: authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:' + organization
       + '/' + repository + ':pull',
