@@ -5,8 +5,6 @@ const dockerService = require('@services/docker.js');
 const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
 const DockerError = require('@resources/errors.js').DockerError;
-const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
-const TAG = process.env.TAG || 'arm';
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;
@@ -65,8 +63,15 @@ const getVersions = async() => {
 
     // TODO make this loop async. It takes several seconds as of right now.
     try {
-      var authToken = await dockerHubService.getAuthenticationToken(ORGANIZATION, version.service);
-      var digest = await dockerHubService.getDigest(authToken, ORGANIZATION, version.service, TAG);
+      const image = container['Image'];
+      const slashParts = image.split('/');
+      const organization = slashParts[0];
+      const colonParts = slashParts[1].split(':');
+      const repository = colonParts[0];
+      const tag = colonParts[1];
+
+      var authToken = await dockerHubService.getAuthenticationToken(organization, repository);
+      var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
 
       version.updatable = version.version !== digest;
     } catch (err) {

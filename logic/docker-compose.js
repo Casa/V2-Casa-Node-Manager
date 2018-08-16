@@ -6,7 +6,6 @@ var q = require('q'); // eslint-disable-line id-length
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
-const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
 const TAG = process.env.TAG || 'arm';
 
 function composeFile(options) {
@@ -21,7 +20,6 @@ function addDefaultOptions(options) {
   options.cwd = WORKING_DIR;
   options.log = true;
   options.env = options.env || {};
-  options.env.ORGANIZATION = ORGANIZATION;
   options.env.TAG = TAG;
 }
 
@@ -46,7 +44,7 @@ function dockerComposeUp(options = {}) {
   return deferred.promise;
 }
 
-function dockerComposeDown(options = {env: {}}) {
+function dockerComposeDown(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
@@ -98,7 +96,7 @@ function dockerComposeRestart(options = {}) {
   return deferred.promise;
 }
 
-function dockerComposePull(options = {env: {}}) {
+function dockerComposePull(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
@@ -120,7 +118,7 @@ function dockerComposePull(options = {env: {}}) {
   return deferred.promise;
 }
 
-function dockerComposeStop(options = {env: {}}) {
+function dockerComposeStop(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
@@ -144,7 +142,7 @@ function dockerComposeStop(options = {env: {}}) {
   return deferred.promise;
 }
 
-function dockerComposeRemove(options = {env: {}}) {
+function dockerComposeRemove(options = {}) {
   var deferred = q.defer();
 
   const file = composeFile(options);
@@ -168,7 +166,7 @@ function dockerComposeRemove(options = {env: {}}) {
   return deferred.promise;
 }
 
-function dockerComposeUpSingleService(options = {env: {}}) { // eslint-disable-line id-length
+function dockerComposeUpSingleService(options = {}) { // eslint-disable-line id-length
   var deferred = q.defer();
 
   const file = composeFile(options);
