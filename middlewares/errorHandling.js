@@ -7,6 +7,11 @@ function handleError(error, req, res, next) {
 
   logger.error(error.message, route, error.stack);
 
+  // log the internal error if one exists
+  if (error.error) {
+    logger.error(error.error, route, error.stack);
+  }
+
   res.status(statusCode).json(error.message);
 }
 

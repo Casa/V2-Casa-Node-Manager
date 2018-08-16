@@ -34,8 +34,8 @@ function start() {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to start services'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to start services', error));
   }
 
   diskLogic.readSettingsFile(constants.SETTINGS_FILE)
@@ -54,8 +54,8 @@ function shutdown() {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to shutdown services'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to shutdown services', error));
   }
 
   dockerComposeLogic.dockerComposeDown()
@@ -76,8 +76,8 @@ function reset() {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to reset device'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to reset device', error));
   }
 
   dockerComposeLogic.dockerComposeDown(options)
@@ -112,8 +112,8 @@ function restart(service) {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to restart service'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to restart service', error));
   }
 
   dockerComposeLogic.dockerComposeRestart(service)
@@ -134,8 +134,8 @@ function update(service) {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to update service'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to update service', error));
   }
 
   dockerComposeLogic.dockerComposePull(service)
