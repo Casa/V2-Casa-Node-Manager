@@ -9,9 +9,11 @@
   },
   "_moduleAliases": {
     "@logic": "logic",
+    "@middlewares": "middlewares",
+    "@models": "models",
+    "@routes": "routes",
     "@services": "services",
-    "@resources": "resources",
-    "@routes": "routes"
+    "@utils": "utils"
   },
   "dependencies": {
     "body-parser": "^1.18.2",
@@ -25,6 +27,8 @@
     "module-alias": "^2.1.0",
     "morgan": "^1.9.0",
     "npm": "^5.6.0",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
     "public-ip": "^2.4.0",
     "q": "^1.5.1",
     "request": "^2.87.0",

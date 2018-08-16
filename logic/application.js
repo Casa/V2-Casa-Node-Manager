@@ -3,10 +3,10 @@ All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
 const publicIp = require('public-ip');
-const dockerComposeLogic = require('../logic/docker-compose.js');
+const dockerComposeLogic = require('@logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
-const constants = require('@resources/const.js');
-const DockerComposeError = require('@resources/errors.js').DockerComposeError;
+const constants = require('@utils/const.js');
+const DockerComposeError = require('@models/errors.js').DockerComposeError;
 
 const EXTERNAL_IP_KEY = 'EXTERNALIP';
 
@@ -53,8 +53,8 @@ function shutdown() {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to shutdown services'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to shutdown services', error));
   }
 
   dockerComposeLogic.dockerComposeDown()
@@ -75,8 +75,8 @@ function reset() {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to reset device'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to reset device', error));
   }
 
   dockerComposeLogic.dockerComposeDown(options)
@@ -111,8 +111,8 @@ function restart(service) {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to restart service'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to restart service', error));
   }
 
   dockerComposeLogic.dockerComposeRestart(service)
@@ -133,8 +133,8 @@ function update(service) {
     deferred.resolve();
   }
 
-  function handleError() {
-    deferred.reject(new DockerComposeError('Unable to update service'));
+  function handleError(error) {
+    deferred.reject(new DockerComposeError('Unable to update service', error));
   }
 
   dockerComposeLogic.dockerComposePull(service)

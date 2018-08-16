@@ -4,9 +4,7 @@ All docker business logic goes here.
 const dockerService = require('@services/docker.js');
 const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
-const DockerError = require('@resources/errors.js').DockerError;
-const ORGANIZATION = process.env.ORGANIZATION || 'casacomputer';
-const MOST_RECENT_TAG = 'latest';
+const DockerError = require('@models/errors.js').DockerError;
 
 // TODO: verify counts
 const EXPECTED_VOLUME_COUNT = 4;
@@ -61,16 +59,23 @@ const getVersions = async() => {
     var version = {
       service: container['Labels']['com.docker.compose.service'],
       version: container['ImageID'],
-      upgradeable: false, // upgradeable should default to false
     };
 
+    // TODO make this loop async. It takes several seconds as of right now.
     try {
-      var authToken = await dockerHubService.getAuthenticationToken(ORGANIZATION, version.service);
-      var digest = await dockerHubService.getDigest(authToken, ORGANIZATION, version.service, MOST_RECENT_TAG);
+      const image = container['Image'];
+      const slashParts = image.split('/');
+      const organization = slashParts[0];
+      const colonParts = slashParts[1].split(':');
+      const repository = colonParts[0];
+      const tag = colonParts[1];
 
-      version.upgradeable = version.version !== digest;
-    } catch (error) {
-      // if there is an error finding out if a service is upgradeable, leave it as is or default to false
+      var authToken = await dockerHubService.getAuthenticationToken(organization, repository);
+      var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
+
+      version.updatable = version.version !== digest;
+    } catch (err) {
+      version.updatable = false; // updatable should default to false
     }
 
     versions.push(version);

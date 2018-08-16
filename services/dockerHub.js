@@ -3,7 +3,7 @@
 
 const request = require('request-promise');
 var q = require('q'); // eslint-disable-line id-length
-const DockerHubError = require('../resources/errors.js').DockerHubError;
+const DockerHubError = require('@models/errors.js').DockerHubError;
 
 const authenticationBaseUrl = 'https://auth.docker.io';
 const registryBaseUrl = 'https://registry.hub.docker.com';
@@ -11,8 +11,16 @@ const registryBaseUrl = 'https://registry.hub.docker.com';
 function getAuthenticationToken(organization, repository) {
   var deferred = q.defer();
 
+  var headers = {};
+
+  // These credentials will never be set in production. They will only exist in dev environments.
+  if (process.env.DOCKER_USER && process.env.DOCKER_PASS) {
+    headers.Authorization = 'Basic ' + Buffer.from(process.env.DOCKER_USER + ':'
+        + process.env.DOCKER_PASS).toString('base64');
+  }
 
   const options = {
+    headers: headers, // eslint-disable-line object-shorthand
     method: 'GET',
     uri: authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:' + organization
       + '/' + repository + ':pull',
@@ -60,7 +68,7 @@ function getDigest(authToken, organization, repository, tag) {
       }
     })
     .catch(function(error) {
-      deferred.reject(DockerHubError('Unable to fetch authentication token', error));
+      deferred.reject(new DockerHubError('Unable to fetch authentication token', error));
     });
 
   return deferred.promise;

@@ -1,5 +1,7 @@
 const childProcess = require('child_process');
 
+// Sets environment variables on container.
+// Env should not contain sensitive data, because environment variables are not secure.
 function extendProcessEnv(env) {
   Object.keys(env).map(function(objectKey) { // eslint-disable-line array-callback-return
     process.env[objectKey] = env[objectKey];
@@ -35,6 +37,8 @@ const exec = (command, args, options) => new Promise((resolve, reject) => {
   });
 
   childProc.on('close', () => {
+    // TODO: how to determine success or failure? Sometimes result.err is an error, but other
+    // times it is a success message
     resolve(result);
   });
 
