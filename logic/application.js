@@ -156,7 +156,7 @@ function createSettingsFile() {
   const defaultConfig = {
     bitcoind: {
       bitcoinNetwork: 'testnet',
-      bitcoindListen: 1,
+      bitcoindListen: true,
     },
     lnd: {
       chain: 'bitcoin',
