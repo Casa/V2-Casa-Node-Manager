@@ -12,7 +12,7 @@ const errors = require('@models/errors.js');
 const DockerComposeError = errors.DockerComposeError;
 const bashService = require('@services/bash.js');
 
-const EXTERNAL_IP_KEY = 'EXTERNALIP';
+const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
 
 const start = async() => {
 
