@@ -153,7 +153,8 @@ function update(service) {
 function createSettingsFile() {
   const defaultConfig = {
     bitcoind: {
-      bitcoinNetwork: 'testnet'
+      bitcoinNetwork: 'testnet',
+      bitcoindListen: 1,
     },
     lnd: {
       chain: 'bitcoin',
