@@ -69,10 +69,6 @@ function shutdown() {
 function reset() {
   var deferred = q.defer();
 
-  // const options = {
-  //   reset: true
-  // };
-
   function handleSuccess() {
     deferred.resolve();
   }

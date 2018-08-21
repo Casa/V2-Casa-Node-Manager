@@ -52,11 +52,6 @@ function dockerComposeDown(options = {}) {
 
   var composeOptions = ['-f', file, 'down'];
 
-  if (options.reset) {
-    composeOptions.push('-v');
-    composeOptions.push('--remove-orphans');
-  }
-
   function handleSuccess() {
     deferred.resolve();
   }
