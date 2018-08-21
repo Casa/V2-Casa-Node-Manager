@@ -3,6 +3,8 @@ All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
 const publicIp = require('public-ip');
+const decamelizeKeys = require('decamelize-keys');
+
 const dockerComposeLogic = require('@logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
 const constants = require('@utils/const.js');
@@ -17,8 +19,8 @@ const start = async() => {
   const data = await diskLogic.readSettingsFile(constants.SETTINGS_FILE);
   const settings = JSON.parse(data);
 
-  var lndSettings = settings['lnd'];
-  var bitcoindSettings = settings['bitcoind'];
+  var lndSettings = decamelizeKeys(settings['lnd'], '_');
+  var bitcoindSettings = decamelizeKeys(settings['bitcoind'], '_');
 
   var envData = {};
   for (const key in lndSettings) {
