@@ -7,8 +7,10 @@ const passport = require('passport');
 
 const requestCorrelationMiddleware = require('@middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
 const errorHandleMiddleware = require('@middlewares/errorHandling.js');
-const logger = require('@utils/logger.js');
 require('@middlewares/auth.js');
+
+const logger = require('@utils/logger.js');
+const applicationLogic = require('@logic/application.js');
 
 const ping = require('@routes/ping.js');
 const telemetry = require('@routes/v1/telemetry.js');
@@ -31,5 +33,7 @@ app.use(errorHandleMiddleware);
 app.use(function(req, res) {
   res.status(404).json(); // eslint-disable-line no-magic-numbers
 });
+
+applicationLogic.createSettingsFile();
 
 module.exports = app;

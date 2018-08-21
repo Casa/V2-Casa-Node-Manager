@@ -6,7 +6,9 @@ const publicIp = require('public-ip');
 const dockerComposeLogic = require('@logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
 const constants = require('@utils/const.js');
-const DockerComposeError = require('@models/errors.js').DockerComposeError;
+const errors = require('@models/errors.js');
+const DockerComposeError = errors.DockerComposeError;
+const bashService = require('@services/bash.js');
 
 const EXTERNAL_IP_KEY = 'EXTERNALIP';
 
@@ -67,10 +69,6 @@ function shutdown() {
 function reset() {
   var deferred = q.defer();
 
-  const options = {
-    reset: true
-  };
-
   function handleSuccess() {
     deferred.resolve();
   }
@@ -79,7 +77,9 @@ function reset() {
     deferred.reject(new DockerComposeError('Unable to reset device', error));
   }
 
-  dockerComposeLogic.dockerComposeDown(options)
+  dockerComposeLogic.dockerComposeDown()
+    .then(wipeSettingsVolume)
+    .then(createSettingsFile)
     .then(handleSuccess)
     .catch(handleError);
 
@@ -150,6 +150,46 @@ function update(service) {
   return deferred.promise;
 }
 
+function createSettingsFile() {
+  const defaultConfig = {
+    bitcoind: {
+      bitcoinNetwork: 'testnet'
+    },
+    lnd: {
+      chain: 'bitcoin',
+      backend: 'bitcoind',
+      lndNetwork: 'testnet',
+      autopilot: false, // eslint-disable-line object-shorthand
+    }
+  };
+
+  if (!diskLogic.settingsFileExists(constants.SETTINGS_FILE)) {
+    diskLogic.writeSettingsFile(constants.SETTINGS_FILE, JSON.stringify(defaultConfig));
+  }
+}
+
+function wipeSettingsVolume() {
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  var options = {
+    cwd: '/settings',
+  };
+
+  bashService.exec('rm', ['-rf', 'settings.json', 'user.json'], options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
 module.exports = {
   start,
   shutdown,
@@ -157,4 +197,5 @@ module.exports = {
   pull,
   restart,
   update,
+  createSettingsFile,
 };

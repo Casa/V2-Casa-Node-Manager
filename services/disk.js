@@ -37,7 +37,23 @@ function readFile(filePath) {
   return deferred.promise;
 }
 
+// Writes a file sync. Throws an error if file not found.
+function writeFileSync(filePath, data) {
+  return fs.writeFileSync(filePath, data);
+}
+
+function fileExistsSync(path) {
+  if (fs.existsSync(path)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 module.exports = {
   getDeviceSerial,
-  readFile
+  readFile,
+  writeFileSync,
+  fileExistsSync,
 };
