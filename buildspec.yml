@@ -1,0 +1,28 @@
+version: 0.2
+env:
+  parameter-store:
+    DOCKER_HUB_USER: "/Test/DockerHub/User"
+    DOCKER_HUB_PASS: "/Test/DockerHub/Pass"
+phases:
+  install:
+    commands:
+      - echo Installing Mocha...
+      - npm install -g mocha
+  pre_build:
+    commands:
+      - echo Installing source NPM dependencies...
+      - npm install
+  build:
+    commands:
+      - echo Running tests
+      - npm test
+      - echo Building the Docker image...
+      - docker build . -t $ORGANIZATION/$REPOSITORY:$TAG
+      - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
+  post_build:
+    commands:
+      - echo $DOCKER_HUB_USER
+      - echo $DOCKER_HUB_PASS
+      - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
+      - docker push $ORGANIZATION/$REPOSITORY:$TAG
+      - echo Build completed on `date`
