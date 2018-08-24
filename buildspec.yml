@@ -16,11 +16,22 @@ phases:
     commands:
       - echo Running tests
       - npm test
-      - echo Building the Docker image...
-      - docker build . -t $ORGANIZATION/$REPOSITORY:$TAG
-      - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
+
+      - echo Building the Docker images ...
+
+      # building x86
+      - docker build . -t $ORGANIZATION/$REPOSITORY:x86
+      - docker tag $ORGANIZATION/$REPOSITORY:x86 $ORGANIZATION/$REPOSITORY:x86
+
+      # building arm
+      - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      - docker build . -f Dockerfile.armhf -t $ORGANIZATION/$REPOSITORY:arm
+      - docker tag $ORGANIZATION/$REPOSITORY:arm $ORGANIZATION/$REPOSITORY:arm
+
+      # push images to docker
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
-      - docker push $ORGANIZATION/$REPOSITORY:$TAG
+      - docker push $ORGANIZATION/$REPOSITORY:x86
+      - docker push $ORGANIZATION/$REPOSITORY:arm
   post_build:
     commands:
       - echo Build completed on `date`
