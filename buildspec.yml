@@ -19,10 +19,8 @@ phases:
       - echo Building the Docker image...
       - docker build . -t $ORGANIZATION/$REPOSITORY:$TAG
       - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
-  post_build:
-    commands:
-      - echo $DOCKER_HUB_USER
-      - echo $DOCKER_HUB_PASS
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
       - docker push $ORGANIZATION/$REPOSITORY:$TAG
+  post_build:
+    commands:
       - echo Build completed on `date`
