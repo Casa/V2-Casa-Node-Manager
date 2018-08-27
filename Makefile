@@ -1,4 +1,4 @@
-.PHONY: install-prehook	install install-dev
+.PHONY: install-prehook	install install-dev lint
 
 install-prehook:
 	cp pre-commit .git/hooks/
