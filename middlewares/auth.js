@@ -36,6 +36,18 @@ function jwt(req, res, next) {
   })(req, res, next);
 }
 
-module.exports = {
-  jwt,
-};
+function dev(req, res, next) {
+  req.user = {username: 'dev', password: 'dev', id: 'dev'};
+
+  return next(null, {user: 'dev', password: 'dev', id: 'dev'});
+}
+
+if (process.env.ENVIRONMENT === 'DEV') {
+  module.exports = {
+    jwt: dev,
+  };
+} else {
+  module.exports = {
+    jwt,
+  };
+}
