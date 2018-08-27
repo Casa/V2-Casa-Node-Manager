@@ -8,3 +8,6 @@ install: install-prehook
 
 install-dev:
 	npm install --dev
+
+lint:
+	eslint .

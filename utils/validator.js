@@ -1,4 +1,4 @@
-const KNOWN_SERVICES = ['lnd', 'bitcoind', 'lnapi'];
+const KNOWN_SERVICES = ['lnd', 'bitcoind', 'lnapi', 'space-fleet'];
 const ValidationError = require('@models/errors.js').ValidationError;
 
 function isKnownService(service) {
