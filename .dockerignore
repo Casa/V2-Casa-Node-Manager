@@ -1,4 +1,5 @@
 .dockerignore
+buildspec.yml
 build-docker.sh
 node_modules
 npm-debug.log
@@ -9,7 +10,10 @@ README.md
 .env.default
 .idea
 Dockerfile
+Dockerfile.armhf
+Dockerfile.mac
 pre-commit
 .eslintrc
 .eslintignore
 test/
+qemu-arm-static
