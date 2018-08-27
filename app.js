@@ -4,6 +4,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const passport = require('passport');
+const cors = require('cors');
 
 const requestCorrelationMiddleware = require('@middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
 const errorHandleMiddleware = require('@middlewares/errorHandling.js');
@@ -16,6 +17,20 @@ const ping = require('@routes/ping.js');
 const telemetry = require('@routes/v1/telemetry.js');
 const device = require('@routes/v1/device.js');
 const app = express();
+
+// Whitelist origins for dev & demo site
+// TODO: cleanup before release
+const whitelist = ['http://localhost:80', 'http://localhost:3000', 'http://spacefleet.com.s3-website-us-east-1.amazonaws.com']; // eslint-disable-line max-len
+const corsOptions = {
+  origin: function(origin, callback) { // eslint-disable-line object-shorthand
+    if (whitelist.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));

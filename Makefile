@@ -1,4 +1,4 @@
-.PHONY: install-prehook	install install-dev
+.PHONY: install-prehook	install install-dev lint
 
 install-prehook:
 	cp pre-commit .git/hooks/
@@ -8,3 +8,6 @@ install: install-prehook
 
 install-dev:
 	npm install --dev
+
+lint:
+	eslint .
