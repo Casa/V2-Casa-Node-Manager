@@ -166,8 +166,8 @@ function createSettingsFile() {
     }
   };
 
-  if (!diskLogic.settingsFileExists(constants.SETTINGS_FILE)) {
-    diskLogic.writeSettingsFile(constants.SETTINGS_FILE, JSON.stringify(defaultConfig));
+  if (!diskLogic.settingsFileExists()) {
+    diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
   }
 }
 

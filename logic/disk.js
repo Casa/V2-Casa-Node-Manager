@@ -1,15 +1,16 @@
+const constants = require('@utils/const.js');
 const diskService = require('@services/disk.js');
 
-function readSettingsFile(path) {
-  return diskService.readFile(path);
+function readSettingsFile() {
+  return diskService.readFile(constants.SETTINGS_FILE);
 }
 
-function writeSettingsFile(path, data) {
-  return diskService.writeFileSync(path, data);
+function writeSettingsFile(data) {
+  return diskService.writeFileSync(constants.SETTINGS_FILE, data);
 }
 
-function settingsFileExists(path) {
-  return diskService.fileExistsSync(path);
+function settingsFileExists() {
+  return diskService.fileExistsSync(constants.SETTINGS_FILE);
 }
 
 module.exports = {
