@@ -16,7 +16,8 @@ phases:
 
       - echo Installing source NPM dependencies...
       - npm install
-
+  install:
+    commands:
       # CodePipeline creates artifacts using zip format, which does not preserve the permissions/modes.
       # we must reset permissions here
       - chmod 755 pre-commit qemu-arm-static
