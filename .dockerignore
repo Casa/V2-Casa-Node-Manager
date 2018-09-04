@@ -16,4 +16,3 @@ pre-commit
 .eslintrc
 .eslintignore
 test/
-qemu-arm-static
