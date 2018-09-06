@@ -22,7 +22,7 @@ function getStatuses() {
       volumes: df['Volumes'].length,
       containers: df['Containers'].length,
       images: df['Images'].length,
-      time: Math.floor(new Date().getTime() / 1000)
+      time: Math.floor(new Date().getTime() / 1000) // eslint-disable-line no-magic-numbers
     };
   }
 
@@ -33,7 +33,7 @@ function getStatuses() {
         id: container['Id'],
         service: container['Labels']['com.docker.compose.service'],
         image: container['Image'],
-        image_id: container['ImageID'],
+        image_id: container['ImageID'], // eslint-disable-line camelcase
         status: container['State'],
         created: container['Created'],
         message: container['Status'],
@@ -61,7 +61,7 @@ function getStatuses() {
   return deferred.promise;
 }
 
-const getVersions = async () => {
+const getVersions = async() => {
   // TODO: check if something is missing
 
   var versions = [];
@@ -129,7 +129,7 @@ function getVolumeUsage() {
   return deferred.promise;
 }
 
-const getLogs = async () => {
+const getLogs = async() => {
   var logs = [];
 
   var containers = await getAllContainers();
@@ -144,7 +144,7 @@ const getLogs = async () => {
   }
 
   return logs;
-}
+};
 
 module.exports = {
   getStatuses,

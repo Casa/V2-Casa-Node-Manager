@@ -25,7 +25,7 @@ router.get('/volumes', auth.jwt, function(req, res, next) {
 
 router.get('/logs', auth.jwt, function(req, res, next) {
   dockerLogic.getLogs()
-    .then(versions => res.json(versions))
+    .then(logs => res.json(logs))
     .catch(next);
 });
 
