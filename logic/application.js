@@ -2,7 +2,6 @@
 All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
-var rp = require('request-promise');
 
 const publicIp = require('public-ip');
 const decamelizeKeys = require('decamelize-keys');
@@ -14,6 +13,7 @@ const errors = require('@models/errors.js');
 const DockerComposeError = errors.DockerComposeError;
 const NodeError = errors.NodeError;
 const bashService = require('@services/bash.js');
+const lnapiService = require('@services/lnapi.js');
 
 const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
 
@@ -228,31 +228,6 @@ function downloadLogs() {
   return deferred.promise;
 }
 
-function updateSettings(enabled) {
-  var data = {remoteLogging: enabled};
-
-  const postOptions = {
-    method: 'POST',
-    uri: 'http://0.0.0.0:3002/v1/settings/update-remote-logging',
-    body: data,
-    json: true
-  };
-
-  var deferred = q.defer();
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  rp(postOptions).then(handleSuccess).catch(handleError);
-
-  return deferred.promise;
-}
-
 function cyclePaperTrail(enabled) {
   const options = {
     service: 'papertrail',
@@ -276,13 +251,13 @@ function cyclePaperTrail(enabled) {
   if (enabled) {
     dockerComposeLogic.dockerComposeUpSingleService(options)
       .then(injectEnabled)
-      .then(updateSettings)
+      .then(lnapiService.updateSettings)
       .then(handleSuccess)
       .catch(handleError);
   } else {
     dockerComposeLogic.dockerComposeStop(options)
       .then(injectEnabled)
-      .then(updateSettings)
+      .then(lnapiService.updateSettings)
       .then(handleSuccess)
       .catch(handleError);
   }
