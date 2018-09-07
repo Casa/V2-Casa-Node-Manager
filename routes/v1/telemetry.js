@@ -23,11 +23,10 @@ router.get('/volumes', auth.jwt, function(req, res, next) {
 
 });
 
-router.get('/healthcheck', auth.jwt, function(req, res, next) {
-  dockerLogic.getSystemHealth()
-    .then(status => res.json(status))
+router.get('/logs', auth.jwt, function(req, res, next) {
+  dockerLogic.getLogs()
+    .then(logs => res.json(logs))
     .catch(next);
-
 });
 
 module.exports = router;

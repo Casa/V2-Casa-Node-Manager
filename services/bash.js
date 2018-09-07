@@ -36,10 +36,12 @@ const exec = (command, args, options) => new Promise((resolve, reject) => {
     result.err += chunk.toString();
   });
 
-  childProc.on('close', () => {
-    // TODO: how to determine success or failure? Sometimes result.err is an error, but other
-    // times it is a success message
-    resolve(result);
+  childProc.on('close', code => {
+    if (code === 0) {
+      resolve(result);
+    } else {
+      reject(result.err);
+    }
   });
 
   if (options.log) {

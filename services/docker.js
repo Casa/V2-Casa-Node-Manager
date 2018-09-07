@@ -52,8 +52,25 @@ function runAddDeviceHostToEnv() {
   return deferred.promise;
 }
 
+function getContainerLogs(containerId) {
+  var deferred = q.defer();
+
+  var container = docker.getContainer(containerId);
+
+  container.logs({tail: 100, stdout: true, stderr: true}, function(error, logs) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(logs.replace(/\0/g, ''));
+    }
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   getContainers,
   getDiskUsage,
+  getContainerLogs,
   runAddDeviceHostToEnv,
 };

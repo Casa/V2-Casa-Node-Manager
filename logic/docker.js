@@ -6,10 +6,6 @@ const dockerHubService = require('@services/dockerHub.js');
 const q = require('q'); // eslint-disable-line id-length
 const DockerError = require('@models/errors.js').DockerError;
 
-// TODO: verify counts
-const EXPECTED_VOLUME_COUNT = 4;
-const EXPECTED_IMAGE_COUNT = 12;
-const EXPECTED_CONTAINER_COUNT = 10;
 
 function getAllContainers() {
   return dockerService.getContainers(true);
@@ -19,20 +15,36 @@ function getStatuses() {
   // TODO: check if something is missing
   var deferred = q.defer();
 
+  var data = {};
+
+  function parseDiskUsage(df) {
+    data['node'] = {
+      volumes: df['Volumes'].length,
+      containers: df['Containers'].length,
+      images: df['Images'].length,
+      time: Math.floor(new Date().getTime() / 1000) // eslint-disable-line no-magic-numbers
+    };
+  }
+
   function parseContainerInformation(containers) {
     var statuses = [];
     containers.forEach(function(container) {
       statuses.push({
+        id: container['Id'],
         service: container['Labels']['com.docker.compose.service'],
-        status: container['State']
+        image: container['Image'],
+        image_id: container['ImageID'], // eslint-disable-line camelcase
+        status: container['State'],
+        created: container['Created'],
+        message: container['Status'],
       });
     });
 
-    return statuses;
+    data['containers'] = statuses;
   }
 
-  function handleSuccess(statuses) {
-    deferred.resolve(statuses);
+  function handleSuccess() {
+    deferred.resolve(data);
   }
 
   function handleError() {
@@ -41,6 +53,8 @@ function getStatuses() {
 
   getAllContainers()
     .then(parseContainerInformation)
+    .then(dockerService.getDiskUsage)
+    .then(parseDiskUsage)
     .then(handleSuccess)
     .catch(handleError);
 
@@ -95,7 +109,7 @@ function getVolumeUsage() {
     var volumeInfo = [];
     df['Volumes'].forEach(function(volume) {
       volumeInfo.push({
-        name: volume['Labels']['com.docker.compose.volume'],
+        name: volume['Name'],
         usage: volume['UsageData']['Size']
       });
     });
@@ -119,52 +133,27 @@ function getVolumeUsage() {
   return deferred.promise;
 }
 
-function healthcheckHelper(type, expected, actual) {
-  var data = {};
-  if (actual === expected) {
-    data[type] = ['balanced', expected, actual];
-  } else if (actual <= expected) {
-    data[type] = ['missing', expected, actual];
-  } else if (actual >= expected) {
-    data[type] = ['extra', expected, actual];
+const getLogs = async() => {
+  var logs = [];
+
+  var containers = await getAllContainers();
+
+  for (const container of containers) {
+    var containerLog = await dockerService.getContainerLogs(container.Id);
+
+    logs.push({
+      container: container['Labels']['com.docker.compose.service'],
+      logs: containerLog
+    });
   }
 
-  return data;
-}
-
-function getSystemHealth() {
-  var deferred = q.defer();
-
-  function parseDiskUsage(df) {
-    var systemHealth = [];
-
-    systemHealth.push(healthcheckHelper('volumes', EXPECTED_VOLUME_COUNT, df['Volumes'].length));
-    systemHealth.push(healthcheckHelper('containers', EXPECTED_CONTAINER_COUNT, df['Containers'].length));
-    systemHealth.push(healthcheckHelper('images', EXPECTED_IMAGE_COUNT, df['Images'].length));
-
-    return systemHealth;
-  }
-
-  function handleSuccess(volumeInfo) {
-    deferred.resolve(volumeInfo);
-  }
-
-  function handleError() {
-    deferred.reject(new DockerError('Unable to system health'));
-  }
-
-  dockerService.getDiskUsage()
-    .then(parseDiskUsage)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
+  return logs;
+};
 
 module.exports = {
   getStatuses,
   getVersions,
   getVolumeUsage,
-  getSystemHealth,
   setDeviceHostEnv,
+  getLogs,
 };

@@ -1,5 +1,6 @@
 const bashService = require('@services/bash.js');
 const constants = require('@utils/const.js');
+const DockerComposeError = require('@models/errors').DockerComposeError;
 
 var q = require('q'); // eslint-disable-line id-length
 
@@ -171,7 +172,7 @@ function dockerComposeUpSingleService(options = {}) { // eslint-disable-line id-
   }
 
   function handleError(error) {
-    deferred.reject(error);
+    deferred.reject(new DockerComposeError('Unable to start service: ' + service, error));
   }
 
   bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d', '--no-deps', service], options)
