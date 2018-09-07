@@ -7,6 +7,13 @@ function isKnownService(service) {
   }
 }
 
+function isBoolean(key, value) {
+  if (value !== true && value !== false) {
+    throw new ValidationError(key + ': Must be true or false.');
+  }
+}
+
 module.exports = {
-  isKnownService
+  isKnownService,
+  isBoolean
 };

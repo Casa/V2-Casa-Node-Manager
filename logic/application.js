@@ -2,6 +2,8 @@
 All business logic goes here.
  */
 var q = require('q'); // eslint-disable-line id-length
+var rp = require('request-promise');
+
 const publicIp = require('public-ip');
 const decamelizeKeys = require('decamelize-keys');
 
@@ -10,6 +12,7 @@ const diskLogic = require('@logic/disk.js');
 const constants = require('@utils/const.js');
 const errors = require('@models/errors.js');
 const DockerComposeError = errors.DockerComposeError;
+const NodeError = errors.NodeError;
 const bashService = require('@services/bash.js');
 
 const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
@@ -163,6 +166,9 @@ function createSettingsFile() {
       backend: 'bitcoind',
       lndNetwork: 'testnet',
       autopilot: false, // eslint-disable-line object-shorthand
+    },
+    node: {
+      remoteLogging: false
     }
   };
 
@@ -193,6 +199,97 @@ function wipeSettingsVolume() {
   return deferred.promise;
 }
 
+function downloadLogs() {
+  var deferred = q.defer();
+
+  const logArchiveBackupPath = '/backup/' + constants.NODE_LOG_ARCHIVE;
+  const logArchiveSavedPath = '/tmp/' + constants.NODE_LOG_ARCHIVE;
+
+  function handleSuccess() {
+    deferred.resolve(logArchiveSavedPath);
+  }
+
+  function handleError(error) {
+    deferred.reject(new NodeError('Unable to download log file', error));
+  }
+
+  const backUpCommandOptions = [
+    'run',
+    '-v', 'node_logs:/logs',
+    '-v', '/tmp:/backup',
+    'alpine',
+    'tar', '-cjf', logArchiveBackupPath, '-C', '/logs', './'
+  ];
+
+  bashService.exec('docker', backUpCommandOptions, {})
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+function updateSettings(enabled) {
+  var data = {remoteLogging: enabled};
+
+  const postOptions = {
+    method: 'POST',
+    uri: 'http://0.0.0.0:3002/v1/settings/update-remote-logging',
+    body: data,
+    json: true
+  };
+
+  var deferred = q.defer();
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  rp(postOptions).then(handleSuccess).catch(handleError);
+
+  return deferred.promise;
+}
+
+function cyclePaperTrail(enabled) {
+  const options = {
+    service: 'papertrail',
+    fileName: 'logspout.yml'
+  };
+
+  var deferred = q.defer();
+
+  function injectEnabled() {
+    return enabled;
+  }
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  if (enabled) {
+    dockerComposeLogic.dockerComposeUpSingleService(options)
+      .then(injectEnabled)
+      .then(updateSettings)
+      .then(handleSuccess)
+      .catch(handleError);
+  } else {
+    dockerComposeLogic.dockerComposeStop(options)
+      .then(injectEnabled)
+      .then(updateSettings)
+      .then(handleSuccess)
+      .catch(handleError);
+  }
+
+  return deferred.promise;
+}
+
 module.exports = {
   start,
   shutdown,
@@ -201,4 +298,6 @@ module.exports = {
   restart,
   update,
   createSettingsFile,
+  downloadLogs,
+  cyclePaperTrail,
 };
