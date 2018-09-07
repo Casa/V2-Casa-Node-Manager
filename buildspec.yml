@@ -17,7 +17,7 @@ phases:
       - echo Running tests
       - npm test
 
-      - echo Building the Docker images ...
+      - echo Building the Docker image ...
 
       # building x86
       - docker build . -t $ORGANIZATION/$REPOSITORY:x86
@@ -28,7 +28,7 @@ phases:
       - docker build . -f Dockerfile.armhf -t $ORGANIZATION/$REPOSITORY:arm
       - docker tag $ORGANIZATION/$REPOSITORY:arm $ORGANIZATION/$REPOSITORY:arm
 
-      # push images to docker
+      # push image to docker
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
       - docker push $ORGANIZATION/$REPOSITORY:x86
       - docker push $ORGANIZATION/$REPOSITORY:arm

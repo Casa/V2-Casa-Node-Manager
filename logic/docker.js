@@ -47,6 +47,10 @@ function getStatuses() {
   return deferred.promise;
 }
 
+const setIpEnv = async() => {
+  await dockerService.runSetIpInEnvContainer();
+};
+
 const getVersions = async() => {
   // TODO: check if something is missing
 
@@ -162,4 +166,5 @@ module.exports = {
   getVersions,
   getVolumeUsage,
   getSystemHealth,
+  setIpEnv,
 };

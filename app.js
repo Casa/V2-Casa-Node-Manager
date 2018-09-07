@@ -38,5 +38,6 @@ app.use(function(req, res) {
 });
 
 applicationLogic.createSettingsFile();
+applicationLogic.setHostIp();
 
 module.exports = app;

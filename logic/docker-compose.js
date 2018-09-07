@@ -6,8 +6,6 @@ var q = require('q'); // eslint-disable-line id-length
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
-const TAG = process.env.TAG || 'arm';
-
 function composeFile(options) {
   if (options.fileName !== undefined) {
     return WORKING_DIR + '/' + options.fileName;
@@ -20,7 +18,7 @@ function addDefaultOptions(options) {
   options.cwd = WORKING_DIR;
   options.log = true;
   options.env = options.env || {};
-  options.env.TAG = TAG;
+  options.env.TAG = constants.TAG;
 }
 
 function dockerComposeUp(options = {}) {
