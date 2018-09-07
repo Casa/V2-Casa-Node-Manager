@@ -26,14 +26,14 @@ phases:
       - echo Running tests
       - npm test
 
-      - echo Building the Docker images ...
+      - echo Building the Docker image ...
 
       # building
       - docker run --rm --privileged multiarch/qemu-user-static:register --reset
       - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$TAG
       - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
 
-      # push images to docker
+      # push image to docker
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
       - docker push $ORGANIZATION/$REPOSITORY:$TAG
   post_build:

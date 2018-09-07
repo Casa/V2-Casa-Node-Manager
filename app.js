@@ -40,5 +40,6 @@ app.use(function(req, res) {
 });
 
 applicationLogic.createSettingsFile();
+applicationLogic.startSpaceFleet();
 
 module.exports = app;

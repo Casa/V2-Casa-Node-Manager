@@ -61,6 +61,10 @@ function getStatuses() {
   return deferred.promise;
 }
 
+const setDeviceHostEnv = async() => {
+  await dockerService.runAddDeviceHostToEnv();
+};
+
 const getVersions = async() => {
   // TODO: check if something is missing
 
@@ -150,5 +154,6 @@ module.exports = {
   getStatuses,
   getVersions,
   getVolumeUsage,
+  setDeviceHostEnv,
   getLogs,
 };

@@ -6,6 +6,7 @@ var q = require('q'); // eslint-disable-line id-length
 const publicIp = require('public-ip');
 const decamelizeKeys = require('decamelize-keys');
 
+const dockerLogic = require('@logic/docker.js');
 const dockerComposeLogic = require('@logic/docker-compose.js');
 const diskLogic = require('@logic/disk.js');
 const constants = require('@utils/const.js');
@@ -16,6 +17,25 @@ const bashService = require('@services/bash.js');
 const lnapiService = require('@services/lnapi.js');
 
 const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
+
+function createSettingsFile() {
+  const defaultConfig = {
+    bitcoind: {
+      bitcoinNetwork: 'testnet',
+      bitcoindListen: true,
+    },
+    lnd: {
+      chain: 'bitcoin',
+      backend: 'bitcoind',
+      lndNetwork: 'testnet',
+      autopilot: false, // eslint-disable-line object-shorthand
+    }
+  };
+
+  if (!diskLogic.settingsFileExists()) {
+    diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
+  }
+}
 
 const start = async() => {
 
@@ -38,8 +58,8 @@ const start = async() => {
     }
   }
 
-  // If the settings file already has an external ip that has been manually set by the user, we should not try to
-  // automatically discover the external ip address.
+  // If the settings file already has an external ip that has been manually set by the user,
+  // we should not try to automatically discover the external ip address.
   if (!Object.prototype.hasOwnProperty.call(envData, EXTERNAL_IP_KEY)) {
     envData[EXTERNAL_IP_KEY] = await publicIp.v4();
   }
@@ -51,6 +71,12 @@ const start = async() => {
   } catch (error) {
     throw new DockerComposeError('Unable to start services');
   }
+};
+
+// Set the host device-host and restart space-fleet
+const startSpaceFleet = async() => {
+  await dockerLogic.setDeviceHostEnv();
+  await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 };
 
 function shutdown() {
@@ -155,28 +181,6 @@ function update(service) {
   return deferred.promise;
 }
 
-function createSettingsFile() {
-  const defaultConfig = {
-    bitcoind: {
-      bitcoinNetwork: 'testnet',
-      bitcoindListen: true,
-    },
-    lnd: {
-      chain: 'bitcoin',
-      backend: 'bitcoind',
-      lndNetwork: 'testnet',
-      autopilot: false, // eslint-disable-line object-shorthand
-    },
-    node: {
-      remoteLogging: false
-    }
-  };
-
-  if (!diskLogic.settingsFileExists()) {
-    diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
-  }
-}
-
 function wipeSettingsVolume() {
   var deferred = q.defer();
 
@@ -266,13 +270,14 @@ function cyclePaperTrail(enabled) {
 }
 
 module.exports = {
+  createSettingsFile,
+  cyclePaperTrail,
+  downloadLogs,
   start,
+  startSpaceFleet,
   shutdown,
   reset,
   pull,
   restart,
   update,
-  createSettingsFile,
-  downloadLogs,
-  cyclePaperTrail,
 };
