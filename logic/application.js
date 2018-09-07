@@ -71,7 +71,6 @@ const start = async() => {
 };
 
 // Set the host device-host and restart space-fleet
-// TODO: does this mean we don't need to start space fleet up in setup.sh?
 const startSpaceFleet = async() => {
   await dockerLogic.setDeviceHostEnv();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});

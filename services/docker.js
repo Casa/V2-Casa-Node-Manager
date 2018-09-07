@@ -31,7 +31,7 @@ function getDiskUsage() {
   return deferred.promise;
 }
 
-function runAddDeviceHostToEnvContainer() {
+function runAddDeviceHostToEnv() {
   var deferred = q.defer();
 
   docker.run('casacomputer/device-host:' + TAG, [], process.stdout, {
@@ -55,5 +55,5 @@ function runAddDeviceHostToEnvContainer() {
 module.exports = {
   getContainers,
   getDiskUsage,
-  runAddDeviceHostToEnvContainer,
+  runAddDeviceHostToEnv,
 };
