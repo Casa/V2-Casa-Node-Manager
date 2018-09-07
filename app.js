@@ -38,6 +38,6 @@ app.use(function(req, res) {
 });
 
 applicationLogic.createSettingsFile();
-applicationLogic.setHostIp();
+applicationLogic.startSpaceFleet();
 
 module.exports = app;

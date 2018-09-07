@@ -47,7 +47,7 @@ function getStatuses() {
   return deferred.promise;
 }
 
-const setIpEnv = async() => {
+const setDeviceHostEnv = async() => {
   await dockerService.runSetIpInEnvContainer();
 };
 
@@ -166,5 +166,5 @@ module.exports = {
   getVersions,
   getVolumeUsage,
   getSystemHealth,
-  setIpEnv,
+  setDeviceHostEnv,
 };

@@ -55,8 +55,8 @@ const start = async() => {
     }
   }
 
-  // If the settings file already has an external device-host that has been manually set by the user,
-  // we should not try to automatically discover the external device-host address.
+  // If the settings file already has an external ip that has been manually set by the user,
+  // we should not try to automatically discover the external ip address.
   if (!Object.prototype.hasOwnProperty.call(envData, EXTERNAL_IP_KEY)) {
     envData[EXTERNAL_IP_KEY] = await publicIp.v4();
   }
@@ -71,8 +71,9 @@ const start = async() => {
 };
 
 // Set the host device-host and restart space-fleet
-const setHostIp = async() => {
-  await dockerLogic.setIpEnv();
+// TODO: does this mean we don't need to start space fleet up in setup.sh?
+const startSpaceFleet = async() => {
+  await dockerLogic.setDeviceHostEnv();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 };
 
@@ -203,7 +204,7 @@ function wipeSettingsVolume() {
 module.exports = {
   createSettingsFile,
   start,
-  setHostIp,
+  startSpaceFleet,
   shutdown,
   reset,
   pull,
