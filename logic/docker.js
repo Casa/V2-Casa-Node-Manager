@@ -48,7 +48,7 @@ function getStatuses() {
 }
 
 const setDeviceHostEnv = async() => {
-  await dockerService.runSetIpInEnvContainer();
+  await dockerService.runAddDeviceHostToEnvContainer();
 };
 
 const getVersions = async() => {
