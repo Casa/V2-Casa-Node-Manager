@@ -68,9 +68,92 @@ function getContainerLogs(containerId) {
   return deferred.promise;
 }
 
+function stopContainer(containerId) {
+  var deferred = q.defer();
+
+  var container = docker.getContainer(containerId);
+
+  container.stop({}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
+function removeContainer(containerId, force = false) {
+  var deferred = q.defer();
+  var options = {
+    force: force // eslint-disable-line object-shorthand
+  };
+  var container = docker.getContainer(containerId);
+
+  container.remove(options, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
+function pruneContainers() {
+  var deferred = q.defer();
+
+  docker.pruneContainers({force: true}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
+const ignorePersistentArtifactsFilter = {'label!': ['casa=persist']}; // eslint-disable-line id-length
+
+function pruneNetworks() {
+  var deferred = q.defer();
+
+  docker.pruneNetworks({force: true, filters: ignorePersistentArtifactsFilter}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
+function pruneVolumes() {
+  var deferred = q.defer();
+
+  docker.pruneVolumes({force: true, filters: ignorePersistentArtifactsFilter}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   getContainers,
   getDiskUsage,
   getContainerLogs,
   runAddDeviceHostToEnv,
+  stopContainer,
+  removeContainer,
+  pruneContainers,
+  pruneNetworks,
+  pruneVolumes,
 };
