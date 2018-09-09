@@ -33,7 +33,7 @@ function createSettingsFile() {
 
 // Set the host device-host and restart space-fleet
 const startSpaceFleet = async() => {
-  // await dockerLogic.setDeviceHostEnv();
+  await dockerLogic.setDeviceHostEnv();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 };
 
