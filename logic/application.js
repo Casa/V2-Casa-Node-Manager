@@ -33,7 +33,7 @@ function createSettingsFile() {
 
 // Set the host device-host and restart space-fleet
 const startSpaceFleet = async() => {
-  await dockerLogic.setDeviceHostEnv();
+  await runDeviceHost();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 };
 
@@ -77,6 +77,18 @@ function reset() {
     .catch(handleError);
 
   return deferred.promise;
+}
+
+async function runDeviceHost() {
+  const options = {
+    attached: true,
+    service: 'device-host',
+    fileName: 'device-host.yml',
+  };
+
+  await dockerComposeLogic.dockerComposePull(options);
+  await dockerComposeLogic.dockerComposeUpSingleService(options);
+  await dockerComposeLogic.dockerComposeRemove(options);
 }
 
 const update = async services => {

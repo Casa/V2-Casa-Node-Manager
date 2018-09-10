@@ -77,10 +77,6 @@ function getStatuses() {
   return deferred.promise;
 }
 
-const setDeviceHostEnv = async() => {
-  await dockerService.runAddDeviceHostToEnv();
-};
-
 const getVersions = async() => {
   var versions = [];
 
@@ -184,7 +180,6 @@ module.exports = {
   getStatuses,
   getVersions,
   getVolumeUsage,
-  setDeviceHostEnv,
   getLogs,
   stopNonPersistentContainers, // eslint-disable-line id-length
   pruneContainers,

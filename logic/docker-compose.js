@@ -150,7 +150,15 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
   const service = options.service;
   addDefaultOptions(options);
   options.env = await injectSettings();
-  const composeOptions = ['-f', file, 'up', '-d', '--no-deps', service];
+  var composeOptions = ['-f', file, 'up'];
+
+  // By default everything will run in detached mode. However, in some cases we want to want for a container to complete
+  // before returning. We pass the attached flag in that instance.
+  if (!options.attached) {
+    composeOptions.push('-d');
+  }
+
+  composeOptions.push('--no-deps', service);
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
