@@ -1,7 +1,6 @@
 var Docker = require('dockerode');
 var docker = new Docker();
 var q = require('q'); // eslint-disable-line id-length
-const TAG = require('@utils/const.js').TAG;
 
 function getContainers(all) {
   var deferred = q.defer();
@@ -25,27 +24,6 @@ function getDiskUsage() {
       deferred.reject(err);
     } else {
       deferred.resolve(df);
-    }
-  });
-
-  return deferred.promise;
-}
-
-function runAddDeviceHostToEnv() {
-  var deferred = q.defer();
-
-  docker.run('casacomputer/device-host:' + TAG, [], process.stdout, {
-    HostConfig: {
-      Binds: [
-        '/usr/local/applications/.env:/usr/local/applications/.env'
-      ],
-      NetworkMode: 'host'
-    }
-  }, function(err) {
-    if (err) {
-      deferred.reject(err);
-    } else {
-      deferred.resolve();
     }
   });
 
@@ -150,7 +128,6 @@ module.exports = {
   getContainers,
   getDiskUsage,
   getContainerLogs,
-  runAddDeviceHostToEnv,
   stopContainer,
   removeContainer,
   pruneContainers,
