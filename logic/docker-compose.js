@@ -1,14 +1,50 @@
+var q = require('q'); // eslint-disable-line id-length
+const publicIp = require('public-ip');
+const decamelizeKeys = require('decamelize-keys');
+
 const bashService = require('@services/bash.js');
 const constants = require('@utils/const.js');
 const DockerComposeError = require('@models/errors').DockerComposeError;
-
-var q = require('q'); // eslint-disable-line id-length
+const diskLogic = require('@logic/disk.js');
 
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 
+const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
+
+const injectSettings = async() => {
+
+  const data = await diskLogic.readSettingsFile(constants.SETTINGS_FILE);
+  const settings = JSON.parse(data);
+
+  var lndSettings = decamelizeKeys(settings['lnd'], '_');
+  var bitcoindSettings = decamelizeKeys(settings['bitcoind'], '_');
+
+  var envData = {};
+  for (const key in lndSettings) {
+    if (Object.prototype.hasOwnProperty.call(lndSettings, key)) {
+      envData[key.toUpperCase()] = lndSettings[key];
+    }
+  }
+
+  for (const key in bitcoindSettings) {
+    if (Object.prototype.hasOwnProperty.call(bitcoindSettings, key)) {
+      envData[key.toUpperCase()] = bitcoindSettings[key];
+    }
+  }
+
+  // If the settings file already has an external ip that has been manually set by the user, we should not try to
+  // automatically discover the external ip address.
+  if (!Object.prototype.hasOwnProperty.call(envData, EXTERNAL_IP_KEY)) {
+    envData[EXTERNAL_IP_KEY] = await publicIp.v4();
+  }
+
+  return envData;
+};
+
+
 function composeFile(options) {
-  if (options.fileName !== undefined) {
+  if (options !== undefined && options.fileName !== undefined) {
     return WORKING_DIR + '/' + options.fileName;
   }
 
@@ -22,73 +58,21 @@ function addDefaultOptions(options) {
   options.env.TAG = constants.TAG;
 }
 
-function dockerComposeUp(options = {}) {
-  var deferred = q.defer();
-
+const dockerComposeUp = async options => {
   const file = composeFile(options);
+
   addDefaultOptions(options);
+  options.env = await injectSettings();
 
-  function handleSuccess() {
-    deferred.resolve();
+  const composeOptions = ['-f', file, 'up', '-d'];
+
+  try {
+    await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
+  } catch (error) {
+    throw new DockerComposeError('Unable to start services', error);
   }
+};
 
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d'], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
-function dockerComposeDown(options = {}) {
-  var deferred = q.defer();
-
-  const file = composeFile(options);
-  addDefaultOptions(options);
-
-  var composeOptions = ['-f', file, 'down'];
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
-function dockerComposeRestart(options = {}) {
-  var deferred = q.defer();
-
-  const file = composeFile(options);
-  const service = options.service;
-  addDefaultOptions(options);
-
-  var composeOptions = ['-f', file, 'restart', service];
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
 
 function dockerComposePull(options = {}) {
   var deferred = q.defer();
@@ -119,6 +103,7 @@ function dockerComposeStop(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
+
   var composeOptions = ['-f', file, 'stop', service];
 
   function handleSuccess() {
@@ -143,7 +128,7 @@ function dockerComposeRemove(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-  var composeOptions = ['-f', file, 'rm', service, '-f'];
+  var composeOptions = ['-f', file, 'rm', '-f', service];
 
   function handleSuccess() {
     deferred.resolve();
@@ -160,33 +145,23 @@ function dockerComposeRemove(options = {}) {
   return deferred.promise;
 }
 
-function dockerComposeUpSingleService(options = {}) { // eslint-disable-line id-length
-  var deferred = q.defer();
-
+const dockerComposeUpSingleService = async options => { // eslint-disable-line id-length
   const file = composeFile(options);
   const service = options.service;
   addDefaultOptions(options);
+  options.env = await injectSettings();
+  const composeOptions = ['-f', file, 'up', '-d', '--no-deps', service];
 
-  function handleSuccess() {
-    deferred.resolve();
+  try {
+    await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
+  } catch (error) {
+    throw new DockerComposeError('Unable to start service: ' + service, error);
   }
-
-  function handleError(error) {
-    deferred.reject(new DockerComposeError('Unable to start service: ' + service, error));
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'up', '-d', '--no-deps', service], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
+};
 
 module.exports = {
-  dockerComposeDown,
   dockerComposeUp,
   dockerComposePull,
-  dockerComposeRestart,
   dockerComposeStop,
   dockerComposeRemove,
   dockerComposeUpSingleService, // eslint-disable-line id-length

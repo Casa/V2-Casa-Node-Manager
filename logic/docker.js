@@ -11,6 +11,22 @@ function getAllContainers() {
   return dockerService.getContainers(true);
 }
 
+function getRunningContainers() {
+  return dockerService.getContainers(false);
+}
+
+function pruneContainers() {
+  return dockerService.pruneContainers();
+}
+
+function pruneNetworks() {
+  return dockerService.pruneNetworks();
+}
+
+function pruneVolumes() {
+  return dockerService.pruneVolumes();
+}
+
 function getStatuses() {
   // TODO: check if something is missing
   var deferred = q.defer();
@@ -66,8 +82,6 @@ const setDeviceHostEnv = async() => {
 };
 
 const getVersions = async() => {
-  // TODO: check if something is missing
-
   var versions = [];
 
   var containers = await getAllContainers();
@@ -150,10 +164,30 @@ const getLogs = async() => {
   return logs;
 };
 
+const stopNonPersistentContainers = async() => { // eslint-disable-line id-length
+  var containers = await getRunningContainers();
+
+  for (const container of containers) {
+    if (container['Labels']['casa'] === null || container['Labels']['casa'] !== 'persist') {
+      try {
+        await dockerService.stopContainer(container.Id);
+      } catch (error) {
+        // There's a race condition, if the container is restarting it will receive a 304.
+        // Restart policies can be circumvented.
+        await dockerService.removeContainer(container.Id, true);
+      }
+    }
+  }
+};
+
 module.exports = {
   getStatuses,
   getVersions,
   getVolumeUsage,
   setDeviceHostEnv,
   getLogs,
+  stopNonPersistentContainers, // eslint-disable-line id-length
+  pruneContainers,
+  pruneNetworks,
+  pruneVolumes,
 };
