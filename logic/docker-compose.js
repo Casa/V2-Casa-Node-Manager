@@ -4,11 +4,13 @@ const decamelizeKeys = require('decamelize-keys');
 
 const bashService = require('@services/bash.js');
 const constants = require('@utils/const.js');
+const encryption = require('@utils/encryption.js');
 const DockerComposeError = require('@models/errors').DockerComposeError;
 const diskLogic = require('@logic/disk.js');
 
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
+const DOCKER_COMMAND = 'docker';
 
 const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
 
@@ -58,7 +60,7 @@ function addDefaultOptions(options) {
   options.env.TAG = constants.TAG;
 }
 
-const dockerComposeUp = async options => {
+async function dockerComposeUp(options) {
   const file = composeFile(options);
 
   addDefaultOptions(options);
@@ -71,7 +73,7 @@ const dockerComposeUp = async options => {
   } catch (error) {
     throw new DockerComposeError('Unable to start services', error);
   }
-};
+}
 
 
 function dockerComposePull(options = {}) {
@@ -167,10 +169,40 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
   }
 };
 
+async function dockerLogin(options = {}) {
+
+  addDefaultOptions(options);
+  options.env = await injectSettings();
+  const USERNAME = encryption.decrypt(constants.DOCKER_USERNAME_ENCRYPTED);
+  const PASSWORD = encryption.decrypt(constants.DOCKER_PASSWORD_ENCRYPTED);
+  var composeOptions = ['login', '--username', USERNAME, '--password', PASSWORD];
+
+  try {
+    await bashService.exec(DOCKER_COMMAND, composeOptions, options);
+  } catch (error) {
+    throw new DockerComposeError('Unable to login to docker: ', error);
+  }
+}
+
+async function dockerLogout(options = {}) {
+
+  addDefaultOptions(options);
+  options.env = await injectSettings();
+  var composeOptions = ['logout'];
+
+  try {
+    await bashService.exec(DOCKER_COMMAND, composeOptions, options);
+  } catch (error) {
+    throw new DockerComposeError('Unable to login to docker: ', error);
+  }
+}
+
 module.exports = {
   dockerComposeUp,
   dockerComposePull,
   dockerComposeStop,
   dockerComposeRemove,
   dockerComposeUpSingleService, // eslint-disable-line id-length
+  dockerLogin,
+  dockerLogout,
 };

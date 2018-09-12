@@ -8,16 +8,12 @@ const DockerHubError = require('@models/errors.js').DockerHubError;
 const authenticationBaseUrl = 'https://auth.docker.io';
 const registryBaseUrl = 'https://registry.hub.docker.com';
 
-function getAuthenticationToken(organization, repository) {
+function getAuthenticationToken(organization, repository, username, password) {
   var deferred = q.defer();
 
-  var headers = {};
-
-  // These credentials will never be set in production. They will only exist in dev environments.
-  if (process.env.DOCKER_USER && process.env.DOCKER_PASS) {
-    headers.Authorization = 'Basic ' + Buffer.from(process.env.DOCKER_USER + ':'
-        + process.env.DOCKER_PASS).toString('base64');
-  }
+  var headers = {
+    Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
+  };
 
   const options = {
     headers: headers, // eslint-disable-line object-shorthand

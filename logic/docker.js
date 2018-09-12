@@ -1,10 +1,16 @@
 /*
 All docker business logic goes here.
  */
-const dockerService = require('@services/docker.js');
-const dockerHubService = require('@services/dockerHub.js');
-const q = require('q'); // eslint-disable-line id-length
+
 const DockerError = require('@models/errors.js').DockerError;
+const dockerHubService = require('@services/dockerHub.js');
+
+const dockerService = require('@services/docker.js');
+
+const constants = require('@utils/const.js');
+const encryption = require('@utils/encryption.js');
+
+const q = require('q'); // eslint-disable-line id-length
 
 
 function getAllContainers() {
@@ -81,6 +87,8 @@ const getVersions = async() => {
   var versions = [];
 
   var containers = await getAllContainers();
+  const USERNAME = encryption.decrypt(constants.DOCKER_USERNAME_ENCRYPTED);
+  const PASSWORD = encryption.decrypt(constants.DOCKER_PASSWORD_ENCRYPTED);
 
   for (const container of containers) {
 
@@ -98,7 +106,7 @@ const getVersions = async() => {
       const repository = colonParts[0];
       const tag = colonParts[1];
 
-      var authToken = await dockerHubService.getAuthenticationToken(organization, repository);
+      var authToken = await dockerHubService.getAuthenticationToken(organization, repository, USERNAME, PASSWORD);
       var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
 
       version.updatable = version.version !== digest;
