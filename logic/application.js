@@ -31,11 +31,28 @@ function createSettingsFile() {
   }
 }
 
+async function getSerial() {
+  return constants.SERIAL;
+}
+
+// Run startup functions
+async function startup() {
+  try {
+    await createSettingsFile();
+    await dockerComposeLogic.dockerLogin();
+    await startSpaceFleet();
+  } catch (error) {
+    throw error;
+  } finally {
+    await dockerComposeLogic.dockerLogout();
+  }
+}
+
 // Set the host device-host and restart space-fleet
-const startSpaceFleet = async() => {
+async function startSpaceFleet() {
   await runDeviceHost();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
-};
+}
 
 function shutdown() {
   var deferred = q.defer();
@@ -71,8 +88,7 @@ function reset() {
     .then(dockerLogic.pruneNetworks)
     .then(dockerLogic.pruneVolumes)
     .then(wipeSettingsVolume)
-    .then(createSettingsFile)
-    .then(startSpaceFleet)
+    .then(startup)
     .then(handleSuccess)
     .catch(handleError);
 
@@ -91,20 +107,28 @@ async function runDeviceHost() {
   await dockerComposeLogic.dockerComposeRemove(options);
 }
 
-const update = async services => {
-  for (const service of services) {
-    const options = {service: service}; // eslint-disable-line object-shorthand
+async function update(services) {
+  try {
+    await dockerComposeLogic.dockerLogin();
 
-    if (constants.LOGGING_SERVICES.includes(service)) {
-      options.fileName = constants.LOGGING_DOCKER_COMPOSE_FILE;
+    for (const service of services) {
+      const options = {service: service}; // eslint-disable-line object-shorthand
+
+      if (constants.LOGGING_SERVICES.includes(service)) {
+        options.fileName = constants.LOGGING_DOCKER_COMPOSE_FILE;
+      }
+
+      await dockerComposeLogic.dockerComposePull(options);
+      await dockerComposeLogic.dockerComposeStop(options);
+      await dockerComposeLogic.dockerComposeRemove(options);
+      await dockerComposeLogic.dockerComposeUpSingleService(options);
     }
-
-    await dockerComposeLogic.dockerComposePull(options);
-    await dockerComposeLogic.dockerComposeStop(options);
-    await dockerComposeLogic.dockerComposeRemove(options);
-    await dockerComposeLogic.dockerComposeUpSingleService(options);
+  } catch (error) {
+    throw error;
+  } finally {
+    await dockerComposeLogic.dockerLogout();
   }
-};
+}
 
 function wipeSettingsVolume() {
   var deferred = q.defer();
@@ -195,10 +219,10 @@ function cyclePaperTrail(enabled) {
 }
 
 module.exports = {
-  createSettingsFile,
   cyclePaperTrail,
   downloadLogs,
-  startSpaceFleet,
+  getSerial,
+  startup,
   shutdown,
   reset,
   update,

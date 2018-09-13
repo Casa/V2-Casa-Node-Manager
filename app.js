@@ -39,7 +39,6 @@ app.use(function(req, res) {
   res.status(404).json(); // eslint-disable-line no-magic-numbers
 });
 
-applicationLogic.createSettingsFile();
-applicationLogic.startSpaceFleet();
+applicationLogic.startup();
 
 module.exports = app;
