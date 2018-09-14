@@ -2,11 +2,11 @@ var q = require('q'); // eslint-disable-line id-length
 const publicIp = require('public-ip');
 const decamelizeKeys = require('decamelize-keys');
 
-const bashService = require('@services/bash.js');
-const constants = require('@utils/const.js');
-const encryption = require('@utils/encryption.js');
-const DockerComposeError = require('@models/errors').DockerComposeError;
-const diskLogic = require('@logic/disk.js');
+const bashService = require('services/bash.js');
+const constants = require('utils/const.js');
+const encryption = require('utils/encryption.js');
+const DockerComposeError = require('models/errors').DockerComposeError;
+const diskLogic = require('logic/disk.js');
 
 const WORKING_DIR = '/usr/local/applications';
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';

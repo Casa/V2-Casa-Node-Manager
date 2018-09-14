@@ -1,6 +1,6 @@
 /* eslint-disable id-length */
 const os = require('os');
-const UUID = require('@utils/UUID');
+const UUID = require('utils/UUID');
 
 module.exports = {
   DOCKER_USERNAME_ENCRYPTED: '65b56859fe5d1490c39b',
