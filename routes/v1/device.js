@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const applicationLogic = require('@logic/application.js');
-const validator = require('@utils/validator.js');
-const auth = require('@middlewares/auth.js');
+const applicationLogic = require('logic/application.js');
+const validator = require('utils/validator.js');
+const auth = require('middlewares/auth.js');
 
 router.post('/shutdown', auth.jwt, function(req, res, next) {
   applicationLogic.shutdown()

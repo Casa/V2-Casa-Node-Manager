@@ -2,13 +2,13 @@
 All docker business logic goes here.
  */
 
-const DockerError = require('@models/errors.js').DockerError;
-const dockerHubService = require('@services/dockerHub.js');
+const DockerError = require('models/errors.js').DockerError;
+const dockerHubService = require('services/dockerHub.js');
 
-const dockerService = require('@services/docker.js');
+const dockerService = require('services/docker.js');
 
-const constants = require('@utils/const.js');
-const encryption = require('@utils/encryption.js');
+const constants = require('utils/const.js');
+const encryption = require('utils/encryption.js');
 
 const q = require('q'); // eslint-disable-line id-length
 

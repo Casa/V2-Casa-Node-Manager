@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const validator = require('@utils/validator.js');
-const applicationLogic = require('@logic/application.js');
-const auth = require('@middlewares/auth.js');
-const constants = require('@utils/const.js');
+const validator = require('utils/validator.js');
+const applicationLogic = require('logic/application.js');
+const auth = require('middlewares/auth.js');
+const constants = require('utils/const.js');
 
 router.post('/toggle-remote-upload', auth.jwt, function(req, res, next) {
   const enabled = req.body.enabled;

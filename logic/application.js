@@ -1,13 +1,13 @@
 var q = require('q'); // eslint-disable-line id-length
 
-const dockerComposeLogic = require('@logic/docker-compose.js');
-const dockerLogic = require('@logic/docker.js');
-const diskLogic = require('@logic/disk.js');
-const constants = require('@utils/const.js');
-const errors = require('@models/errors.js');
+const dockerComposeLogic = require('logic/docker-compose.js');
+const dockerLogic = require('logic/docker.js');
+const diskLogic = require('logic/disk.js');
+const constants = require('utils/const.js');
+const errors = require('models/errors.js');
 const NodeError = errors.NodeError;
-const bashService = require('@services/bash.js');
-const lnapiService = require('@services/lnapi.js');
+const bashService = require('services/bash.js');
+const lnapiService = require('services/lnapi.js');
 
 function createSettingsFile() {
   const defaultConfig = {

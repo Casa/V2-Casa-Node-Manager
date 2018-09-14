@@ -7,14 +7,6 @@
     "start": "node ./bin/www",
     "test": "mocha test/**/*.js --exit"
   },
-  "_moduleAliases": {
-    "@logic": "logic",
-    "@middlewares": "middlewares",
-    "@models": "models",
-    "@routes": "routes",
-    "@services": "services",
-    "@utils": "utils"
-  },
   "dependencies": {
     "body-parser": "^1.18.2",
     "child_process": "^1.0.2",

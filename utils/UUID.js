@@ -1,6 +1,6 @@
 /* eslint-disable */
 var q = require('q');
-const bashService = require('@services/bash.js');
+const bashService = require('services/bash.js');
 
 function create() {
   return 'xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

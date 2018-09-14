@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars, no-magic-numbers */
-const logger = require('@utils/logger.js');
+const logger = require('utils/logger.js');
 
 function handleError(error, req, res, next) {
   const statusCode = error.statusCode || 500;

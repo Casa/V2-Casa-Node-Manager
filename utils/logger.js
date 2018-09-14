@@ -1,6 +1,6 @@
 /* eslint-disable no-shadow, no-unused-vars, max-len, no-console, object-shorthand*/
 
-const constants = require('@utils/const.js');
+const constants = require('utils/const.js');
 const fs = require('fs');
 const path = require('path');
 const winston = require('winston');

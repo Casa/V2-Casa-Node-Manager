@@ -1,5 +1,5 @@
-const constants = require('@utils/const.js');
-const diskService = require('@services/disk.js');
+const constants = require('utils/const.js');
+const diskService = require('services/disk.js');
 
 function readSettingsFile() {
   return diskService.readFile(constants.SETTINGS_FILE);

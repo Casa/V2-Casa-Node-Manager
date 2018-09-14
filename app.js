@@ -1,4 +1,5 @@
 require('module-alias/register');
+require('module-alias').addPath('.');
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -6,17 +7,17 @@ const morgan = require('morgan');
 const passport = require('passport');
 const cors = require('cors');
 
-const requestCorrelationMiddleware = require('@middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
-const errorHandleMiddleware = require('@middlewares/errorHandling.js');
-require('@middlewares/auth.js');
+const requestCorrelationMiddleware = require('middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
+const errorHandleMiddleware = require('middlewares/errorHandling.js');
+require('middlewares/auth.js');
 
-const logger = require('@utils/logger.js');
-const applicationLogic = require('@logic/application.js');
+const logger = require('utils/logger.js');
+const applicationLogic = require('logic/application.js');
 
-const ping = require('@routes/ping.js');
-const telemetry = require('@routes/v1/telemetry.js');
-const device = require('@routes/v1/device.js');
-const logs = require('@routes/v1/logs.js');
+const ping = require('routes/ping.js');
+const telemetry = require('routes/v1/telemetry.js');
+const device = require('routes/v1/device.js');
+const logs = require('routes/v1/logs.js');
 const app = express();
 
 app.use(cors('*'));

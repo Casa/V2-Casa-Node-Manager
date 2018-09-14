@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const applicationLogic = require('@logic/application.js');
-const dockerLogic = require('@logic/docker.js');
-const auth = require('@middlewares/auth.js');
+const applicationLogic = require('logic/application.js');
+const dockerLogic = require('logic/docker.js');
+const auth = require('middlewares/auth.js');
 
 router.get('/version', auth.jwt, function(req, res, next) {
   dockerLogic.getVersions()

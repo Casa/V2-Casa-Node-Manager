@@ -1,7 +1,7 @@
 const passport = require('passport');
 const passportJWT = require('passport-jwt');
-const constants = require('@utils/const.js');
-const NodeError = require('@models/errors.js').NodeError;
+const constants = require('utils/const.js');
+const NodeError = require('models/errors.js').NodeError;
 
 var JwtStrategy = passportJWT.Strategy;
 var ExtractJwt = passportJWT.ExtractJwt;
