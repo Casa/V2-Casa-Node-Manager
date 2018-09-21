@@ -34,8 +34,9 @@ phases:
       - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
 
       # push image to docker
-      - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
-      - docker push $ORGANIZATION/$REPOSITORY:$TAG
+      - echo $CODEBUILD_SOURCE_VERSION
+      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS; fi
+      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker push $ORGANIZATION/$REPOSITORY:$TAG; fi
   post_build:
     commands:
       - echo Build completed on `date`
