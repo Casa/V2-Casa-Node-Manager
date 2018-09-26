@@ -83,12 +83,36 @@ function getStatuses() {
   return deferred.promise;
 }
 
-const getVersions = async() => {
-  var versions = [];
+// Get the updatable status of an image
+async function getVersion(version, image, username, password) {
+
+  try {
+    const slashParts = image.split('/');
+    const organization = slashParts[0];
+    const colonParts = slashParts[1].split(':');
+    const repository = colonParts[0];
+    const tag = colonParts[1];
+
+    var authToken = await dockerHubService.getAuthenticationToken(organization, repository, username, password);
+    var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
+
+    version.updatable = version.version !== digest;
+  } catch (err) {
+    version.updatable = false; // updatable should default to false
+  }
+
+  return version;
+}
+
+// Get the version and updatable status of each running container.
+async function getVersions() {
+  const calls = [];
 
   var containers = await getAllContainers();
-  const USERNAME = encryption.decrypt(constants.DOCKER_USERNAME_ENCRYPTED);
-  const PASSWORD = encryption.decrypt(constants.DOCKER_PASSWORD_ENCRYPTED);
+  const casaworkerUsername = encryption.decryptCasaworker(constants.CASAWORKER_USERNAME_ENCRYPTED);
+  const casaworkerPassword = encryption.decryptCasaworker(constants.CASAWORKER_PASSWORD_ENCRYPTED);
+  const casabuilderUsername = encryption.decryptCasabuilder(constants.CASABUILDER_USERNAME_ENCRYPTED);
+  const casabuilderPassword = encryption.decryptCasabuilder(constants.CASABUILDER_PASSWORD_ENCRYPTED);
 
   for (const container of containers) {
 
@@ -97,28 +121,25 @@ const getVersions = async() => {
       version: container['ImageID'],
     };
 
-    // TODO make this loop async. It takes several seconds as of right now.
-    try {
-      const image = container['Image'];
-      const slashParts = image.split('/');
-      const organization = slashParts[0];
-      const colonParts = slashParts[1].split(':');
-      const repository = colonParts[0];
-      const tag = colonParts[1];
-
-      var authToken = await dockerHubService.getAuthenticationToken(organization, repository, USERNAME, PASSWORD);
-      var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
-
-      version.updatable = version.version !== digest;
-    } catch (err) {
-      version.updatable = false; // updatable should default to false
+    if (version.service.includes('manager')) {
+      calls.push(getVersion(version, container['Image'], casabuilderUsername, casabuilderPassword));
+    } else {
+      calls.push(getVersion(version, container['Image'], casaworkerUsername, casaworkerPassword));
     }
-
-    versions.push(version);
   }
 
-  return versions;
-};
+  const updatableStatuses = await Promise.all(calls);
+
+  const result = {};
+  updatableStatuses.forEach(function(updatableStatus) {
+    result[updatableStatus.service] = {
+      version: updatableStatus.version, // is version actually useful to the front end?
+      updatable: updatableStatus.updatable
+    };
+  });
+
+  return result;
+}
 
 function getVolumeUsage() {
   var deferred = q.defer();

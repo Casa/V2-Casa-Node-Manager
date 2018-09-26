@@ -173,9 +173,9 @@ async function dockerLogin(options = {}) {
 
   addDefaultOptions(options);
   options.env = await injectSettings();
-  const USERNAME = encryption.decrypt(constants.DOCKER_USERNAME_ENCRYPTED);
-  const PASSWORD = encryption.decrypt(constants.DOCKER_PASSWORD_ENCRYPTED);
-  var composeOptions = ['login', '--username', USERNAME, '--password', PASSWORD];
+  const casaworkerUsername = encryption.decryptCasaworker(constants.CASAWORKER_USERNAME_ENCRYPTED);
+  const casaworkerPassword = encryption.decryptCasaworker(constants.CASAWORKER_PASSWORD_ENCRYPTED);
+  var composeOptions = ['login', '--username', casaworkerUsername, '--password', casaworkerPassword];
 
   try {
     await bashService.exec(DOCKER_COMMAND, composeOptions, options);
