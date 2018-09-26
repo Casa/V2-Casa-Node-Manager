@@ -52,8 +52,7 @@ async function startup() {
   await createSettingsFile();
   await dockerComposeLogic.dockerLoginCasaworker();
   await startSpaceFleet();
-  await startAutoImagePull();
-  await dockerComposeLogic.dockerLogout();
+  await startAutoImagePull(); // handles docker logout
 }
 
 // Set the host device-host and restart space-fleet

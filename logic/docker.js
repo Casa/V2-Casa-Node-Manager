@@ -3,12 +3,7 @@ All docker business logic goes here.
  */
 
 const DockerError = require('models/errors.js').DockerError;
-const dockerHubService = require('services/dockerHub.js');
-
 const dockerService = require('services/docker.js');
-
-const constants = require('utils/const.js');
-const encryption = require('utils/encryption.js');
 
 const q = require('q'); // eslint-disable-line id-length
 
@@ -83,62 +78,46 @@ function getStatuses() {
   return deferred.promise;
 }
 
-// Get the updatable status of an image
-async function getVersion(version, image, username, password) {
-
-  try {
-    const slashParts = image.split('/');
-    const organization = slashParts[0];
-    const colonParts = slashParts[1].split(':');
-    const repository = colonParts[0];
-    const tag = colonParts[1];
-
-    var authToken = await dockerHubService.getAuthenticationToken(organization, repository, username, password);
-    var digest = await dockerHubService.getDigest(authToken, organization, repository, tag);
-
-    version.updatable = version.version !== digest;
-  } catch (err) {
-    version.updatable = false; // updatable should default to false
-  }
-
-  return version;
-}
-
 // Get the version and updatable status of each running container.
 async function getVersions() {
-  const calls = [];
+  const versions = {};
+  const imageDict = {};
 
-  var containers = await getAllContainers();
-  const casaworkerUsername = encryption.decryptCasaworker(constants.CASAWORKER_USERNAME_ENCRYPTED);
-  const casaworkerPassword = encryption.decryptCasaworker(constants.CASAWORKER_PASSWORD_ENCRYPTED);
-  const casabuilderUsername = encryption.decryptCasabuilder(constants.CASABUILDER_USERNAME_ENCRYPTED);
-  const casabuilderPassword = encryption.decryptCasabuilder(constants.CASABUILDER_PASSWORD_ENCRYPTED);
+  const containers = await getAllContainers();
+  const images = await dockerService.getImages();
 
-  for (const container of containers) {
+  for (const image of images) {
 
-    var version = {
-      service: container['Labels']['com.docker.compose.service'],
-      version: container['ImageID'],
-    };
+    // RepoTags is a nullable array. We have to null check and then loop over each tag.
+    if (image.RepoTags) {
 
-    if (version.service.includes('manager')) {
-      calls.push(getVersion(version, container['Image'], casabuilderUsername, casabuilderPassword));
-    } else {
-      calls.push(getVersion(version, container['Image'], casaworkerUsername, casaworkerPassword));
+      for (const tag of image.RepoTags) {
+        const regex = tag.match('\\/(?<service>.*):');
+        if (regex && regex.groups && regex.groups.service) {
+          imageDict[regex.groups.service] = image;
+        }
+      }
     }
   }
 
-  const updatableStatuses = await Promise.all(calls);
+  for (const container of containers) {
 
-  const result = {};
-  updatableStatuses.forEach(function(updatableStatus) {
-    result[updatableStatus.service] = {
-      version: updatableStatus.version, // is version actually useful to the front end?
-      updatable: updatableStatus.updatable
+    const service = container['Labels']['com.docker.compose.service'];
+    const containerVersion = container['ImageID'];
+
+    // container[Image] example: casacomputer/manager:arm
+    const imageVersion = imageDict[service]['Id'];
+    const updatable = containerVersion !== imageVersion;
+
+    versions[service] = {
+      containerVersion: containerVersion, // eslint-disable-line object-shorthand
+      imageVersion: imageVersion, // eslint-disable-line object-shorthand
+      updatable: updatable, // eslint-disable-line object-shorthand
     };
-  });
 
-  return result;
+  }
+
+  return versions;
 }
 
 function getVolumeUsage() {
