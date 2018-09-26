@@ -35,17 +35,25 @@ async function getSerial() {
   return constants.SERIAL;
 }
 
+// The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
+// a total of 240 processor minutes.
+//
+// If there are no images available, this function will complete in 30 seconds while only using 40% cpu. This equates
+// to 0.2 cpu-minutes or 0.08% of the hourly processing minutes available.
+//
+// Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
+// we release to make sure it does not put over load the pi.
+async function startAutoImagePull() {
+  setInterval(dockerComposeLogic.dockerComposePullAll, constants.TIME.ONE_HOUR_IN_MILLIS);
+}
+
 // Run startup functions
 async function startup() {
-  try {
-    await createSettingsFile();
-    await dockerComposeLogic.dockerLogin();
-    await startSpaceFleet();
-  } catch (error) {
-    throw error;
-  } finally {
-    await dockerComposeLogic.dockerLogout();
-  }
+  await createSettingsFile();
+  await dockerComposeLogic.dockerLoginCasaworker();
+  await startSpaceFleet();
+  await startAutoImagePull();
+  await dockerComposeLogic.dockerLogout();
 }
 
 // Set the host device-host and restart space-fleet
