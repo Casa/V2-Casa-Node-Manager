@@ -7,6 +7,7 @@ const dockerService = require('services/docker.js');
 
 const q = require('q'); // eslint-disable-line id-length
 
+const FIND_SERVICE_REGEX = '\\/(?<service>.*):';
 
 function getAllContainers() {
   return dockerService.getContainers(true);
@@ -92,7 +93,7 @@ async function getVersions() {
     if (image.RepoTags) {
 
       for (const tag of image.RepoTags) {
-        const regex = tag.match('\\/(?<service>.*):');
+        const regex = tag.match(FIND_SERVICE_REGEX);
         if (regex && regex.groups && regex.groups.service) {
           imageDict[regex.groups.service] = image;
         }
@@ -104,9 +105,17 @@ async function getVersions() {
 
     const service = container['Labels']['com.docker.compose.service'];
     const containerVersion = container['ImageID'];
+    const containerImage = container['Image'];
 
-    // container[Image] example: casacomputer/manager:arm
-    const imageVersion = imageDict[service]['Id'];
+    // We need to use regex to get the image name from the docker image on the device. Generally, there is only one
+    // image on device and one service that corresponds to that image. However, when we have downloaded the latest
+    // image onto the device, there then exists two images for a given service. One corresponding to the container and
+    // one corresponding to the newly downloaded image. Because of this, container['Image'] is turned into a
+    // sha256 hash by docker. In those instances, we need to use the service for lookup.
+    const regex = containerImage.match(FIND_SERVICE_REGEX);
+    const lookupService = regex && regex.groups && regex.groups.service || service;
+
+    const imageVersion = imageDict[lookupService]['Id'];
     const updatable = containerVersion !== imageVersion;
 
     versions[service] = {

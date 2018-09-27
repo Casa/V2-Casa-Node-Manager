@@ -105,8 +105,7 @@ function reset() {
 async function runDeviceHost() {
   const options = {
     attached: true,
-    service: 'device-host',
-    fileName: 'device-host.yml',
+    service: constants.SERVICES.DEVICE_HOST,
   };
 
   await dockerComposeLogic.dockerComposePull(options);
@@ -114,26 +113,15 @@ async function runDeviceHost() {
   await dockerComposeLogic.dockerComposeRemove(options);
 }
 
+// Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a
+// container or update a container to the newest image.
 async function update(services) {
-  try {
-    await dockerComposeLogic.dockerLogin();
+  for (const service of services) {
+    const options = {service: service}; // eslint-disable-line object-shorthand
 
-    for (const service of services) {
-      const options = {service: service}; // eslint-disable-line object-shorthand
-
-      if (constants.LOGGING_SERVICES.includes(service)) {
-        options.fileName = constants.LOGGING_DOCKER_COMPOSE_FILE;
-      }
-
-      await dockerComposeLogic.dockerComposePull(options);
-      await dockerComposeLogic.dockerComposeStop(options);
-      await dockerComposeLogic.dockerComposeRemove(options);
-      await dockerComposeLogic.dockerComposeUpSingleService(options);
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    await dockerComposeLogic.dockerLogout();
+    await dockerComposeLogic.dockerComposeStop(options);
+    await dockerComposeLogic.dockerComposeRemove(options);
+    await dockerComposeLogic.dockerComposeUpSingleService(options);
   }
 }
 
