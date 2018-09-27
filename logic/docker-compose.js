@@ -50,7 +50,17 @@ function composeFile(options) {
     return WORKING_DIR + '/' + options.fileName;
   }
 
-  return WORKING_DIR + '/' + constants.LIGHTNING_NODE_DOCKER_COMPOSE_FILE;
+  if (options.service === constants.SERVICES.DEVICE_HOST) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.DEVICE_HOST;
+  } else if (options.service === constants.SERVICES.LOGSPOUT
+    || options.service === constants.SERVICES.PAPERTRAIL
+    || options.service === constants.SERVICES.SYSLOG) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.LOGSPOUT;
+  } else if (options.service === constants.SERVICES.MANAGER) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.MANAGER;
+  } else {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.LIGHTNING_NODE;
+  }
 }
 
 function addDefaultOptions(options) {
@@ -96,6 +106,29 @@ function dockerComposePull(options = {}) {
     .catch(handleError);
 
   return deferred.promise;
+}
+
+// Pull newest images. This pulls new images to the device, but does not recreate them. Users will need to call the
+// get /update route to recreate specified containers. However, device-host is recreated every time the manager starts
+// up. Notably, update-manager is left out, because there is currently no mechanism build to recreate that container.
+async function dockerComposePullAll() {
+  const casabuilderImagesToPull = [constants.SERVICES.MANAGER];
+  const casaworkerImagesToPull = [constants.SERVICES.DEVICE_HOST, constants.SERVICES.LND, constants.SERVICES.BITCOIND,
+    constants.SERVICES.LNAPI, constants.SERVICES.SPACE_FLEET, constants.SERVICES.SYSLOG, constants.SERVICES.LOGSPOUT];
+
+  // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
+  // the raspberry pi.
+  await dockerLoginCasabuilder();
+  for (const image of casabuilderImagesToPull) {
+    await dockerComposePull({service: image});
+  }
+
+  await dockerLoginCasaworker();
+  for (const image of casaworkerImagesToPull) {
+    await dockerComposePull({service: image});
+  }
+
+  await dockerLogout();
 }
 
 function dockerComposeStop(options = {}) {
@@ -169,19 +202,32 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
   }
 };
 
-async function dockerLogin(options = {}) {
+async function dockerLogin(options = {}, username, password) {
 
   addDefaultOptions(options);
   options.env = await injectSettings();
-  const USERNAME = encryption.decrypt(constants.DOCKER_USERNAME_ENCRYPTED);
-  const PASSWORD = encryption.decrypt(constants.DOCKER_PASSWORD_ENCRYPTED);
-  var composeOptions = ['login', '--username', USERNAME, '--password', PASSWORD];
+
+  var composeOptions = ['login', '--username', username, '--password', password];
 
   try {
     await bashService.exec(DOCKER_COMMAND, composeOptions, options);
   } catch (error) {
     throw new DockerComposeError('Unable to login to docker: ', error);
   }
+}
+
+async function dockerLoginCasabuilder() {
+  const username = encryption.decryptCasabuilder(constants.CASABUILDER_USERNAME_ENCRYPTED);
+  const password = encryption.decryptCasabuilder(constants.CASABUILDER_PASSWORD_ENCRYPTED);
+
+  await dockerLogin({}, username, password);
+}
+
+async function dockerLoginCasaworker() {
+  const username = encryption.decryptCasaworker(constants.CASAWORKER_USERNAME_ENCRYPTED);
+  const password = encryption.decryptCasaworker(constants.CASAWORKER_PASSWORD_ENCRYPTED);
+
+  await dockerLogin({}, username, password);
 }
 
 async function dockerLogout(options = {}) {
@@ -200,9 +246,10 @@ async function dockerLogout(options = {}) {
 module.exports = {
   dockerComposeUp,
   dockerComposePull,
+  dockerComposePullAll,
   dockerComposeStop,
   dockerComposeRemove,
   dockerComposeUpSingleService, // eslint-disable-line id-length
-  dockerLogin,
+  dockerLoginCasaworker,
   dockerLogout,
 };

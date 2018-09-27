@@ -46,6 +46,20 @@ function getContainerLogs(containerId) {
   return deferred.promise;
 }
 
+function getImages() {
+  var deferred = q.defer();
+
+  docker.listImages({}, function(err, images) {
+    if (err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(images);
+    }
+  });
+
+  return deferred.promise;
+}
+
 function stopContainer(containerId) {
   var deferred = q.defer();
 
@@ -128,6 +142,7 @@ module.exports = {
   getContainers,
   getDiskUsage,
   getContainerLogs,
+  getImages,
   stopContainer,
   removeContainer,
   pruneContainers,

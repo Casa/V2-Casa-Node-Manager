@@ -21,7 +21,7 @@ router.post('/update', auth.jwt, safeHandler((req, res, next) => {
 
   for (const service of services) {
     try {
-      validator.isKnownService(service);
+      validator.isUpdatableService(service);
     } catch (error) {
       return next(error);
     }
