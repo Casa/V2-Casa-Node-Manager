@@ -11,10 +11,17 @@ router.post('/shutdown', auth.jwt, safeHandler((req, res) =>
     .then(status => res.json(status))
 ));
 
-router.post('/reset', auth.jwt, safeHandler((req, res) =>
-  applicationLogic.reset()
-    .then(status => res.json(status))
-));
+router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
+  applicationLogic.reset(true);
+
+  return res.json({status: 'factory-reset'});
+}));
+
+router.post('/chain-reset', auth.jwt, safeHandler((req, res) => {
+  applicationLogic.reset();
+
+  return res.json({status: 'chain-reset'});
+}));
 
 router.post('/update', auth.jwt, safeHandler((req, res, next) => {
   const services = req.body.services;
