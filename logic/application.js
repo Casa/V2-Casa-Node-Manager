@@ -7,7 +7,6 @@ const constants = require('utils/const.js');
 const errors = require('models/errors.js');
 const NodeError = errors.NodeError;
 const bashService = require('services/bash.js');
-const lnapiService = require('services/lnapi.js');
 
 function createSettingsFile() {
   const defaultConfig = {
@@ -176,42 +175,22 @@ function downloadLogs() {
   return deferred.promise;
 }
 
-function cyclePaperTrail(enabled) {
+async function cyclePaperTrail(enabled) {
+
   const options = {
-    service: 'papertrail',
-    fileName: 'logspout.yml'
+    service: constants.SERVICES.PAPERTRAIL,
+    fileName: constants.COMPOSE_FILES.LOGSPOUT
   };
 
-  var deferred = q.defer();
-
-  function injectEnabled() {
-    return enabled;
-  }
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
   if (enabled) {
-    dockerComposeLogic.dockerComposeUpSingleService(options)
-      .then(injectEnabled)
-      .then(lnapiService.updateSettings)
-      .then(handleSuccess)
-      .catch(handleError);
+    await dockerComposeLogic.dockerComposeUpSingleService(options);
   } else {
-    dockerComposeLogic.dockerComposeStop(options)
-      .then(injectEnabled)
-      .then(lnapiService.updateSettings)
-      .then(handleSuccess)
-      .catch(handleError);
+    await dockerComposeLogic.dockerComposeStop(options);
   }
 
-  return deferred.promise;
+  // TODO: update settings
 }
+
 
 module.exports = {
   cyclePaperTrail,

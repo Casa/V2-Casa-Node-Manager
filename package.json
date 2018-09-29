@@ -17,6 +17,7 @@
     "dockerode": "^2.5.5",
     "express": "^4.16.1",
     "fs": "0.0.1-security",
+    "jsonschema": "^1.2.4",
     "module-alias": "^2.1.0",
     "morgan": "^1.9.0",
     "npm": "^5.6.0",
@@ -26,6 +27,7 @@
     "q": "^1.5.1",
     "request": "^2.87.0",
     "request-promise": "^4.2.2",
+    "validator": "^10.8.0",
     "winston": "^3.0.0-rc5",
     "winston-daily-rotate-file": "^3.1.3"
   },

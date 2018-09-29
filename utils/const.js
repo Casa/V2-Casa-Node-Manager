@@ -1,6 +1,5 @@
 /* eslint-disable id-length */
 /* eslint-disable no-magic-numbers */
-const os = require('os');
 const UUID = require('utils/UUID');
 
 module.exports = {
@@ -19,7 +18,7 @@ module.exports = {
   REQUEST_CORRELATION_NAMESPACE_KEY: 'manager-request',
   REQUEST_CORRELATION_ID_KEY: 'reqId',
   SERIAL: process.env.SYSLOG_TAG || 'UNKNOWN',
-  SETTINGS_FILE: process.env.SETTINGS_FILE || os.homedir() + '/lightning-node/settings.json',
+  SETTINGS_FILE: process.env.SETTINGS_FILE || '/settings/settings.json',
   SERVICES: {
     DEVICE_HOST: 'device-host',
     BITCOIND: 'bitcoind',
