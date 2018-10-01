@@ -16,5 +16,7 @@ RUN npm install
 # Bundle app source
 COPY . .
 
+LABEL casa=persist
+
 EXPOSE 3000
 CMD [ "npm", "start" ]

@@ -29,6 +29,11 @@ function pruneVolumes() {
   return dockerService.pruneVolumes();
 }
 
+function pruneImages() {
+  return dockerService.pruneImages();
+
+}
+
 function getStatuses() {
   // TODO: check if something is missing
   var deferred = q.defer();
@@ -202,4 +207,5 @@ module.exports = {
   pruneContainers,
   pruneNetworks,
   pruneVolumes,
+  pruneImages
 };
