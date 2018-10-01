@@ -138,6 +138,23 @@ function pruneVolumes() {
   return deferred.promise;
 }
 
+function pruneImages() {
+  var deferred = q.defer();
+
+  const imageFilter = ignorePersistentArtifactsFilter;
+  imageFilter.dangling = ['0']; // prune all images
+
+  docker.pruneImages({filters: imageFilter}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   getContainers,
   getDiskUsage,
@@ -148,4 +165,5 @@ module.exports = {
   pruneContainers,
   pruneNetworks,
   pruneVolumes,
+  pruneImages,
 };

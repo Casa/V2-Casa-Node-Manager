@@ -30,4 +30,9 @@ router.get('/logs', auth.jwt, safeHandler((req, res) =>
     .then(logs => res.json(logs))
 ));
 
+router.get('/reset-status', auth.jwt, safeHandler((req, res) =>
+  applicationLogic.getSystemResetStatus()
+    .then(status => res.json(status))
+));
+
 module.exports = router;

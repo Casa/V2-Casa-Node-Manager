@@ -7,6 +7,8 @@ const constants = require('utils/const.js');
 const errors = require('models/errors.js');
 const NodeError = errors.NodeError;
 const bashService = require('services/bash.js');
+let autoImagePullInterval = {};
+const systemResetStatus = {};
 
 function createSettingsFile() {
   const defaultConfig = {
@@ -34,6 +36,10 @@ async function getSerial() {
   return constants.SERIAL;
 }
 
+async function getSystemResetStatus() {
+  return systemResetStatus;
+}
+
 // The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
 // a total of 240 processor minutes.
 //
@@ -43,7 +49,7 @@ async function getSerial() {
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
 async function startAutoImagePull() {
-  setInterval(dockerComposeLogic.dockerComposePullAll, constants.TIME.ONE_HOUR_IN_MILLIS);
+  autoImagePullInterval = setInterval(dockerComposeLogic.dockerComposePullAll, constants.TIME.ONE_HOUR_IN_MILLIS);
 }
 
 // Run startup functions
@@ -78,27 +84,36 @@ function shutdown() {
   return deferred.promise;
 }
 
-function reset() {
-  var deferred = q.defer();
+// Stops all services and removes artifacts that aren't labeled with 'casa=persist'.
+// Remove docker images and pull then again if factory reset.
+async function reset(factoryReset) {
+  try {
+    systemResetStatus.resetting = true;
+    systemResetStatus.error = false;
+    clearInterval(autoImagePullInterval);
+    await dockerLogic.stopNonPersistentContainers();
+    await dockerLogic.pruneContainers();
+    await dockerLogic.pruneNetworks();
+    await dockerLogic.pruneVolumes();
+    await wipeSettingsVolume();
 
-  function handleSuccess() {
-    deferred.resolve();
+    if (factoryReset) {
+      await dockerLogic.pruneImages();
+      await dockerComposeLogic.dockerComposePullAll();
+    }
+    await createSettingsFile();
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND});
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT});
+    await dockerComposeLogic.dockerLoginCasaworker();
+    await startSpaceFleet();
+    await startAutoImagePull();
+    systemResetStatus.error = false;
+  } catch (error) {
+    systemResetStatus.error = true;
+    await startSpaceFleet();
+  } finally {
+    systemResetStatus.resetting = false;
   }
-
-  function handleError(error) {
-    deferred.reject(new NodeError('Unable to reset device', error));
-  }
-
-  dockerLogic.stopNonPersistentContainers()
-    .then(dockerLogic.pruneContainers)
-    .then(dockerLogic.pruneNetworks)
-    .then(dockerLogic.pruneVolumes)
-    .then(wipeSettingsVolume)
-    .then(startup)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
 }
 
 async function runDeviceHost() {
@@ -200,4 +215,5 @@ module.exports = {
   shutdown,
   reset,
   update,
+  getSystemResetStatus,
 };
