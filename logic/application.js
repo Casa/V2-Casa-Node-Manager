@@ -90,6 +90,7 @@ function shutdown() {
 async function reset(factoryReset) {
   try {
     systemResetStatus.resetting = true;
+    systemResetStatus.error = false;
     clearInterval(autoImagePullInterval);
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
