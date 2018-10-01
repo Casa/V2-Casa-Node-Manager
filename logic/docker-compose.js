@@ -8,7 +8,7 @@ const encryption = require('utils/encryption.js');
 const DockerComposeError = require('models/errors').DockerComposeError;
 const diskLogic = require('logic/disk.js');
 
-const WORKING_DIR = '/usr/local/applications';
+const WORKING_DIR = constants.WORKING_DIRECTORY;
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 const DOCKER_COMMAND = 'docker';
 
