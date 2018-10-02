@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  syslog:
+    container_name: syslog
+    hostname: syslog
+    restart: always
+    image: casacomputer/syslog:${TAG}
+    ports:
+      - "514:514"
+    volumes:
+      - logs:/logs/node
+    networks:
+      - logs
+
+  logspout:
+    container_name: logspout
+    hostname: logspout
+    restart: always
+    image: casacomputer/logspout:${TAG}
+    environment:
+      SYSLOG_TAG: $SYSLOG_TAG
+    depends_on:
+      - syslog
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: syslog://syslog:514
+    networks:
+      - logs
+
+  papertrail:
+    container_name: papertrail
+    hostname: papertrail
+    image: casacomputer/logspout:${TAG}
+    environment:
+      SYSLOG_TAG: $SYSLOG_TAG
+    depends_on:
+      - syslog
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: syslog://logs4.papertrailapp.com:51755
+    networks:
+      - logs
+
+networks:
+  logs:
+
+volumes:
+  logs:

@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  device-host:
+    container_name: device-host
+    hostname: device-host
+    image: casacomputer/device-host:${TAG}
+    volumes:
+      - /usr/local/applications/.env:/usr/local/applications/.env
+    network_mode: "host"

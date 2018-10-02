@@ -30,8 +30,8 @@ router.get('/logs', auth.jwt, safeHandler((req, res) =>
     .then(logs => res.json(logs))
 ));
 
-router.get('/reset-status', auth.jwt, safeHandler((req, res) =>
-  applicationLogic.getSystemResetStatus()
+router.get('/system-status', auth.jwt, safeHandler((req, res) =>
+  applicationLogic.getSystemStatus()
     .then(status => res.json(status))
 ));
 
