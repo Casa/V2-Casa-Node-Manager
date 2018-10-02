@@ -3,10 +3,14 @@ const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
+const LNNodeError = require('models/errors.js').NodeError;
+const schemaValidator = require('utils/settingsSchema.js');
+const md5Check = require('md5-file');
 let autoImagePullInterval = {};
-const systemResetStatus = {};
+const systemStatus = {};
 const logArchiveSavedPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
 
+// Create default settings.
 async function createSettingsFile() {
   const defaultConfig = {
     bitcoind: {
@@ -18,18 +22,18 @@ async function createSettingsFile() {
       backend: 'bitcoind',
       lndNetwork: 'testnet',
       autopilot: false, // eslint-disable-line object-shorthand
-    },
-    node: {
-      remoteLogging: false
     }
   };
 
   try {
     await diskLogic.settingsFileExists();
   } catch (error) {
+    const validation = schemaValidator.validateSettingsSchema(defaultConfig);
+    if (!validation.valid) {
+      return new LNNodeError(validation.errors);
+    }
     diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
   }
-
 }
 
 // Return the serial id of the device.
@@ -38,8 +42,8 @@ async function getSerial() {
 }
 
 // Return info device reset state, in-progress and/or it has encountered errors.
-async function getSystemResetStatus() {
-  return systemResetStatus;
+async function getSystemStatus() {
+  return systemStatus;
 }
 
 // The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
@@ -56,6 +60,7 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
+  await checkYMLs();
   await createSettingsFile();
   await dockerComposeLogic.dockerLoginCasaworker();
   await startSpaceFleet();
@@ -72,8 +77,8 @@ async function startSpaceFleet() {
 // Remove docker images and pull then again if factory reset.
 async function reset(factoryReset) {
   try {
-    systemResetStatus.resetting = true;
-    systemResetStatus.error = false;
+    systemStatus.resetting = true;
+    systemStatus.error = false;
     clearInterval(autoImagePullInterval);
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
@@ -92,12 +97,12 @@ async function reset(factoryReset) {
     await dockerComposeLogic.dockerLoginCasaworker();
     await startSpaceFleet();
     await startAutoImagePull();
-    systemResetStatus.error = false;
+    systemStatus.error = false;
   } catch (error) {
-    systemResetStatus.error = true;
+    systemStatus.error = true;
     await startSpaceFleet();
   } finally {
-    systemResetStatus.resetting = false;
+    systemStatus.resetting = false;
   }
 }
 
@@ -170,6 +175,62 @@ function deleteLogArchive() {
   bashService.exec('rm', ['-f', logArchiveSavedPath], options);
 }
 
+// Compare known compose files, except manager.yml, with on-device YMLs.
+// The manager should have the latest YMLs.
+async function checkYMLs() {
+  const knownYMLs = constants.COMPOSE_FILES;
+  delete knownYMLs.MANAGER;
+  const updatableYMLs = Object.values(knownYMLs);
+
+  const outdatedYMLs = [];
+
+  for (const knownYMLFile of updatableYMLs) {
+    try {
+      const canonicalMd5 = md5Check.sync('./resources/'.concat(knownYMLFile));
+      const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY.concat('/' + knownYMLFile));
+
+      if (canonicalMd5 !== ondeviceMd5) {
+        outdatedYMLs.push(knownYMLFile);
+      }
+    } catch (error) {
+      outdatedYMLs.push(knownYMLFile);
+    }
+  }
+
+  if (outdatedYMLs.length !== 0) {
+    await updateYMLs(outdatedYMLs);
+  }
+}
+
+// Stop non-persistent containers, and copy over outdated YMLs, restart services.
+// Declared services could be different between the YMLs, so stop everything.
+// Might need to disable for AWS instances with <4 CPUs as we dynamically configure CPU resources.
+async function updateYMLs(outdatedYMLs) {
+  try {
+    systemStatus.updating = true;
+    await dockerLogic.stopNonPersistentContainers();
+    await dockerLogic.pruneContainers();
+
+    for (const outdatedYML of outdatedYMLs) {
+      const ymlFile = './resources/' + outdatedYML;
+      await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
+    }
+
+    clearInterval(autoImagePullInterval);
+    await dockerComposeLogic.dockerComposePullAll();
+    await startAutoImagePull();
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND});
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT});
+    await startSpaceFleet();
+    systemStatus.error = false;
+  } catch (error) {
+    systemStatus.error = true;
+    await startSpaceFleet();
+  } finally {
+    systemStatus.updating = false;
+  }
+}
+
 module.exports = {
   downloadLogs,
   deleteLogArchive,
@@ -177,5 +238,5 @@ module.exports = {
   startup,
   reset,
   update,
-  getSystemResetStatus,
+  getSystemStatus,
 };

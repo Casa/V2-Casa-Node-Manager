@@ -4,13 +4,11 @@ const settingsSchema = {
   type: 'object',
   properties: {
     bitcoind: {$ref: '/bitcoind'},
-    lnd: {$ref: '/lnd'},
-    node: {$ref: '/node'},
+    lnd: {$ref: '/lnd'}
   },
   required: [
     'bitcoind',
     'lnd',
-    'node',
   ],
   additionalProperties: false
 
@@ -60,17 +58,6 @@ const lndSchema = {
   additionalProperties: false
 };
 
-const nodeSchema = {
-  id: '/node',
-  type: 'object',
-  properties: {
-    remoteLogging: {type: 'boolean'},
-  },
-  required: ['remoteLogging'],
-  additionalProperties: false
-};
-
-
 const availableNetworks = {
   id: '/networks',
   type: 'string',
@@ -82,7 +69,6 @@ function validateSettingsSchema(data) {
   validator.addSchema(availableNetworks);
   validator.addSchema(lndSchema);
   validator.addSchema(bitcoindSchema);
-  validator.addSchema(nodeSchema);
 
   return validator.validate(data, settingsSchema);
 }
