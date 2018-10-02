@@ -37,5 +37,6 @@ module.exports = {
   TIME: {
     ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000
   },
-  LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout']
+  LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
+  USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json'
 };
