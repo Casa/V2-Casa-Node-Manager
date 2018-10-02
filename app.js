@@ -14,6 +14,7 @@ require('middlewares/auth.js');
 const logger = require('utils/logger.js');
 const applicationLogic = require('logic/application.js');
 
+const accounts = require('routes/v1/accounts.js');
 const device = require('routes/v1/device.js');
 const logs = require('routes/v1/logs.js');
 const settings = require('routes/v1/settings.js');
@@ -32,6 +33,7 @@ app.use(passport.session());
 app.use(requestCorrelationMiddleware);
 app.use(morgan(logger.morganConfiguration));
 app.use('/ping', ping);
+app.use('/v1/accounts', accounts);
 app.use('/v1/device', device);
 app.use('/v1/logs', logs);
 app.use('/v1/settings', settings);

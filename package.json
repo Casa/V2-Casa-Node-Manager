@@ -8,6 +8,7 @@
     "test": "mocha test/**/*.js --exit"
   },
   "dependencies": {
+    "bcrypt": "^3.0.1",
     "body-parser": "^1.18.2",
     "child_process": "^1.0.2",
     "continuation-local-storage": "^3.2.1",
@@ -23,6 +24,7 @@
     "morgan": "^1.9.0",
     "npm": "^5.6.0",
     "passport": "^0.4.0",
+    "passport-http": "^0.3.0",
     "passport-jwt": "^4.0.0",
     "public-ip": "^2.4.0",
     "q": "^1.5.1",
