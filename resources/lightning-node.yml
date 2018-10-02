@@ -28,13 +28,13 @@ services:
     container_name: lnapi
     hostname: lnapi
     restart: unless-stopped
-    image: casacomputer/lnapi:x86-dev
+    image: casacomputer/lnapi:${TAG}
     ports:
       - "3002:3000"
     volumes:
-      - applications_accounts:/accounts
       - rpc:/rpc:ro
       - lnd-data:/lnd:ro
+      - channel-data:/channel-data
     networks:
       - arpanet
     environment:
@@ -67,7 +67,6 @@ services:
     networks:
       - arpanet
     volumes:
-      - applications_accounts:/accounts
       - lnd-data:/root/.lnd #TODO: split up data, config
       - rpc:/usr/local/casa/chains/bitcoind/rpc:ro
     environment:
@@ -98,11 +97,10 @@ services:
     oom_kill_disable: true
 
 volumes:
+  channel-data:
   bitcoind-data:
   lnd-data:
   rpc:
-  applications_accounts:
-    external: true
 
 networks:
   arpanet:
