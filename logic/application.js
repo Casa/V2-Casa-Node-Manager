@@ -1,17 +1,13 @@
-var q = require('q'); // eslint-disable-line id-length
-
 const dockerComposeLogic = require('logic/docker-compose.js');
 const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
 const constants = require('utils/const.js');
-const errors = require('models/errors.js');
-const NodeError = errors.NodeError;
 const bashService = require('services/bash.js');
-const lnapiService = require('services/lnapi.js');
 let autoImagePullInterval = {};
 const systemResetStatus = {};
+const logArchiveSavedPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
 
-function createSettingsFile() {
+async function createSettingsFile() {
   const defaultConfig = {
     bitcoind: {
       bitcoinNetwork: 'testnet',
@@ -28,15 +24,20 @@ function createSettingsFile() {
     }
   };
 
-  if (!diskLogic.settingsFileExists()) {
+  try {
+    await diskLogic.settingsFileExists();
+  } catch (error) {
     diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
   }
+
 }
 
+// Return the serial id of the device.
 async function getSerial() {
   return constants.SERIAL;
 }
 
+// Return info device reset state, in-progress and/or it has encountered errors.
 async function getSystemResetStatus() {
   return systemResetStatus;
 }
@@ -67,24 +68,6 @@ async function startSpaceFleet() {
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 }
 
-function shutdown() {
-  var deferred = q.defer();
-
-  function handleSuccess() {
-    deferred.resolve({shutdown: true});
-  }
-
-  function handleError(error) {
-    deferred.reject(new NodeError('Unable to shutdown device', error));
-  }
-
-  bashService.exec('sudo', ['shutdown'], {})
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
 // Stops all services and removes artifacts that aren't labeled with 'casa=persist'.
 // Remove docker images and pull then again if factory reset.
 async function reset(factoryReset) {
@@ -97,6 +80,7 @@ async function reset(factoryReset) {
     await dockerLogic.pruneNetworks();
     await dockerLogic.pruneVolumes();
     await wipeSettingsVolume();
+    await wipeAccountsVolume();
 
     if (factoryReset) {
       await dockerLogic.pruneImages();
@@ -117,6 +101,7 @@ async function reset(factoryReset) {
   }
 }
 
+// Update .env with new host IP.
 async function runDeviceHost() {
   const options = {
     attached: true,
@@ -140,100 +125,56 @@ async function update(services) {
   }
 }
 
-function wipeSettingsVolume() {
-  var deferred = q.defer();
+// Remove the user file.
+async function wipeAccountsVolume() {
+  const options = {
+    cwd: '/accounts',
+  };
 
-  function handleSuccess() {
-    deferred.resolve();
-  }
+  await bashService.exec('rm', ['-f', 'user.json'], options);
+}
 
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  var options = {
+// Remove any setting files.
+async function wipeSettingsVolume() {
+  const options = {
     cwd: '/settings',
   };
 
-  bashService.exec('rm', ['-f', 'settings.json', 'user.json'], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
+  await bashService.exec('rm', ['-f', 'settings.json'], options);
 }
 
-function downloadLogs() {
-  var deferred = q.defer();
-
+// Launch docker container which will tar logs.
+async function downloadLogs() {
   const logArchiveBackupPath = '/backup/' + constants.NODE_LOG_ARCHIVE;
-  const logArchiveSavedPath = '/tmp/' + constants.NODE_LOG_ARCHIVE;
-
-  function handleSuccess() {
-    deferred.resolve(logArchiveSavedPath);
-  }
-
-  function handleError(error) {
-    deferred.reject(new NodeError('Unable to download log file', error));
-  }
 
   const backUpCommandOptions = [
     'run',
-    '-v', 'node_logs:/logs',
-    '-v', '/tmp:/backup',
+    '--rm',
+    '-v', 'applications_logs:/logs',
+    '-v', constants.WORKING_DIRECTORY.concat(':/backup'),
     'alpine',
     'tar', '-cjf', logArchiveBackupPath, '-C', '/logs', './'
   ];
 
-  bashService.exec('docker', backUpCommandOptions, {})
-    .then(handleSuccess)
-    .catch(handleError);
+  await bashService.exec('docker', backUpCommandOptions, {});
 
-  return deferred.promise;
+  return logArchiveSavedPath;
 }
 
-function cyclePaperTrail(enabled) {
+// Remove log archive.
+function deleteLogArchive() {
   const options = {
-    service: 'papertrail',
-    fileName: 'logspout.yml'
+    cwd: constants.WORKING_DIRECTORY
   };
 
-  var deferred = q.defer();
-
-  function injectEnabled() {
-    return enabled;
-  }
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  if (enabled) {
-    dockerComposeLogic.dockerComposeUpSingleService(options)
-      .then(injectEnabled)
-      .then(lnapiService.updateSettings)
-      .then(handleSuccess)
-      .catch(handleError);
-  } else {
-    dockerComposeLogic.dockerComposeStop(options)
-      .then(injectEnabled)
-      .then(lnapiService.updateSettings)
-      .then(handleSuccess)
-      .catch(handleError);
-  }
-
-  return deferred.promise;
+  bashService.exec('rm', ['-f', logArchiveSavedPath], options);
 }
 
 module.exports = {
-  cyclePaperTrail,
   downloadLogs,
+  deleteLogArchive,
   getSerial,
   startup,
-  shutdown,
   reset,
   update,
   getSystemResetStatus,

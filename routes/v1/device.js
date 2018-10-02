@@ -6,11 +6,6 @@ const validator = require('utils/validator.js');
 const auth = require('middlewares/auth.js');
 const safeHandler = require('utils/safeHandler');
 
-router.post('/shutdown', auth.jwt, safeHandler((req, res) =>
-  applicationLogic.shutdown()
-    .then(status => res.json(status))
-));
-
 router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
   applicationLogic.reset(true);
 

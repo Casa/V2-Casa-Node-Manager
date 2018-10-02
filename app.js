@@ -14,10 +14,11 @@ require('middlewares/auth.js');
 const logger = require('utils/logger.js');
 const applicationLogic = require('logic/application.js');
 
-const ping = require('routes/ping.js');
-const telemetry = require('routes/v1/telemetry.js');
 const device = require('routes/v1/device.js');
 const logs = require('routes/v1/logs.js');
+const settings = require('routes/v1/settings.js');
+const telemetry = require('routes/v1/telemetry.js');
+const ping = require('routes/ping.js');
 const app = express();
 
 app.use(cors('*'));
@@ -33,6 +34,7 @@ app.use(morgan(logger.morganConfiguration));
 app.use('/ping', ping);
 app.use('/v1/device', device);
 app.use('/v1/logs', logs);
+app.use('/v1/settings', settings);
 app.use('/v1/telemetry', telemetry);
 
 app.use(errorHandleMiddleware);
