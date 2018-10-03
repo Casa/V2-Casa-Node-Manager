@@ -17,9 +17,9 @@ phases:
       - mkdir -p /root/lightning-node
 
         # Copy the YMLs into the container
-      - mkdir /warhouse
       - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-      - cp /warehouse/lightning-node/*.yml ./resources
+      - mkdir ./resources
+      - rsync -av --exclude=manager.yml --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
 
       - echo Installing source NPM dependencies...
       - npm install
@@ -42,8 +42,8 @@ phases:
 
       # push image to docker
       - echo $CODEBUILD_SOURCE_VERSION
-      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS; fi
-      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker push $ORGANIZATION/$REPOSITORY:$TAG; fi
+      - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
+      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker push $ORGANIZATION/$REPOSITORY:$TAG; else docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev; docker push $ORGANIZATION/$REPOSITORY:$TAG-dev; fi
   post_build:
     commands:
       - echo Build completed on `date`
