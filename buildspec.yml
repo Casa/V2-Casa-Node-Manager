@@ -3,6 +3,8 @@ env:
   parameter-store:
     DOCKER_HUB_USER: "/Test/DockerHub/User"
     DOCKER_HUB_PASS: "/Test/DockerHub/Pass"
+    GITHUB_USER: "/Test/Git/User"
+    GITHUB_PASS: "/Test/Git/Pass"
 phases:
   install:
     commands:
@@ -13,6 +15,11 @@ phases:
       # make a default directory that is required for the manager to start up. Normally this is handled by the install
       # tools.
       - mkdir -p /root/lightning-node
+
+        # Copy the YMLs into the container
+      - mkdir /warhouse
+      - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
+      - cp /warehouse/lightning-node/*.yml ./resources
 
       - echo Installing source NPM dependencies...
       - npm install

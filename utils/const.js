@@ -38,5 +38,6 @@ module.exports = {
     ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
-  USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json'
+  USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
+  CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || '/canonical-ymls'
 };
