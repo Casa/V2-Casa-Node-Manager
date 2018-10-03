@@ -10,6 +10,14 @@ phases:
     commands:
       - echo Installing Mocha...
       - npm install -g mocha
+
+      # CodePipeline creates artifacts using zip format, which does not preserve the permissions/modes.
+      # we must reset permissions here
+      - chmod 755 qemu-arm-static
+
+      - apt-get update
+      - apt-get install rsync -y
+
   pre_build:
     commands:
       # make a default directory that is required for the manager to start up. Normally this is handled by the install
@@ -23,27 +31,35 @@ phases:
 
       - echo Installing source NPM dependencies...
       - npm install
-  install:
-    commands:
-      # CodePipeline creates artifacts using zip format, which does not preserve the permissions/modes.
-      # we must reset permissions here
-      - chmod 755 pre-commit qemu-arm-static
   build:
     commands:
       - echo Running tests
+
       - npm test
 
       - echo Building the Docker image ...
 
       # building
-      - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      # Remove qemu-static if non-arm, or register
+      - |
+        if [ $TAG != arm ]; then
+          rm qemu-arm-static
+        else
+          docker run --rm --privileged multiarch/qemu-user-static:register --reset
+        fi
       - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$TAG
       - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
 
       # push image to docker
       - echo $CODEBUILD_SOURCE_VERSION
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
-      - if git rev-parse master|grep $CODEBUILD_SOURCE_VERSION; then docker push $ORGANIZATION/$REPOSITORY:$TAG; else docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev; docker push $ORGANIZATION/$REPOSITORY:$TAG-dev; fi
+      - |
+        if [ git rev-parse master|grep $CODEBUILD_SOURCE_VERSION ]; then
+          docker push $ORGANIZATION/$REPOSITORY:$TAG
+        else
+          docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev
+          docker push $ORGANIZATION/$REPOSITORY:$TAG-dev
+        fi
   post_build:
     commands:
       - echo Build completed on `date`
