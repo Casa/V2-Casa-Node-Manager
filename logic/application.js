@@ -186,7 +186,7 @@ async function checkYMLs() {
 
   for (const knownYMLFile of updatableYMLs) {
     try {
-      const canonicalMd5 = md5Check.sync('./resources/'.concat(knownYMLFile));
+      const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY.concat('/' + knownYMLFile));
       const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY.concat('/' + knownYMLFile));
 
       if (canonicalMd5 !== ondeviceMd5) {
@@ -212,7 +212,7 @@ async function updateYMLs(outdatedYMLs) {
     await dockerLogic.pruneContainers();
 
     for (const outdatedYML of outdatedYMLs) {
-      const ymlFile = './resources/' + outdatedYML;
+      const ymlFile = constants.CANONICAL_YML_DIRECTORY + '/' + outdatedYML;
       await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
     }
 
