@@ -39,5 +39,5 @@ module.exports = {
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
-  CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || '/canonical-ymls'
+  CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources'
 };

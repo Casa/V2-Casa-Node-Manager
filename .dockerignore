@@ -16,3 +16,4 @@ pre-commit
 .eslintrc
 .eslintignore
 test/
+Makefile
