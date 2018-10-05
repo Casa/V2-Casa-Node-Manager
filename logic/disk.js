@@ -19,7 +19,9 @@ function writeUserFile(data) {
 }
 
 function settingsFileExists() {
-  return diskService.readJsonFile(constants.SETTINGS_FILE);
+  return diskService.readJsonFile(constants.SETTINGS_FILE)
+    .then(() => Promise.resolve(true))
+    .catch(() => Promise.resolve(false));
 }
 
 module.exports = {

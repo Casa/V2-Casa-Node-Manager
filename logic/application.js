@@ -25,14 +25,13 @@ async function createSettingsFile() {
     }
   };
 
-  try {
-    await diskLogic.settingsFileExists();
-  } catch (error) {
+  const exists = await diskLogic.settingsFileExists();
+  if (!exists) {
     const validation = schemaValidator.validateSettingsSchema(defaultConfig);
     if (!validation.valid) {
       return new LNNodeError(validation.errors);
     }
-    diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
+    await diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
   }
 }
 
