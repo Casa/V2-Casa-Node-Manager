@@ -54,7 +54,7 @@ phases:
       - echo $CODEBUILD_SOURCE_VERSION
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
       - |
-        if [ git rev-parse master|grep $CODEBUILD_SOURCE_VERSION ]; then
+        if [ -z $(git rev-parse master|grep $CODEBUILD_SOURCE_VERSION) ]; then
           docker push $ORGANIZATION/$REPOSITORY:$TAG
         else
           docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev
