@@ -52,11 +52,9 @@ phases:
 
       # push image to docker
       - echo $CODEBUILD_SOURCE_VERSION
-      - GIT_COMMIT=$(git rev-parse master)
-      - echo $GIT_COMMIT
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
       - |
-        if [ -z $(git rev-parse master|grep $CODEBUILD_SOURCE_VERSION) ]; then
+        if [ $(git rev-parse master) -eq $CODEBUILD_SOURCE_VERSION) ]; then
           docker push $ORGANIZATION/$REPOSITORY:$TAG
         else
           docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev
