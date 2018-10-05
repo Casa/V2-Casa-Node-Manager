@@ -62,13 +62,13 @@ async function startAutoImagePull() {
 async function startup() {
   await checkYMLs();
   await createSettingsFile();
-  await dockerComposeLogic.dockerLoginCasaworker();
   await startSpaceFleet();
   await startAutoImagePull(); // handles docker logout
 }
 
 // Set the host device-host and restart space-fleet
 async function startSpaceFleet() {
+  await dockerComposeLogic.dockerLoginCasaworker();
   await runDeviceHost();
   await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
 }
@@ -92,9 +92,8 @@ async function reset(factoryReset) {
       await dockerComposeLogic.dockerComposePullAll();
     }
     await createSettingsFile();
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND});
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT});
-    await dockerComposeLogic.dockerLoginCasaworker();
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
     await startSpaceFleet();
     await startAutoImagePull();
     systemStatus.error = false;
@@ -178,8 +177,9 @@ function deleteLogArchive() {
 // Compare known compose files, except manager.yml, with on-device YMLs.
 // The manager should have the latest YMLs.
 async function checkYMLs() {
-  const knownYMLs = constants.COMPOSE_FILES;
+  const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
   delete knownYMLs.MANAGER;
+
   const updatableYMLs = Object.values(knownYMLs);
 
   const outdatedYMLs = [];
@@ -219,8 +219,8 @@ async function updateYMLs(outdatedYMLs) {
     clearInterval(autoImagePullInterval);
     await dockerComposeLogic.dockerComposePullAll();
     await startAutoImagePull();
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND});
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT});
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
     await startSpaceFleet();
     systemStatus.error = false;
   } catch (error) {
