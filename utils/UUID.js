@@ -8,7 +8,7 @@ function fetchBootUUID() {
 }
 
 function fetchSerial() {
-  let commandOptions = ['/proc/cpuinfo',
+  const commandOptions = ['/proc/cpuinfo',
     '|', 'egrep', '"Serial"',
     '|', 'awk', '\'{print $3}\''];
 
