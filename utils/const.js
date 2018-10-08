@@ -18,7 +18,7 @@ module.exports = {
   NODE_LOG_ARCHIVE: 'casa-lightning-node-logs.tar.bz2',
   REQUEST_CORRELATION_NAMESPACE_KEY: 'manager-request',
   REQUEST_CORRELATION_ID_KEY: 'reqId',
-  SERIAL: process.env.SYSLOG_TAG || 'UNKNOWN',
+  SERIAL: process.env.SYSLOG_TAG || UUID.fetchSerial() || 'UNKNOWN',
   SETTINGS_FILE: process.env.SETTINGS_FILE || '/settings/settings.json',
   SERVICES: {
     DEVICE_HOST: 'device-host',
