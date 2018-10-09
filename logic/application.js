@@ -59,7 +59,10 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
-  await checkYMLs();
+  // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+  if (process.env.DISABLE_YML_UPDATE !== 'true') {
+    await checkYMLs();
+  }
   await createSettingsFile();
   await startSpaceFleet();
   await startAutoImagePull(); // handles docker logout
