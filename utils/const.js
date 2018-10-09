@@ -32,12 +32,13 @@ module.exports = {
     SYSLOG: 'syslog',
     UPDATE_MANAGER: 'update-manager',
   },
-  SHARED_JWT_SECRET: process.env.SHARED_JWT_SECRET || 'GK' + UUID.fetchBootUUID(),
   TAG: process.env.TAG || 'arm',
   TIME: {
     ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
-  CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources'
+  CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources',
+  JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
+  JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem'
 };

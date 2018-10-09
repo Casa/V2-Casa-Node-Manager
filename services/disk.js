@@ -60,9 +60,31 @@ function writeJsonFile(filePath, obj) {
     });
 }
 
+function writeKeyFile(filePath, obj) {
+  const tempFileName = `${filePath}.${crypto.randomBytes(uint32Bytes).readUInt32LE(0)}`;
+
+  return writeFile(tempFileName, obj, 'utf8')
+    .then(() => new Promise((resolve, reject) => fs.rename(tempFileName, filePath, err => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    })))
+    .catch(err => {
+      if (err) {
+        fs.unlink(tempFileName, err => {
+          logger.warn('Error removing temporary file after error', 'disk', {err, tempFileName});
+        });
+      }
+      throw err;
+    });
+}
+
 module.exports = {
   readFile,
   readUtf8File,
   readJsonFile,
   writeJsonFile,
+  writeKeyFile
 };
