@@ -80,6 +80,7 @@ async function dockerComposeUp(options) {
   if (file.endsWith(constants.COMPOSE_FILES.LOGSPOUT)) {
     options.env.SYSLOG = constants.SERIAL;
   } else if (file.endsWith(constants.COMPOSE_FILES.LIGHTNING_NODE)) {
+    // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = Buffer.from(jwtPubKey, 'hex');
   }
@@ -198,6 +199,7 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
   if (service === constants.SERVICES.PAPERTRAIL || service === constants.SERVICES.LOGSPOUT) {
     options.env.SYSLOG = constants.SERIAL;
   } else if (service === constants.SERVICES.LNAPI) {
+    // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   }

@@ -13,7 +13,7 @@ module.exports = {
     LOGSPOUT: 'logspout.yml',
     MANAGER: 'manager.yml',
   },
-  WORKING_DIRECTORY: '/usr/local/applications',
+  WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
   NODE_LOG_ARCHIVE: 'casa-lightning-node-logs.tar.bz2',
   REQUEST_CORRELATION_NAMESPACE_KEY: 'manager-request',
