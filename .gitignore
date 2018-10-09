@@ -9,5 +9,5 @@ package-lock.json
 *.bak
 lb_settings.json
 .env
-jwt.key
-jwt.pem
+jwt.key*
+jwt.pem*
