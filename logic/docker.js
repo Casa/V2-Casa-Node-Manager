@@ -190,7 +190,7 @@ const stopNonPersistentContainers = async() => { // eslint-disable-line id-lengt
       try {
         await dockerService.stopContainer(container.Id);
       } catch (error) {
-        // There's a race condition, if the container is restarting it will receive a 304.
+        // There's a race condition, if the container is restarting it will receive a 404.
         // Restart policies can be circumvented.
         await dockerService.removeContainer(container.Id, true);
       }
