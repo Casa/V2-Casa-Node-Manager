@@ -76,6 +76,14 @@ async function dockerComposeUp(options) {
   addDefaultOptions(options);
   options.env = await injectSettings();
 
+  // Pass certain environmental variables as needed.
+  if (file.endsWith(constants.COMPOSE_FILES.LOGSPOUT)) {
+    options.env.SYSLOG = constants.SERIAL;
+  } else if (file.endsWith(constants.COMPOSE_FILES.LIGHTNING_NODE)) {
+    const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
+    options.env.JWT_PUBLIC_KEY = Buffer.from(jwtPubKey, 'hex');
+  }
+
   const composeOptions = ['-f', file, 'up', '-d'];
 
   try {
@@ -185,6 +193,15 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
   const service = options.service;
   addDefaultOptions(options);
   options.env = await injectSettings();
+
+  // Pass along environmental variables as needed.
+  if (service === constants.SERVICES.PAPERTRAIL || service === constants.SERVICES.LOGSPOUT) {
+    options.env.SYSLOG = constants.SERIAL;
+  } else if (service === constants.SERVICES.LNAPI) {
+    const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
+    options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
+  }
+
   var composeOptions = ['-f', file, 'up'];
 
   // By default everything will run in detached mode. However, in some cases we want to want for a container to complete

@@ -24,10 +24,30 @@ function settingsFileExists() {
     .catch(() => Promise.resolve(false));
 }
 
+function readJWTPrivateKeyFile() {
+  return diskService.readFile(constants.JWT_PRIVATE_KEY_FILE);
+}
+
+function readJWTPublicKeyFile() {
+  return diskService.readFile(constants.JWT_PUBLIC_KEY_FILE);
+}
+
+function writeJWTPrivateKeyFile(data) {
+  return diskService.writeKeyFile(constants.JWT_PRIVATE_KEY_FILE, data);
+}
+
+function writeJWTPublicKeyFile(data) {
+  return diskService.writeKeyFile(constants.JWT_PUBLIC_KEY_FILE, data);
+}
+
 module.exports = {
   readSettingsFile,
   readUserFile,
   writeSettingsFile,
   writeUserFile,
   settingsFileExists,
+  readJWTPrivateKeyFile,
+  readJWTPublicKeyFile,
+  writeJWTPrivateKeyFile,
+  writeJWTPublicKeyFile,
 };

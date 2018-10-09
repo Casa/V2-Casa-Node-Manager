@@ -2,9 +2,9 @@ const passport = require('passport');
 const passportJWT = require('passport-jwt');
 const passportHTTP = require('passport-http');
 const bcrypt = require('bcrypt');
-const constants = require('utils/const.js');
 const diskLogic = require('logic/disk.js');
 const NodeError = require('models/errors.js').NodeError;
+const rsa = require('node-rsa');
 
 var JwtStrategy = passportJWT.Strategy;
 var BasicStrategy = passportHTTP.BasicStrategy;
@@ -18,10 +18,26 @@ const JWT_AUTH = 'jwt';
 const REGISTRATION_AUTH = 'register';
 const BASIC_AUTH = 'basic';
 
-const jwtOptions = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('jwt'),
-  secretOrKey: constants.SHARED_JWT_SECRET
-};
+async function generateJWTKeys() {
+  const key = new rsa({b: 512}); // eslint-disable-line id-length
+
+  const privateKey = key.exportKey('private');
+  const publicKey = key.exportKey('public');
+
+  await diskLogic.writeJWTPrivateKeyFile(privateKey);
+  await diskLogic.writeJWTPublicKeyFile(publicKey);
+}
+
+async function createJwtOptions() {
+  await generateJWTKeys();
+  const pubKey = await diskLogic.readJWTPublicKeyFile();
+
+  return {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('jwt'),
+    secretOrKey: pubKey,
+    algorithm: 'RS256'
+  };
+}
 
 passport.serializeUser(function(user, done) {
   if (user.id) {
@@ -35,9 +51,13 @@ passport.use(BASIC_AUTH, new BasicStrategy(function(username, password, next) {
   return next(null, {password: password, username: SYSTEM_USER}); // eslint-disable-line object-shorthand
 }));
 
-passport.use(JWT_AUTH, new JwtStrategy(jwtOptions, function(jwtPayload, done) {
-  return done(null, {id: jwtPayload.id});
-}));
+createJwtOptions().then(function(data) {
+  const jwtOptions = data;
+
+  passport.use(JWT_AUTH, new JwtStrategy(jwtOptions, function(jwtPayload, done) {
+    return done(null, {id: jwtPayload.id});
+  }));
+});
 
 passport.use(REGISTRATION_AUTH, new BasicStrategy(function(username, password, next) {
   bcrypt.hash(password, saltRounds).then(function(hash) {
