@@ -64,6 +64,8 @@ async function startup() {
     await checkYMLs();
   }
   await createSettingsFile();
+  await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+  await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
   await startSpaceFleet();
   await startAutoImagePull(); // handles docker logout
 }
