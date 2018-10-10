@@ -10,8 +10,8 @@ let autoImagePullInterval = {};
 const systemStatus = {};
 const logArchiveSavedPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
 
-// Create default settings.
-async function createSettingsFile() {
+// Checks whether the settings.json file exists, and attempts to create it with default value should it not.
+async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
   const defaultConfig = {
     bitcoind: {
       bitcoinNetwork: 'testnet',
@@ -59,11 +59,12 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
+  await settingsFileIntegrityCheck();
+
   // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
   if (process.env.DISABLE_YML_UPDATE !== 'true') {
     await checkYMLs();
   }
-  await createSettingsFile();
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
   await startSpaceFleet();
@@ -95,7 +96,7 @@ async function reset(factoryReset) {
       await dockerLogic.pruneImages();
       await dockerComposeLogic.dockerComposePullAll();
     }
-    await createSettingsFile();
+    await settingsFileIntegrityCheck();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
     await startSpaceFleet();

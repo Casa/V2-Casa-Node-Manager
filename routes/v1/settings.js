@@ -36,9 +36,6 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       maxChannels: maxChannels, // eslint-disable-line object-shorthand
       maxChanSize: maxChanSize, // eslint-disable-line object-shorthand
       openChanFeeRate: openChanFeeRate, // eslint-disable-line object-shorthand
-    },
-    node: {
-      remoteLogging: false
     }
   };
 
