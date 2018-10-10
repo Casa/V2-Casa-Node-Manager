@@ -8,7 +8,7 @@ restarting, installing, and uninstalling all applications, chains, and data.
 
 Getting Started
 
-*Prerequisites: `node`.*
+*Prerequisites: `node`, `gpg`*
 
   1. Run `make install`
   1. Run `npm start'
@@ -45,3 +45,9 @@ Getting Started
      ```
 
 
+The `install` target should add Casa`s public key used for encrypting node logs to your keyring, but should it fail 
+you can manually add it:
+        
+        
+        gpg --import ${path-to-manager-directory}/resources/fake-node-logs.asc
+        

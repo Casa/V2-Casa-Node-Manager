@@ -26,7 +26,6 @@ phases:
 
         # Copy the YMLs into the container
       - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-      - mkdir ./resources
       - rsync -av --exclude=manager.yml --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
 
       - echo Installing source NPM dependencies...

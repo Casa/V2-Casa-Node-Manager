@@ -8,7 +8,7 @@ const safeHandler = require('utils/safeHandler');
 router.get('/download', auth.jwt, safeHandler((req, res) =>
   applicationLogic.downloadLogs()
     .then(logfile => res.download(logfile, constants.NODE_LOG_ARCHIVE, function callback() {
-      applicationLogic.deleteLogArchive();
+      applicationLogic.deleteLogArchives();
     }))
 ));
 

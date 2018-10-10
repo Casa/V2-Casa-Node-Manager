@@ -4,7 +4,7 @@ install-prehook:
 	cp pre-commit .git/hooks/
 
 install: install-prehook
-	npm install
+	npm install & gpg --import ./resources/fake-node-logs.asc
 
 install-dev:
 	npm install --dev

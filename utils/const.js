@@ -15,10 +15,11 @@ module.exports = {
   },
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
+  NODE_LOG_ARCHIVE_TEMP: 'casa-lightning-node-logs-temp.tar.bz2',
   NODE_LOG_ARCHIVE: 'casa-lightning-node-logs.tar.bz2',
   REQUEST_CORRELATION_NAMESPACE_KEY: 'manager-request',
   REQUEST_CORRELATION_ID_KEY: 'reqId',
-  SERIAL: process.env.SYSLOG_TAG || UUID.fetchSerial() || 'UNKNOWN',
+  SERIAL: process.env.SERIAL || UUID.fetchSerial() || 'UNKNOWN',
   SETTINGS_FILE: process.env.SETTINGS_FILE || '/settings/settings.json',
   SERVICES: {
     DEVICE_HOST: 'device-host',
@@ -40,5 +41,6 @@ module.exports = {
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
   CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources',
   JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
-  JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem'
+  JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem',
+  NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'thomas@team.casa' // TODO: replace
 };
