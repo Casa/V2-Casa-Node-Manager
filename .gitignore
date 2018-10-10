@@ -11,3 +11,4 @@ lb_settings.json
 .env
 jwt.key*
 jwt.pem*
+resources/*.yml
