@@ -83,6 +83,8 @@ async function dockerComposeUp(options) {
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = Buffer.from(jwtPubKey, 'hex');
+    options.env.RPC_USER = constants.RPC_USER;
+    options.env.RPC_PASSWORD = constants.RPC_PASSWORD;
   }
 
   const composeOptions = ['-f', file, 'up', '-d'];
@@ -202,6 +204,11 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
+  }
+
+  if (service === constants.SERVICES.LNAPI || service === constants.SERVICES.BITCOIND || service === constants.SERVICES.LND) {
+    options.env.RPC_USER = constants.RPC_USER;
+    options.env.RPC_PASSWORD = constants.RPC_PASSWORD;
   }
 
   var composeOptions = ['-f', file, 'up'];
