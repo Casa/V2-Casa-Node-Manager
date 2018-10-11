@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const diskLogic = require('logic/disk.js');
 const NodeError = require('models/errors.js').NodeError;
 const rsa = require('node-rsa');
+const UUID = require('utils/UUID');
 
 var JwtStrategy = passportJWT.Strategy;
 var BasicStrategy = passportHTTP.BasicStrategy;
@@ -12,8 +13,7 @@ var ExtractJwt = passportJWT.ExtractJwt;
 
 const saltRounds = 10;
 
-// TODO: use system based variable - mac awk system_profiler, linux awk /proc/info
-const SYSTEM_USER = process.env.SYSTEM_USER || 'admin';
+const SYSTEM_USER = UUID.fetchBootUUID() || 'admin';
 const JWT_AUTH = 'jwt';
 const REGISTRATION_AUTH = 'register';
 const BASIC_AUTH = 'basic';
@@ -40,10 +40,6 @@ async function createJwtOptions() {
 }
 
 passport.serializeUser(function(user, done) {
-  if (user.id) {
-    return done(null, user.id);
-  }
-
   return done(null, SYSTEM_USER);
 });
 
@@ -55,7 +51,7 @@ createJwtOptions().then(function(data) {
   const jwtOptions = data;
 
   passport.use(JWT_AUTH, new JwtStrategy(jwtOptions, function(jwtPayload, done) {
-    return done(null, {id: jwtPayload.id});
+    return done(null, {username: SYSTEM_USER});
   }));
 });
 
