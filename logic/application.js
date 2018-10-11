@@ -34,7 +34,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     if (!validation.valid) {
       return new LNNodeError(validation.errors);
     }
-    await diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
+    await diskLogic.writeSettingsFile(defaultConfig);
   }
 }
 
