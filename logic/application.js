@@ -6,6 +6,8 @@ const bashService = require('services/bash.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
+const UUID = require('utils/UUID.js');
+
 let autoImagePullInterval = {};
 const systemStatus = {};
 const logArchiveLocalPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
@@ -32,8 +34,13 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     if (!validation.valid) {
       return new LNNodeError(validation.errors);
     }
-    diskLogic.writeSettingsFile(defaultConfig);
+    await diskLogic.writeSettingsFile(JSON.stringify(defaultConfig));
   }
+}
+
+async function generateRPCCredentials() {
+  constants.RPC_USER = UUID.create();
+  constants.RPC_PASSWORD = UUID.create();
 }
 
 // Return the serial id of the device.
@@ -62,10 +69,11 @@ async function startAutoImagePull() {
 async function startup() {
   await settingsFileIntegrityCheck();
 
-  // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+  // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
   if (process.env.DISABLE_YML_UPDATE !== 'true') {
     await checkYMLs();
   }
+  await generateRPCCredentials();
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
   await startSpaceFleet();
