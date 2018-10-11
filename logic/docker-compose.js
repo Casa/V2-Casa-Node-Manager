@@ -16,8 +16,7 @@ const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
 
 const injectSettings = async() => {
 
-  const data = await diskLogic.readSettingsFile(constants.SETTINGS_FILE);
-  const settings = JSON.parse(data);
+  const settings = await diskLogic.readSettingsFile(constants.SETTINGS_FILE);
 
   var lndSettings = decamelizeKeys(settings['lnd'], '_');
   var bitcoindSettings = decamelizeKeys(settings['bitcoind'], '_');
