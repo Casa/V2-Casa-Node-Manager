@@ -16,6 +16,9 @@ RUN npm install
 # Bundle app source
 COPY . .
 
+# TODO: replace with proper public key
+RUN gpg --import ./resources/fake-node-logs.asc
+
 LABEL casa=persist
 
 EXPOSE 3000

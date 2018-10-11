@@ -8,7 +8,8 @@ const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
 let autoImagePullInterval = {};
 const systemStatus = {};
-const logArchiveSavedPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
+const logArchiveLocalPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
+const logArchiveLocalPathTemp = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE_TEMP;
 
 // Checks whether the settings.json file exists, and attempts to create it with default value should it not.
 async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
@@ -154,7 +155,7 @@ async function wipeSettingsVolume() {
 
 // Launch docker container which will tar logs.
 async function downloadLogs() {
-  const logArchiveBackupPath = '/backup/' + constants.NODE_LOG_ARCHIVE;
+  const logArchiveBackupPath = '/backup/' + constants.NODE_LOG_ARCHIVE_TEMP;
 
   const backUpCommandOptions = [
     'run',
@@ -167,16 +168,26 @@ async function downloadLogs() {
 
   await bashService.exec('docker', backUpCommandOptions, {});
 
-  return logArchiveSavedPath;
+  const gpgCommandOptions = [
+    '--batch', '--yes', // allow overwriting.
+    '--output', logArchiveLocalPath,
+    '-r', constants.NODE_LOG_ARCHIVE_GPG_RECIPIENT,
+    '--trust-model', 'always', // TODO: Can we register our GPG public key with some CA?
+    '--encrypt', logArchiveLocalPathTemp
+  ];
+
+  await bashService.exec('gpg', gpgCommandOptions, {});
+
+  return logArchiveLocalPath;
 }
 
 // Remove log archive.
-function deleteLogArchive() {
+function deleteLogArchives() {
   const options = {
     cwd: constants.WORKING_DIRECTORY
   };
 
-  bashService.exec('rm', ['-f', logArchiveSavedPath], options);
+  bashService.exec('rm', ['-f', logArchiveLocalPath, logArchiveLocalPathTemp], options);
 }
 
 // Compare known compose files, except manager.yml, with on-device YMLs.
@@ -238,7 +249,7 @@ async function updateYMLs(outdatedYMLs) {
 
 module.exports = {
   downloadLogs,
-  deleteLogArchive,
+  deleteLogArchives,
   getSerial,
   startup,
   reset,
