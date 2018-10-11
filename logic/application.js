@@ -72,8 +72,6 @@ async function startup() {
   // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
   if (process.env.DISABLE_YML_UPDATE !== 'true') {
     await checkYMLs();
-  } else {
-    console.log("not updating");
   }
   await generateRPCCredentials();
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services

@@ -206,7 +206,7 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   }
 
-  if (service === constants.SERVICES.LNAPI || service === constants.SERVICES.BITCOIND || service === constants.SERVICES.LND) {
+  if (service === constants.SERVICES.LNAPI || service === constants.SERVICES.BITCOIND || service === constants.SERVICES.LND) { // eslint-disable-line max-len
     options.env.RPC_USER = constants.RPC_USER;
     options.env.RPC_PASSWORD = constants.RPC_PASSWORD;
   }
