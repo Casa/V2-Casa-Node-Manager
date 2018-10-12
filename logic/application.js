@@ -58,7 +58,7 @@ async function saveSettings(config) {
   const versions = await dockerLogic.getVersions();
 
   // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
-  // don't want the user to accidentally be updating their system when they are trying to save settings. Therefor, if
+  // don't want the user to accidentally be updating their system when they are trying to save settings. Therefore, if
   // a new image exists, we will block the user from saving until they actively choose to update their system.
   if (versions.bitcoind.updatable) {
     throw new LNNodeError('Bitcoin needs to be updated before settings can be saved');
