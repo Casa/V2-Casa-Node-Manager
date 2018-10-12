@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const LNNodeError = require('models/errors.js').NodeError;
 
+const applicationLogic = require('logic/application.js');
 const auth = require('middlewares/auth.js');
 const diskLogic = require('logic/disk.js');
 const schemaValidator = require('utils/settingsSchema.js');
@@ -44,7 +45,7 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
     return next(new LNNodeError(validation.errors));
   }
 
-  return diskLogic.writeSettingsFile(config)
+  return applicationLogic.saveSettings(config)
     .then(() => res.json())
     .catch(() => next(new LNNodeError('Unable to save settings')));
 }));

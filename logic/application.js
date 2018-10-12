@@ -53,6 +53,35 @@ async function getSystemStatus() {
   return systemStatus;
 }
 
+// Save system settings
+async function saveSettings(config) {
+  const versions = await dockerLogic.getVersions();
+
+  // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
+  // don't want the user to accidentally be updating their system when they are trying to save settings. Therefor, if
+  // a new image exists, we will block the user from saving until they actively choose to update their system.
+  if (versions.bitcoind.updatable) {
+    throw new LNNodeError('Bitcoin needs to be updated before settings can be saved');
+  }
+  if (versions.lnd.updatable) {
+    throw new LNNodeError('Lightning needs to be updated before settings can be saved');
+  }
+
+  const currentConfig = await diskLogic.readSettingsFile();
+
+  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(config.bitcoind);
+  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(config.lnd);
+
+  await diskLogic.writeSettingsFile(config);
+
+  if (restartBitcoind) {
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
+  }
+  if (restartLnd) {
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
+  }
+}
+
 // The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
 // a total of 240 processor minutes.
 //
@@ -259,6 +288,7 @@ module.exports = {
   downloadLogs,
   deleteLogArchives,
   getSerial,
+  saveSettings,
   startup,
   reset,
   update,

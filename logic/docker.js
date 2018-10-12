@@ -7,8 +7,6 @@ const dockerService = require('services/docker.js');
 
 const q = require('q'); // eslint-disable-line id-length
 
-const FIND_SERVICE_REGEX = '\\/(?<service>.*):';
-
 function getAllContainers() {
   return dockerService.getContainers(true);
 }
@@ -84,6 +82,19 @@ function getStatuses() {
   return deferred.promise;
 }
 
+function getServiceFromImage(image) {
+  try {
+    const slashIndex = image.indexOf('/');
+    const semiIndex = image.indexOf(':');
+    const service = image.substr(slashIndex + 1, semiIndex - slashIndex - 1);
+
+    return service;
+  } catch (error) {
+
+    return undefined;
+  }
+}
+
 // Get the version and updatable status of each running container.
 async function getVersions() {
   const versions = {};
@@ -98,10 +109,8 @@ async function getVersions() {
     if (image.RepoTags) {
 
       for (const tag of image.RepoTags) {
-        const regex = tag.match(FIND_SERVICE_REGEX);
-        if (regex && regex.groups && regex.groups.service) {
-          imageDict[regex.groups.service] = image;
-        }
+        const service = getServiceFromImage(tag);
+        imageDict[service] = image;
       }
     }
   }
@@ -117,8 +126,7 @@ async function getVersions() {
     // image onto the device, there then exists two images for a given service. One corresponding to the container and
     // one corresponding to the newly downloaded image. Because of this, container['Image'] is turned into a
     // sha256 hash by docker. In those instances, we need to use the service for lookup.
-    const regex = containerImage.match(FIND_SERVICE_REGEX);
-    const lookupService = regex && regex.groups && regex.groups.service || service;
+    const lookupService = getServiceFromImage(containerImage) || service;
 
     const imageVersion = imageDict[lookupService]['Id'];
     const updatable = containerVersion !== imageVersion;
