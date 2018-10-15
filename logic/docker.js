@@ -83,14 +83,14 @@ function getStatuses() {
 }
 
 function getServiceFromImage(image) {
-  try {
-    const slashIndex = image.indexOf('/');
-    const semiIndex = image.indexOf(':');
-    const service = image.substr(slashIndex + 1, semiIndex - slashIndex - 1);
+  const slashIndex = image.indexOf('/');
+  const semiIndex = image.indexOf(':');
+  const service = image.substr(slashIndex + 1, semiIndex - slashIndex - 1);
 
+  // if we are only able to find a sha, return undefined
+  if (service === 'sha256') {
     return service;
-  } catch (error) {
-
+  } else {
     return undefined;
   }
 }
