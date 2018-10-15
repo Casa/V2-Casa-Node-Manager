@@ -36,13 +36,16 @@ const lndSchema = {
     autopilot: {type: 'boolean'},
     maxChannels: {
       type: 'integer',
-      minimum: 0
+      minimum: 0,
     },
     maxChanSize: {
       type: 'integer',
-      maximum: 16777216
+      maximum: 16777216,
     },
-    openChanFeeRate: {type: 'number'},
+    openChanFeeRate: {
+      type: 'integer',
+      minimum: 1,
+    },
   },
   oneOf: [
     {
