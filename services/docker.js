@@ -65,7 +65,7 @@ function stopContainer(containerId) {
 
   var container = docker.getContainer(containerId);
 
-  container.stop({t: 30}, function(error, result) {
+  container.stop({t: 30}, function(error, result) { // eslint-disable-line id-length
     if (error) {
       deferred.reject(error);
     } else {
