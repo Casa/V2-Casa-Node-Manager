@@ -44,7 +44,7 @@ async function register(user) {
 
 async function refresh(user) {
   try {
-    const jwt = await JWTHelper.generateJWT(user.id);
+    const jwt = await JWTHelper.generateJWT(user.username);
 
     return {jwt: jwt}; // eslint-disable-line object-shorthand
   } catch (error) {
