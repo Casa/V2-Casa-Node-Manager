@@ -88,7 +88,7 @@ function getServiceFromImage(image) {
   const service = image.substr(slashIndex + 1, semiIndex - slashIndex - 1);
 
   // if we are only able to find a sha, return undefined
-  if (service === 'sha256') {
+  if (service !== 'sha256') {
     return service;
   } else {
     return undefined;
