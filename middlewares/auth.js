@@ -124,22 +124,9 @@ function register(req, res, next) {
   })(req, res, next);
 }
 
-function dev(req, res, next) {
-  req.user = {username: 'dev', password: 'dev', id: 'dev'};
+module.exports = {
+  basic,
+  jwt,
+  register,
+};
 
-  return next(null, {user: 'dev', password: 'dev', id: 'dev'});
-}
-
-if (process.env.ENVIRONMENT === 'DEV') {
-  module.exports = {
-    basic: dev,
-    jwt: dev,
-    register: dev
-  };
-} else {
-  module.exports = {
-    basic,
-    jwt,
-    register,
-  };
-}
