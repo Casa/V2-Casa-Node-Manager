@@ -20,7 +20,6 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
   const autopilot = req.body.autopilot;
   const maxChannels = req.body.maxChannels;
   const maxChanSize = req.body.maxChanSize;
-  const openChanFeeRate = req.body.openChanFeeRate;
 
   // TODO: types for sats/etc, conversion here?
   var config = {
@@ -36,7 +35,6 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       autopilot: autopilot, // eslint-disable-line object-shorthand
       maxChannels: maxChannels, // eslint-disable-line object-shorthand
       maxChanSize: maxChanSize, // eslint-disable-line object-shorthand
-      openChanFeeRate: openChanFeeRate, // eslint-disable-line object-shorthand
     }
   };
 

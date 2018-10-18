@@ -41,16 +41,12 @@ const lndSchema = {
     maxChanSize: {
       type: 'integer',
       maximum: 16777216,
-    },
-    openChanFeeRate: {
-      type: 'integer',
-      minimum: 1,
-    },
+    }
   },
   oneOf: [
     {
       properties: {autopilot: {enum: [true]}},
-      required: ['maxChannels', 'maxChanSize', 'openChanFeeRate'],
+      required: ['maxChannels', 'maxChanSize'],
     },
     {
       properties: {autopilot: {enum: [false]}},
