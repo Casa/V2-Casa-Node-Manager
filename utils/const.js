@@ -42,7 +42,7 @@ module.exports = {
   CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources',
   JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
   JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem',
-  NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'thomas@team.casa', // TODO: replace
+  NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'node-logs@team.casa',
   RPC_USER: null,
   RPC_PASSWORD: null,
 };

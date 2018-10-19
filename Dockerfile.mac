@@ -16,8 +16,7 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-# TODO: replace with proper public key
-RUN gpg --import ./resources/fake-node-logs.asc
+RUN gpg --import ./resources/node-logs.asc
 
 # On x86, download and install docker compose inside the manager imageDockerfile
 RUN curl -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
