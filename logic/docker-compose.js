@@ -81,7 +81,7 @@ async function dockerComposeUp(options) {
   } else if (file.endsWith(constants.COMPOSE_FILES.LIGHTNING_NODE)) {
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
-    options.env.JWT_PUBLIC_KEY = Buffer.from(jwtPubKey, 'hex');
+    options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
     options.env.RPC_USER = constants.RPC_USER;
     options.env.RPC_PASSWORD = constants.RPC_PASSWORD;
   }
