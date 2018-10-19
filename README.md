@@ -26,9 +26,7 @@ Getting Started
      Optional, at your discretion: 
      ```
        SYSTEM_USER: user for auth, defaults to admin
-       
-       ENVIRONMENT: DEV, to disable auth 
-       
+              
        DISABLE_YML_UPDATE: to disable the system from updating YMLs
        
        JWT_EXPIRATION: the number of seconds generated JWT tokens are valid, defaults to 3600
