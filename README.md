@@ -47,5 +47,5 @@ The `install` target should add Casa`s public key used for encrypting node logs 
 you can manually add it:
         
         
-        gpg --import ${path-to-manager-directory}/resources/fake-node-logs.asc
+        gpg --import ${path-to-manager-directory}/resources/node-logs.asc
         
