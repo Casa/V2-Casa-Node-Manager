@@ -17,13 +17,13 @@ const logArchiveLocalPathTemp = constants.WORKING_DIRECTORY + '/' + constants.NO
 async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
   const defaultConfig = {
     bitcoind: {
-      bitcoinNetwork: 'testnet',
+      bitcoinNetwork: 'mainnet',
       bitcoindListen: true,
     },
     lnd: {
       chain: 'bitcoin',
       backend: 'bitcoind',
-      lndNetwork: 'testnet',
+      lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
     }
   };
