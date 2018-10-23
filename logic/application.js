@@ -7,6 +7,7 @@ const LNNodeError = require('models/errors.js').NodeError;
 const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
 const UUID = require('utils/UUID.js');
+const auth = require('logic/auth');
 
 let autoImagePullInterval = {};
 const systemStatus = {};
@@ -96,6 +97,13 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
+  // initial setup after a reset or manufacture, force an update.
+  const firstBoot = await auth.isRegistered();
+  if (!firstBoot.registered) {
+    await dockerComposeLogic.dockerComposePullAll();
+    await checkYMLs();
+  }
+
   await settingsFileIntegrityCheck();
 
   // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
