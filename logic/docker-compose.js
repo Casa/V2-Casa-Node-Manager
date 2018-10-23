@@ -57,6 +57,8 @@ function composeFile(options) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LOGSPOUT;
   } else if (options.service === constants.SERVICES.MANAGER) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.MANAGER;
+  } else if (options.service === constants.SERVICES.WELCOME) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.WELCOME;
   } else {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LIGHTNING_NODE;
   }
@@ -124,7 +126,8 @@ function dockerComposePull(options = {}) {
 async function dockerComposePullAll() {
   const casabuilderImagesToPull = [constants.SERVICES.MANAGER];
   const casaworkerImagesToPull = [constants.SERVICES.DEVICE_HOST, constants.SERVICES.LND, constants.SERVICES.BITCOIND,
-    constants.SERVICES.LNAPI, constants.SERVICES.SPACE_FLEET, constants.SERVICES.SYSLOG, constants.SERVICES.LOGSPOUT];
+    constants.SERVICES.LNAPI, constants.SERVICES.SPACE_FLEET, constants.SERVICES.SYSLOG, constants.SERVICES.LOGSPOUT,
+    constants.SERVICES.WELCOME];
 
   // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
   // the raspberry pi.

@@ -12,6 +12,7 @@ module.exports = {
     LIGHTNING_NODE: 'lightning-node.yml',
     LOGSPOUT: 'logspout.yml',
     MANAGER: 'manager.yml',
+    WELCOME: 'welcome.yml'
   },
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
@@ -32,6 +33,7 @@ module.exports = {
     SPACE_FLEET: 'space-fleet',
     SYSLOG: 'syslog',
     UPDATE_MANAGER: 'update-manager',
+    WELCOME: 'welcome'
   },
   TAG: process.env.TAG || 'arm',
   TIME: {
