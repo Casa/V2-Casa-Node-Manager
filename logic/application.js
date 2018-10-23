@@ -100,8 +100,9 @@ async function startup() {
   // initial setup after a reset or manufacture, force an update.
   const firstBoot = await auth.isRegistered();
   if (!firstBoot.registered) {
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
     await dockerComposeLogic.dockerComposePullAll();
-    await checkYMLs();
+    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
   }
 
   await settingsFileIntegrityCheck();
@@ -111,9 +112,9 @@ async function startup() {
     await checkYMLs();
   }
   await generateRPCCredentials();
+  await startSpaceFleet();
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
   await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-  await startSpaceFleet();
   await startAutoImagePull(); // handles docker logout
 }
 
@@ -143,9 +144,9 @@ async function reset(factoryReset) {
       await dockerComposeLogic.dockerComposePullAll();
     }
     await settingsFileIntegrityCheck();
+    await startSpaceFleet();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startSpaceFleet();
     await startAutoImagePull();
     systemStatus.error = false;
   } catch (error) {
@@ -240,6 +241,7 @@ function deleteLogArchives() {
 async function checkYMLs() {
   const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
   delete knownYMLs.MANAGER;
+  delete knownYMLs.WELCOME;
 
   const updatableYMLs = Object.values(knownYMLs);
 
@@ -280,13 +282,9 @@ async function updateYMLs(outdatedYMLs) {
     clearInterval(autoImagePullInterval);
     await dockerComposeLogic.dockerComposePullAll();
     await startAutoImagePull();
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startSpaceFleet();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
-    await startSpaceFleet();
   } finally {
     systemStatus.updating = false;
   }

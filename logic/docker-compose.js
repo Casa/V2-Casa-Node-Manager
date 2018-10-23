@@ -57,6 +57,8 @@ function composeFile(options) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LOGSPOUT;
   } else if (options.service === constants.SERVICES.MANAGER) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.MANAGER;
+  } else if (options.service === constants.SERVICES.WELCOME) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.WELCOME;
   } else {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LIGHTNING_NODE;
   }
