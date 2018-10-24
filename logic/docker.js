@@ -4,6 +4,7 @@ All docker business logic goes here.
 
 const DockerError = require('models/errors.js').DockerError;
 const dockerService = require('services/docker.js');
+const constants = require('utils/const.js');
 
 const q = require('q'); // eslint-disable-line id-length
 
@@ -104,13 +105,13 @@ async function getVersions() {
   const images = await dockerService.getImages();
 
   for (const image of images) {
-
     // RepoTags is a nullable array. We have to null check and then loop over each tag.
     if (image.RepoTags) {
-
       for (const tag of image.RepoTags) {
-        const service = getServiceFromImage(tag);
-        imageDict[service] = image;
+        if (tag.split(':')[1] === constants.TAG) {
+          const service = getServiceFromImage(tag);
+          imageDict[service] = image;
+        }
       }
     }
   }
