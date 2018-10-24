@@ -102,7 +102,7 @@ async function startup() {
   if (!firstBoot.registered) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
     await dockerComposeLogic.dockerComposePullAll();
-    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
   }
 
   await settingsFileIntegrityCheck();
