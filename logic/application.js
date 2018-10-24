@@ -100,6 +100,8 @@ async function startup() {
   // initial setup after a reset or manufacture, force an update.
   const firstBoot = await auth.isRegistered();
   if (!firstBoot.registered) {
+    await dockerComposeLogic.dockerLoginCasaworker();
+    await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
     await dockerComposeLogic.dockerComposePullAll();
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
