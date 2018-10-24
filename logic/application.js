@@ -97,17 +97,23 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
+  await settingsFileIntegrityCheck();
+
   // initial setup after a reset or manufacture, force an update.
   const firstBoot = await auth.isRegistered();
   if (!firstBoot.registered) {
     await dockerComposeLogic.dockerLoginCasaworker();
     await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
+
+    // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+    if (process.env.DISABLE_YML_UPDATE !== 'true') {
+      await checkYMLs();
+    }
+
     await dockerComposeLogic.dockerComposePullAll();
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
   }
-
-  await settingsFileIntegrityCheck();
 
   // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
   if (process.env.DISABLE_YML_UPDATE !== 'true') {
