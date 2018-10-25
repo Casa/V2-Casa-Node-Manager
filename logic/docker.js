@@ -51,6 +51,10 @@ function getStatuses() {
   function parseContainerInformation(containers) {
     var statuses = [];
     containers.forEach(function(container) {
+      // TODO: Filter out problematic welcome service, need to fix properly by shutting it down.
+      if (container['Labels']['com.docker.compose.service'] === constants.SERVICES.WELCOME) {
+        return;
+      }
       statuses.push({
         id: container['Id'],
         service: container['Labels']['com.docker.compose.service'],
