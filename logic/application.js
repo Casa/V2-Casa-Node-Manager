@@ -104,7 +104,17 @@ async function startup() {
   if (!firstBoot.registered) {
     await dockerComposeLogic.dockerLoginCasaworker();
     await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
+
+    try {
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
+    } catch (error) {
+      // TODO: figure out a better way to handle this
+      // Ignore errors when welcome doesn't start because space-fleet is already running
+      // This can happen under the following circumstance
+      // 1. The user starts the device the first time
+      // 2. they don't register
+      // 3. The user restarts the device
+    }
 
     // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
     if (process.env.DISABLE_YML_UPDATE !== 'true') {
@@ -112,7 +122,13 @@ async function startup() {
     }
 
     await dockerComposeLogic.dockerComposePullAll();
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
+
+    try {
+      await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
+    } catch (error) {
+      // TODO: same as above
+      // Ignore error
+    }
   }
 
   // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
