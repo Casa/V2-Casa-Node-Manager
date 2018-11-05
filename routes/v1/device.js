@@ -6,16 +6,23 @@ const validator = require('utils/validator.js');
 const auth = require('middlewares/auth.js');
 const safeHandler = require('utils/safeHandler');
 
+router.post('/chain-reset', auth.jwt, safeHandler((req, res) => {
+  applicationLogic.reset();
+
+  return res.json({status: 'chain-reset'});
+}));
+
 router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
   applicationLogic.reset(true);
 
   return res.json({status: 'factory-reset'});
 }));
 
-router.post('/chain-reset', auth.jwt, safeHandler((req, res) => {
-  applicationLogic.reset();
-
-  return res.json({status: 'chain-reset'});
+router.post('/shutdown', auth.jwt, safeHandler((req, res) => { // eslint-disable-line arrow-body-style
+  return applicationLogic.shutdown()
+    .then(() => {
+      res.json({status: 'shutdown'});
+    });
 }));
 
 router.post('/update', auth.jwt, safeHandler((req, res, next) => {

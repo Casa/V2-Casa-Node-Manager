@@ -193,6 +193,13 @@ async function runDeviceHost() {
   await dockerComposeLogic.dockerComposeRemove(options);
 }
 
+// Puts the device in a state where it is safe to unplug the power. Currently, we shutdown lnd and bitcoind
+// appropriately. In the future we will shutdown the entire device.
+async function shutdown() {
+  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
+  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
+}
+
 // Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a
 // container or update a container to the newest image.
 async function update(services) {
@@ -318,9 +325,10 @@ module.exports = {
   downloadLogs,
   deleteLogArchives,
   getSerial,
+  getSystemStatus,
   saveSettings,
+  shutdown,
   startup,
   reset,
   update,
-  getSystemStatus,
 };
