@@ -1,8 +1,6 @@
 version: 0.2
 env:
   parameter-store:
-    DOCKER_HUB_USER: "/Test/DockerHub/User"
-    DOCKER_HUB_PASS: "/Test/DockerHub/Pass"
     GITHUB_USER: "/Test/Git/User"
     GITHUB_PASS: "/Test/Git/Pass"
 phases:
