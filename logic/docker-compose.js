@@ -1,5 +1,4 @@
 var q = require('q'); // eslint-disable-line id-length
-const publicIp = require('public-ip');
 const decamelizeKeys = require('decamelize-keys');
 
 const bashService = require('services/bash.js');
@@ -11,8 +10,6 @@ const diskLogic = require('logic/disk.js');
 const WORKING_DIR = constants.WORKING_DIRECTORY;
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 const DOCKER_COMMAND = 'docker';
-
-const EXTERNAL_IP_KEY = 'EXTERNAL_IP';
 
 const injectSettings = async() => {
 
@@ -32,12 +29,6 @@ const injectSettings = async() => {
     if (Object.prototype.hasOwnProperty.call(bitcoindSettings, key)) {
       envData[key.toUpperCase()] = bitcoindSettings[key];
     }
-  }
-
-  // If the settings file already has an external ip that has been manually set by the user, we should not try to
-  // automatically discover the external ip address.
-  if (!Object.prototype.hasOwnProperty.call(envData, EXTERNAL_IP_KEY)) {
-    envData[EXTERNAL_IP_KEY] = await publicIp.v4();
   }
 
   return envData;
