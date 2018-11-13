@@ -18,7 +18,8 @@ router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
   return res.json({status: 'factory-reset'});
 }));
 
-router.post('/shutdown', auth.jwt, safeHandler((req, res) => { // eslint-disable-line arrow-body-style
+// Use auth.basic for consistency with update manager
+router.post('/shutdown', auth.basic, safeHandler((req, res) => { // eslint-disable-line arrow-body-style
   return applicationLogic.shutdown()
     .then(() => {
       res.json({status: 'shutdown'});
