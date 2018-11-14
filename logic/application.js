@@ -198,6 +198,7 @@ async function runDeviceHost() {
 async function shutdown() {
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
+  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
 }
 
 // Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a
