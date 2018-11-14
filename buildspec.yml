@@ -1,6 +1,8 @@
 version: 0.2
 env:
   parameter-store:
+    DOCKER_HUB_USER: "/Test/DockerHub/User"
+    DOCKER_HUB_PASS: "/Test/DockerHub/Pass"
     GITHUB_USER: "/Test/Git/User"
     GITHUB_PASS: "/Test/Git/Pass"
 phases:
@@ -67,7 +69,9 @@ phases:
       # in release and develop, we release want to deploy release.
       - |
         if [ "$masterBranchText" = "master" ]; then
-          echo "todo push to prod after testing"
+          echo "pushing production to docker"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH
         elif [ "$releaseBranchText" = "release" ]; then
           echo "pushing to stage to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
