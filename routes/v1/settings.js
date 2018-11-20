@@ -13,37 +13,26 @@ const schemaValidator = require('utils/settingsSchema.js');
 const safeHandler = require('utils/safeHandler');
 
 router.post('/save', auth.jwt, safeHandler((req, res, next) => {
-  // TODO: maybe defaults once, talk to Nick
-  const network = req.body.network;
-  const bitcoindListen = req.body.bitcoindListen;
-  const alias = req.body.nickName;
-  const autopilot = req.body.autopilot;
-  const maxChannels = req.body.maxChannels;
-  const maxChanSize = req.body.maxChanSize;
-
-  // TODO: types for sats/etc, conversion here?
-  var config = {
+  const settings = {
     bitcoind: {
-      bitcoinNetwork: network,
-      bitcoindListen: bitcoindListen, // eslint-disable-line object-shorthand
+      bitcoinNetwork: req.body.network,
+      bitcoindListen: req.body.bitcoindListen, // eslint-disable-line object-shorthand
     },
     lnd: {
-      chain: 'bitcoin',
-      backend: 'bitcoind',
-      lndNodeAlias: alias,
-      lndNetwork: network,
-      autopilot: autopilot, // eslint-disable-line object-shorthand
-      maxChannels: maxChannels, // eslint-disable-line object-shorthand
-      maxChanSize: maxChanSize, // eslint-disable-line object-shorthand
+      lndNodeAlias: req.body.nickName,
+      lndNetwork: req.body.network,
+      autopilot: req.body.autopilot,
+      maxChannels: req.body.maxChannels,
+      maxChanSize: req.body.maxChanSize
     }
   };
 
-  const validation = schemaValidator.validateSettingsSchema(config);
+  const validation = schemaValidator.validateSparseSettingsSchema(settings);
   if (!validation.valid) {
     return next(new LNNodeError(validation.errors));
   }
 
-  return applicationLogic.saveSettings(config)
+  return applicationLogic.saveSettings(settings)
     .then(() => res.json())
     .catch(() => next(new LNNodeError('Unable to save settings')));
 }));

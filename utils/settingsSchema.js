@@ -63,6 +63,50 @@ const availableNetworks = {
   enum: ['testnet', 'mainnet']
 };
 
+const sparseSettingsSchema = {
+  type: 'object',
+  properties: {
+    bitcoind: {$ref: '/sparseBitcoind'},
+    lnd: {$ref: '/sparseLnd'}
+  },
+  required: [
+    'bitcoind',
+    'lnd',
+  ],
+  additionalProperties: false
+};
+
+const sparseBitcoindSchema = {
+  id: '/sparseBitcoind',
+  type: 'object',
+  properties: {
+    bitcoinNetwork: {$ref: '/networks'},
+    bitcoindListen: {type: 'boolean'},
+  },
+  required: [],
+  additionalProperties: false
+};
+
+const sparseLndSchema = {
+  id: '/sparseLnd',
+  type: 'object',
+  properties: {
+    lndNetwork: {$ref: '/networks'},
+    lndNodeAlias: {type: 'string'},
+    autopilot: {type: 'boolean'},
+    maxChannels: {
+      type: 'integer',
+      minimum: 0,
+    },
+    maxChanSize: {
+      type: 'integer',
+      maximum: 16777216,
+    }
+  },
+  required: [],
+  additionalProperties: false
+};
+
 function validateSettingsSchema(data) {
   var validator = new Validator();
   validator.addSchema(availableNetworks);
@@ -72,6 +116,16 @@ function validateSettingsSchema(data) {
   return validator.validate(data, settingsSchema);
 }
 
+function validateSparseSettingsSchema(data) { // eslint-disable-line id-length
+  var validator = new Validator();
+  validator.addSchema(availableNetworks);
+  validator.addSchema(sparseLndSchema);
+  validator.addSchema(sparseBitcoindSchema);
+
+  return validator.validate(data, sparseSettingsSchema);
+}
+
 module.exports = {
-  validateSettingsSchema
+  validateSettingsSchema,
+  validateSparseSettingsSchema, // eslint-disable-line id-length
 };

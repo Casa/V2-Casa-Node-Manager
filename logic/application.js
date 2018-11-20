@@ -55,7 +55,7 @@ async function getSystemStatus() {
 }
 
 // Save system settings
-async function saveSettings(config) {
+async function saveSettings(settings) {
   const versions = await dockerLogic.getVersions();
 
   // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
@@ -69,11 +69,32 @@ async function saveSettings(config) {
   }
 
   const currentConfig = await diskLogic.readSettingsFile();
+  const newConfig = currentConfig;
 
-  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(config.bitcoind);
-  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(config.lnd);
+  var lndSettings = settings['lnd'];
+  var bitcoindSettings = settings['bitcoind'];
 
-  await diskLogic.writeSettingsFile(config);
+  for (const key in lndSettings) {
+    if (lndSettings[key] !== undefined) {
+      newConfig['lnd'][key] = lndSettings[key];
+    }
+  }
+
+  for (const key in bitcoindSettings) {
+    if (bitcoindSettings[key] !== undefined) {
+      newConfig['bitcoind'][key] = bitcoindSettings[key];
+    }
+  }
+
+  const validation = schemaValidator.validateSettingsSchema(newConfig);
+  if (!validation.valid) {
+    throw new LNNodeError(validation.errors);
+  }
+
+  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
+  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
+
+  await diskLogic.writeSettingsFile(newConfig);
 
   if (restartBitcoind) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
