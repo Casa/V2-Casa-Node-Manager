@@ -70,7 +70,7 @@ async function saveSettings(settings) {
   }
 
   const currentConfig = await diskLogic.readSettingsFile();
-  const newConfig = currentConfig;
+  const newConfig = JSON.parse(JSON.stringify(currentConfig));
 
   var lndSettings = settings['lnd'];
   var bitcoindSettings = settings['bitcoind'];
