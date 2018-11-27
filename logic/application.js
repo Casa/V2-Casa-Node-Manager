@@ -6,6 +6,7 @@ const bashService = require('services/bash.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
+const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
 const auth = require('logic/auth');
 
@@ -55,7 +56,7 @@ async function getSystemStatus() {
 }
 
 // Save system settings
-async function saveSettings(config) {
+async function saveSettings(settings) {
   const versions = await dockerLogic.getVersions();
 
   // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
@@ -69,11 +70,32 @@ async function saveSettings(config) {
   }
 
   const currentConfig = await diskLogic.readSettingsFile();
+  const newConfig = JSON.parse(JSON.stringify(currentConfig));
 
-  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(config.bitcoind);
-  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(config.lnd);
+  var lndSettings = settings['lnd'];
+  var bitcoindSettings = settings['bitcoind'];
 
-  await diskLogic.writeSettingsFile(config);
+  for (const key in lndSettings) {
+    if (lndSettings[key] !== undefined) {
+      newConfig['lnd'][key] = lndSettings[key];
+    }
+  }
+
+  for (const key in bitcoindSettings) {
+    if (bitcoindSettings[key] !== undefined) {
+      newConfig['bitcoind'][key] = bitcoindSettings[key];
+    }
+  }
+
+  const validation = schemaValidator.validateSettingsSchema(newConfig);
+  if (!validation.valid) {
+    throw new LNNodeError(validation.errors);
+  }
+
+  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
+  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
+
+  await diskLogic.writeSettingsFile(newConfig);
 
   if (restartBitcoind) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
@@ -97,49 +119,66 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
-  await settingsFileIntegrityCheck();
 
-  // initial setup after a reset or manufacture, force an update.
-  const firstBoot = await auth.isRegistered();
-  if (!firstBoot.registered) {
-    await dockerComposeLogic.dockerLoginCasaworker();
-    await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
 
+  let errorThrown = false;
+
+  // keep retrying the startup process if there are any errors
+  do {
     try {
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
+      await settingsFileIntegrityCheck();
+
+      // initial setup after a reset or manufacture, force an update.
+      const firstBoot = await auth.isRegistered();
+      if (!firstBoot.registered) {
+        await dockerComposeLogic.dockerLoginCasaworker();
+        await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
+
+        try {
+          await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
+        } catch (error) {
+          // TODO: figure out a better way to handle this
+          // Ignore errors when welcome doesn't start because space-fleet is already running
+          // This can happen under the following circumstance
+          // 1. The user starts the device the first time
+          // 2. they don't register
+          // 3. The user restarts the device
+        }
+
+        // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+        if (process.env.DISABLE_YML_UPDATE !== 'true') {
+          await checkYMLs();
+        }
+
+        await dockerComposeLogic.dockerComposePullAll();
+
+        try {
+          await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
+        } catch (error) {
+          // TODO: same as above
+          // Ignore error
+        }
+      }
+
+      // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+      if (process.env.DISABLE_YML_UPDATE !== 'true') {
+        await checkYMLs();
+      }
+      await generateRPCCredentials();
+      await startSpaceFleet();
+      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
+      await startAutoImagePull(); // handles docker logout
+
+      errorThrown = false;
     } catch (error) {
-      // TODO: figure out a better way to handle this
-      // Ignore errors when welcome doesn't start because space-fleet is already running
-      // This can happen under the following circumstance
-      // 1. The user starts the device the first time
-      // 2. they don't register
-      // 3. The user restarts the device
+
+      errorThrown = true;
+      logger.error(error.message, error.stack);
     }
 
-    // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
-    if (process.env.DISABLE_YML_UPDATE !== 'true') {
-      await checkYMLs();
-    }
+  } while (errorThrown);
 
-    await dockerComposeLogic.dockerComposePullAll();
-
-    try {
-      await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
-    } catch (error) {
-      // TODO: same as above
-      // Ignore error
-    }
-  }
-
-  // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
-  if (process.env.DISABLE_YML_UPDATE !== 'true') {
-    await checkYMLs();
-  }
-  await generateRPCCredentials();
-  await startSpaceFleet();
-  await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-  await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-  await startAutoImagePull(); // handles docker logout
 }
 
 // Set the host device-host and restart space-fleet
@@ -198,6 +237,7 @@ async function runDeviceHost() {
 async function shutdown() {
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
+  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
 }
 
 // Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a

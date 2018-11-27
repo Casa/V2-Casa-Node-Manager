@@ -41,23 +41,47 @@ phases:
       # building
       # Remove qemu-static if non-arm, or register
       - |
-        if [ $TAG != arm ]; then
+        if [ $ARCH != arm ]; then
           rm qemu-arm-static
         else
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
         fi
-      - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$TAG
-      - docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG
+      - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$ARCH
+      - docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
+
+      # Hacky way to determine what branch we are in. $CODEBUILD_SOURCE_VERSION is the git commit we are currently
+      # building. We search all local branches to get a list of branches that include that git commit. We return all
+      # alpha characters from the branch we are looking for.
+      #
+      # Ex.
+      # master => master
+      # release/1.0.0 => release
+
+      - masterBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep master | sed 's/[^a-zA-Z]//g')
+      - releaseBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep release | sed 's/[^a-zA-Z]//g')
+      - developBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep develop | sed 's/[^a-zA-Z]//g')
 
       # push image to docker
-      - echo $CODEBUILD_SOURCE_VERSION
       - docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASS
+
+      # Since a git commit can be in multiple branches, we will start with master and work our way down. If a git commit
+      # exists in master, release, and develop, it really means we want to deploy master. Likewise, if a git commit exists
+      # in release and develop, we release want to deploy release.
       - |
-        if [ -n $(git rev-parse master|grep $CODEBUILD_SOURCE_VERSION) ]; then
-          docker push $ORGANIZATION/$REPOSITORY:$TAG
+        if [ "$masterBranchText" = "master" ]; then
+          echo "pushing production to docker"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH
+        elif [ "$releaseBranchText" = "release" ]; then
+          echo "pushing to stage to docker hub"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage
+        elif [ "$developBranchText" = "develop" ]; then
+          echo "pushing develop to docker"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop
         else
-          docker tag $ORGANIZATION/$REPOSITORY:$TAG $ORGANIZATION/$REPOSITORY:$TAG-dev
-          docker push $ORGANIZATION/$REPOSITORY:$TAG-dev
+           echo "docker image has been built, but not pushed to docker hub"
         fi
   post_build:
     commands:
