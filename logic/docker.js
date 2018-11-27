@@ -136,6 +136,11 @@ async function getVersions() {
     const imageVersion = imageDict[lookupService]['Id'];
     const updatable = containerVersion !== imageVersion;
 
+    // TODO: Filter out problematic welcome service, need to fix properly by shutting it down.
+    if (service === constants.SERVICES.WELCOME) {
+      continue;
+    }
+
     versions[service] = {
       containerVersion: containerVersion, // eslint-disable-line object-shorthand
       imageVersion: imageVersion, // eslint-disable-line object-shorthand
