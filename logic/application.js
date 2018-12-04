@@ -168,6 +168,9 @@ async function startup() {
       await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
       await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
 
+      // clean up old images
+      await dockerLogic.pruneImages();
+
       await generateRPCCredentials();
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
@@ -204,7 +207,7 @@ async function reset(factoryReset) {
     await wipeAccountsVolume();
 
     if (factoryReset) {
-      await dockerLogic.pruneImages();
+      await dockerLogic.pruneImages(true);
       await dockerComposeLogic.dockerComposePullAll();
     }
     await settingsFileIntegrityCheck();

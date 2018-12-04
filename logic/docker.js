@@ -28,9 +28,8 @@ function pruneVolumes() {
   return dockerService.pruneVolumes();
 }
 
-function pruneImages() {
-  return dockerService.pruneImages();
-
+function pruneImages(all) {
+  return dockerService.pruneImages(all);
 }
 
 function getStatuses() {
