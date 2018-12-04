@@ -119,8 +119,6 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
-
-
   let errorThrown = false;
 
   // keep retrying the startup process if there are any errors
@@ -154,6 +152,7 @@ async function startup() {
 
         try {
           await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
+          await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
         } catch (error) {
           // TODO: same as above
           // Ignore error
@@ -164,6 +163,11 @@ async function startup() {
       if (process.env.DISABLE_YML_UPDATE !== 'true') {
         await checkYMLs();
       }
+
+      // previous releases will have a paused Welcome service, let us be good stewarts.
+      await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
+      await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
+
       await generateRPCCredentials();
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
@@ -172,13 +176,10 @@ async function startup() {
 
       errorThrown = false;
     } catch (error) {
-
       errorThrown = true;
       logger.error(error.message, error.stack);
     }
-
   } while (errorThrown);
-
 }
 
 // Set the host device-host and restart space-fleet
