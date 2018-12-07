@@ -23,7 +23,8 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       lndNetwork: req.body.network,
       autopilot: req.body.autopilot,
       maxChannels: req.body.maxChannels,
-      maxChanSize: req.body.maxChanSize
+      maxChanSize: req.body.maxChanSize,
+      externalIP: req.body.externalIP,
     }
   };
 
@@ -42,6 +43,11 @@ router.get('/read', auth.jwt, safeHandler((req, res, next) =>
     .then(config => {
       config.lnd.nickName = config.lnd.lndNodeAlias;
       delete config.lnd.lndNodeAlias;
+
+      // externalIP was added after initial release. It may not exist in the data store of all nodes. We will default this to
+      // return an empty array to the front end to guarantee the front end always receives a consistent schema.
+      config.lnd.externalIP = config.lnd.externalIP || '';
+
       res.json(config);
     })
     .catch(() => next(new LNNodeError('Unable to read settings')))

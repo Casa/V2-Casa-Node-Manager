@@ -27,6 +27,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       backend: 'bitcoind',
       lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
+      externalIP: '',
     }
   };
 
@@ -92,15 +93,15 @@ async function saveSettings(settings) {
     throw new LNNodeError(validation.errors);
   }
 
-  const restartBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
-  const restartLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
+  const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
+  const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
 
   await diskLogic.writeSettingsFile(newConfig);
 
-  if (restartBitcoind) {
+  if (recreateBitcoind) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
   }
-  if (restartLnd) {
+  if (recreateLnd) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
   }
 }

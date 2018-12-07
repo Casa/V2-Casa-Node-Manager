@@ -41,7 +41,10 @@ const lndSchema = {
     maxChanSize: {
       type: 'integer',
       maximum: 16777216,
-    }
+    },
+    externalIP: {
+      type: 'string'
+    },
   },
   oneOf: [
     {
@@ -101,7 +104,10 @@ const sparseLndSchema = {
     maxChanSize: {
       type: 'integer',
       maximum: 16777216,
-    }
+    },
+    externalIP: {
+      type: 'string'
+    },
   },
   required: [],
   additionalProperties: false
