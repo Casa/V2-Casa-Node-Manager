@@ -32,7 +32,10 @@ const lndSchema = {
     backend: {type: 'string', enum: ['bitcoind']},
     chain: {type: 'string', enum: ['bitcoin']},
     lndNetwork: {$ref: '/networks'},
-    lndNodeAlias: {type: 'string'},
+    lndNodeAlias: {
+      type: 'string',
+      maxLength: 32,
+    },
     autopilot: {type: 'boolean'},
     maxChannels: {
       type: 'integer',
@@ -95,7 +98,10 @@ const sparseLndSchema = {
   type: 'object',
   properties: {
     lndNetwork: {$ref: '/networks'},
-    lndNodeAlias: {type: 'string'},
+    lndNodeAlias: {
+      type: 'string',
+      maxLength: 32,
+    },
     autopilot: {type: 'boolean'},
     maxChannels: {
       type: 'integer',
