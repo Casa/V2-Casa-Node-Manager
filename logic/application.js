@@ -37,13 +37,28 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     if (!validation.valid) {
       return new LNNodeError(validation.errors);
     }
+
+    await rpcCredIntegrityCheck(defaultConfig);
     await diskLogic.writeSettingsFile(defaultConfig);
+
+  } else {
+    const settings = await diskLogic.readSettingsFile();
+
+    await rpcCredIntegrityCheck(settings);
+    await diskLogic.writeSettingsFile(settings);
   }
 }
 
-async function generateRPCCredentials() {
-  constants.RPC_USER = UUID.create();
-  constants.RPC_PASSWORD = UUID.create();
+// Check whether the settings.json file contains rpcUser and rpcPassword. Historically it has not contained this by
+// default.
+async function rpcCredIntegrityCheck(settings) {
+  if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcUser')) {
+    settings.bitcoind.rpcUser = UUID.create();
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcPassword')) {
+    settings.bitcoind.rpcPassword = UUID.create();
+  }
 }
 
 // Return the serial id of the device.
@@ -120,6 +135,7 @@ async function startAutoImagePull() {
 
 // Run startup functions
 async function startup() {
+
   let errorThrown = false;
 
   // keep retrying the startup process if there are any errors
@@ -172,7 +188,6 @@ async function startup() {
       // clean up old images
       await dockerLogic.pruneImages();
 
-      await generateRPCCredentials();
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services

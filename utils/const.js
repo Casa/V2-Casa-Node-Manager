@@ -45,6 +45,4 @@ module.exports = {
   JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
   JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem',
   NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'node-logs@team.casa',
-  RPC_USER: null,
-  RPC_PASSWORD: null,
 };
