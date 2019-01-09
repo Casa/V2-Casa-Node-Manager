@@ -6,7 +6,7 @@ const auth = require('middlewares/auth.js');
 const safeHandler = require('utils/safeHandler');
 
 router.get('/version', auth.jwt, safeHandler((req, res) =>
-  dockerLogic.getVersions()
+  applicationLogic.getFilteredVersions()
     .then(versions => res.json(versions))
 ));
 

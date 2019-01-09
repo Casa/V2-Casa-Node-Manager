@@ -30,6 +30,7 @@ async function register(user) {
   try {
     await diskLogic.writeUserFile({password: user.password});
   } catch (error) {
+
     throw new NodeError('Unable to register');
   }
 
