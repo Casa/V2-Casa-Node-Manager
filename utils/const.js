@@ -38,7 +38,6 @@ module.exports = {
   TAG: process.env.TAG || 'arm',
   TIME: {
     ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000,
-    FIVE_MINUTES_IN_MILLIS: 5 * 60 * 1000,
     NINETY_MINUTES_IN_MILLIS: 90 * 60 * 1000,
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],

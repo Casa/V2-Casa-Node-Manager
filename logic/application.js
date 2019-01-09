@@ -135,7 +135,7 @@ async function saveSettings(settings) {
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
 async function startAutoImagePull() {
-  autoImagePullInterval = setInterval(pullAllImages, constants.TIME.FIVE_MINUTES_IN_MILLIS);
+  autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
 }
 
 async function pullAllImages() {
@@ -173,7 +173,7 @@ async function getFilteredVersions() {
   const now = new Date().getTime();
   const elapsedTime = now - lastImagePulled;
 
-  if (elapsedTime < constants.TIME.FIVE_MINUTES_IN_MILLIS || pullingImages) {
+  if (elapsedTime < constants.TIME.ONE_HOUR_IN_MILLIS || pullingImages) {
     for (const version in versions) {
       if (Object.prototype.hasOwnProperty.call(versions, version)) {
         versions[version].updatable = false;
