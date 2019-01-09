@@ -227,9 +227,6 @@ async function startup() {
         }
       }
 
-      // delete me
-      await pullAllImages;
-
       // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
       if (process.env.DISABLE_YML_UPDATE !== 'true') {
         await checkYMLs();
