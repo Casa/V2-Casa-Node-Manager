@@ -1,5 +1,6 @@
 var Docker = require('dockerode');
 var docker = new Docker();
+
 var q = require('q'); // eslint-disable-line id-length
 
 function getContainers(all) {
@@ -157,6 +158,21 @@ function pruneImages(dangling = false) {
   return deferred.promise;
 }
 
+function removeVolume(name) {
+  var deferred = q.defer();
+  var volume = docker.getVolume(name);
+
+  volume.remove({}, function(error, result) {
+    if (error) {
+      deferred.reject(error);
+    } else {
+      deferred.resolve(result);
+    }
+  });
+
+  return deferred.promise;
+}
+
 module.exports = {
   getContainers,
   getDiskUsage,
@@ -168,4 +184,5 @@ module.exports = {
   pruneNetworks,
   pruneVolumes,
   pruneImages,
+  removeVolume,
 };

@@ -215,6 +215,10 @@ const stopNonPersistentContainers = async() => { // eslint-disable-line id-lengt
   }
 };
 
+async function removeVolume(name) {
+  return dockerService.removeVolume(name);
+}
+
 module.exports = {
   getStatuses,
   getVersions,
@@ -224,5 +228,6 @@ module.exports = {
   pruneContainers,
   pruneNetworks,
   pruneVolumes,
-  pruneImages
+  pruneImages,
+  removeVolume,
 };
