@@ -20,6 +20,8 @@ const bitcoindSchema = {
   properties: {
     bitcoinNetwork: {$ref: '/networks'},
     bitcoindListen: {type: 'boolean'},
+    rpcPassword: {type: 'string'},
+    rpcUser: {type: 'string'},
   },
   required: ['bitcoinNetwork', 'bitcoindListen'],
   additionalProperties: false
@@ -88,6 +90,8 @@ const sparseBitcoindSchema = {
   properties: {
     bitcoinNetwork: {$ref: '/networks'},
     bitcoindListen: {type: 'boolean'},
+    rpcPassword: {type: 'string'},
+    rpcUser: {type: 'string'},
   },
   required: [],
   additionalProperties: false

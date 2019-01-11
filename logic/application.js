@@ -4,6 +4,7 @@ const diskLogic = require('logic/disk.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
 const LNNodeError = require('models/errors.js').NodeError;
+const DockerPullingError = require('models/errors.js').DockerPullingError;
 const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
 const logger = require('utils/logger.js');
@@ -11,6 +12,10 @@ const UUID = require('utils/UUID.js');
 const auth = require('logic/auth');
 
 let autoImagePullInterval = {};
+let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled
+
+let pullingImages = false; // Is the manager currently pulling images
+
 const systemStatus = {};
 const logArchiveLocalPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
 const logArchiveLocalPathTemp = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE_TEMP;
@@ -37,13 +42,28 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     if (!validation.valid) {
       return new LNNodeError(validation.errors);
     }
+
+    await rpcCredIntegrityCheck(defaultConfig);
     await diskLogic.writeSettingsFile(defaultConfig);
+
+  } else {
+    const settings = await diskLogic.readSettingsFile();
+
+    await rpcCredIntegrityCheck(settings);
+    await diskLogic.writeSettingsFile(settings);
   }
 }
 
-async function generateRPCCredentials() {
-  constants.RPC_USER = UUID.create();
-  constants.RPC_PASSWORD = UUID.create();
+// Check whether the settings.json file contains rpcUser and rpcPassword. Historically it has not contained this by
+// default.
+async function rpcCredIntegrityCheck(settings) {
+  if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcUser')) {
+    settings.bitcoind.rpcUser = UUID.create();
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcPassword')) {
+    settings.bitcoind.rpcPassword = UUID.create();
+  }
 }
 
 // Return the serial id of the device.
@@ -115,11 +135,58 @@ async function saveSettings(settings) {
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
 async function startAutoImagePull() {
-  autoImagePullInterval = setInterval(dockerComposeLogic.dockerComposePullAll, constants.TIME.ONE_HOUR_IN_MILLIS);
+  autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+}
+
+async function pullAllImages() {
+  pullingImages = true;
+
+  try {
+    const originalImageCount = (await dockerLogic.getImages()).length;
+    await dockerComposeLogic.dockerComposePullAll();
+    const finalImageCount = (await dockerLogic.getImages()).length;
+
+    if (finalImageCount - originalImageCount !== 0) {
+      lastImagePulled = new Date().getTime();
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    pullingImages = false;
+  }
+}
+
+// Display to the user the current versions and a filtered version of what is updatable. We filter out all updatable
+// services if just one image was downloaded in the last 90 minutes.
+//
+// The 90 minute filter ensures that all images have been downloaded for a particular release. Every 60 minutes
+// the node attempts to download the newest images. The download process could take 20 minutes (30 for padding).
+//
+// A node could also start downloading images while only half of the images have been uploaded to the docker source.
+// The 90 minute filter handles this by making sure the node attempts to download images twice and catches any images
+// it might have missed the first time.
+//
+// We also want to filter all versions if the node is currently pulling images. We don't want to only get half of the
+// new images.
+async function getFilteredVersions() {
+  const versions = await dockerLogic.getVersions();
+  const now = new Date().getTime();
+  const elapsedTime = now - lastImagePulled;
+
+  if (elapsedTime < constants.TIME.ONE_HOUR_IN_MILLIS || pullingImages) {
+    for (const version in versions) {
+      if (Object.prototype.hasOwnProperty.call(versions, version)) {
+        versions[version].updatable = false;
+      }
+    }
+  }
+
+  return versions;
 }
 
 // Run startup functions
 async function startup() {
+
   let errorThrown = false;
 
   // keep retrying the startup process if there are any errors
@@ -149,7 +216,7 @@ async function startup() {
           await checkYMLs();
         }
 
-        await dockerComposeLogic.dockerComposePullAll();
+        await pullAllImages();
 
         try {
           await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
@@ -172,7 +239,6 @@ async function startup() {
       // clean up old images
       await dockerLogic.pruneImages();
 
-      await generateRPCCredentials();
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -209,7 +275,7 @@ async function reset(factoryReset) {
 
     if (factoryReset) {
       await dockerLogic.pruneImages(true);
-      await dockerComposeLogic.dockerComposePullAll();
+      await pullAllImages();
     }
     await settingsFileIntegrityCheck();
     await startSpaceFleet();
@@ -240,6 +306,14 @@ async function runDeviceHost() {
 // Puts the device in a state where it is safe to unplug the power. Currently, we shutdown lnd and bitcoind
 // appropriately. In the future we will shutdown the entire device.
 async function shutdown() {
+
+  // If docker is pulling and is only partially completed, when the device comes back online, it will install the
+  // partial update. This could cause breaking changes. To avoid this, we will stop the user from shutting down the
+  // device while docker is pulling.
+  if (pullingImages) {
+    throw new DockerPullingError();
+  }
+
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
@@ -356,7 +430,7 @@ async function updateYMLs(outdatedYMLs) {
     }
 
     clearInterval(autoImagePullInterval);
-    await dockerComposeLogic.dockerComposePullAll();
+    await pullAllImages();
     await startAutoImagePull();
     systemStatus.error = false;
   } catch (error) {
@@ -371,6 +445,7 @@ module.exports = {
   deleteLogArchives,
   getSerial,
   getSystemStatus,
+  getFilteredVersions,
   saveSettings,
   shutdown,
   startup,

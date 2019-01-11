@@ -37,7 +37,8 @@ module.exports = {
   },
   TAG: process.env.TAG || 'arm',
   TIME: {
-    ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000
+    ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000,
+    NINETY_MINUTES_IN_MILLIS: 90 * 60 * 1000,
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
@@ -45,6 +46,4 @@ module.exports = {
   JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
   JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem',
   NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'node-logs@team.casa',
-  RPC_USER: null,
-  RPC_PASSWORD: null,
 };

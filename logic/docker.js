@@ -32,6 +32,10 @@ function pruneImages(all) {
   return dockerService.pruneImages(all);
 }
 
+function getImages() {
+  return dockerService.getImages();
+}
+
 function getStatuses() {
   // TODO: check if something is missing
   var deferred = q.defer();
@@ -216,6 +220,7 @@ const stopNonPersistentContainers = async() => { // eslint-disable-line id-lengt
 };
 
 module.exports = {
+  getImages,
   getStatuses,
   getVersions,
   getVolumeUsage,

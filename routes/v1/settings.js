@@ -41,11 +41,17 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
 router.get('/read', auth.jwt, safeHandler((req, res, next) =>
   diskLogic.readSettingsFile()
     .then(config => {
+
+      // RPC credentials should not be sent to the user until we have https and a use case for the user to have them.
+      delete config.bitcoind.rpcPassword;
+      delete config.bitcoind.rpcUser;
+
+      // Renaming lndNodeAlias to nickName.
       config.lnd.nickName = config.lnd.lndNodeAlias;
       delete config.lnd.lndNodeAlias;
 
-      // externalIP was added after initial release. It may not exist in the data store of all nodes. We will default this to
-      // return an empty array to the front end to guarantee the front end always receives a consistent schema.
+      // externalIP was added after initial release. It may not exist in the data store of all nodes. We will default
+      // this to return an empty array to the front end to guarantee the front end always receives a consistent schema.
       config.lnd.externalIP = config.lnd.externalIP || '';
 
       res.json(config);
