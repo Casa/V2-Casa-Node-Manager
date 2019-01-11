@@ -291,6 +291,34 @@ async function reset(factoryReset) {
   }
 }
 
+async function userReset() {
+  try {
+    systemStatus.resetting = true;
+    systemStatus.error = false;
+    clearInterval(autoImagePullInterval);
+    await dockerLogic.stopNonPersistentContainers();
+    await dockerLogic.pruneContainers();
+    await dockerLogic.pruneNetworks();
+
+    await wipeSettingsVolume();
+    await wipeAccountsVolume();
+    await dockerLogic.removeVolume('applications_channel-data');
+    await dockerLogic.removeVolume('applications_lnd-data');
+
+    await settingsFileIntegrityCheck();
+    await startSpaceFleet();
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
+    await startAutoImagePull();
+    systemStatus.error = false;
+  } catch (error) {
+    systemStatus.error = true;
+    await startSpaceFleet();
+  } finally {
+    systemStatus.resetting = false;
+  }
+}
+
 // Update .env with new host IP.
 async function runDeviceHost() {
   const options = {
@@ -450,5 +478,6 @@ module.exports = {
   shutdown,
   startup,
   reset,
+  userReset,
   update,
 };
