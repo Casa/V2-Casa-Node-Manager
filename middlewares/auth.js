@@ -3,6 +3,7 @@ const passportJWT = require('passport-jwt');
 const passportHTTP = require('passport-http');
 const bcrypt = require('bcrypt');
 const diskLogic = require('logic/disk.js');
+const authLogic = require('logic/auth.js');
 const NodeError = require('models/errors.js').NodeError;
 const rsa = require('node-rsa');
 const UUID = require('utils/UUID');
@@ -109,6 +110,26 @@ function jwt(req, res, next) {
   })(req, res, next);
 }
 
+async function accountJWTProtected(req, res, next) {
+  const isRegistered = await authLogic.isRegistered();
+  if (isRegistered.registered) {
+    passport.authenticate(JWT_AUTH, {session: false}, function(error, user) {
+      if (error || user === false) {
+        return next(new NodeError('Invalid JWT', 401)); // eslint-disable-line no-magic-numbers
+      }
+      req.logIn(user, function(err) {
+        if (err) {
+          return next(new NodeError('Unable to authenticate', 401)); // eslint-disable-line no-magic-numbers
+        }
+
+        return next(null, user);
+      });
+    })(req, res, next);
+  } else {
+    return next(null, 'not-registered');
+  }
+}
+
 function register(req, res, next) {
   passport.authenticate(REGISTRATION_AUTH, {session: false}, function(error, user) {
     if (error || user === false) {
@@ -128,5 +149,6 @@ module.exports = {
   basic,
   jwt,
   register,
+  accountJWTProtected,
 };
 

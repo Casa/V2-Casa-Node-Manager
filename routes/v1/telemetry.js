@@ -6,7 +6,7 @@ const auth = require('middlewares/auth.js');
 const safeHandler = require('utils/safeHandler');
 
 router.get('/version', auth.jwt, safeHandler((req, res) =>
-  dockerLogic.getVersions()
+  applicationLogic.getFilteredVersions()
     .then(versions => res.json(versions))
 ));
 
@@ -30,7 +30,7 @@ router.get('/logs', auth.jwt, safeHandler((req, res) =>
     .then(logs => res.json(logs))
 ));
 
-router.get('/system-status', auth.jwt, safeHandler((req, res) =>
+router.get('/system-status', safeHandler((req, res) =>
   applicationLogic.getSystemStatus()
     .then(status => res.json(status))
 ));

@@ -41,11 +41,20 @@ function DockerHubError(message, error, statusCode) {
 }
 require('util').inherits(DockerHubError, Error);
 
+function DockerPullingError(message, statusCode) {
+  Error.captureStackTrace(this, this.constructor);
+  this.name = this.constructor.name;
+  this.message = message;
+  this.statusCode = statusCode;
+}
+require('util').inherits(DockerPullingError, Error);
+
 module.exports = {
   NodeError,
   ValidationError,
   DockerComposeError,
   DockerError,
   DockerHubError,
+  DockerPullingError,
 };
 

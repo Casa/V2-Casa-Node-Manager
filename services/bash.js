@@ -10,7 +10,6 @@ function extendProcessEnv(env) {
 
 // Executes docker-compose command with common options
 const exec = (command, args, options) => new Promise((resolve, reject) => {
-
   const cwd = options.cwd || null;
 
   if (options.env) {
