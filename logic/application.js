@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 const dockerComposeLogic = require('logic/docker-compose.js');
 const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
@@ -127,8 +129,8 @@ async function setResyncDetails() {
 
         // The download container only gives a 10 GiB lead on downloading. Because of this, we will estimate the total
         // amount until it gets closer to the end.
-        if (systemStatus.full && (downloadedAmount < 210 && downloadedAmountUnit === 'GiB' ||
-          downloadedAmountUnit === 'MiB')) {
+        if (systemStatus.full && (downloadedAmount < 210 && downloadedAmountUnit === 'GiB'
+          || downloadedAmountUnit === 'MiB')) {
 
           totalAmount = '220';
           totalAmountUnit = 'GiB';
