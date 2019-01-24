@@ -199,7 +199,7 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   } else if (service === constants.SERVICES.DOWNLOAD) {
     options.env.ARCHIVE_CHAIN = 'bitcoind';
-    options.env.ARCHIVE_NETWORK = 'mainnet'; // TODO get from settings
+    options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK']; 
     options.env.AWS_ACCESS_KEY_ID = encryption.decryptAws(constants.AWS_ACCESS_KEY_ID_ENCRYPTED);
     options.env.AWS_SECRET_ACCESS_KEY = encryption.decryptAws(constants.AWS_SECRET_ACCESS_KEY_ENCRYPTED);
     options.env.AWS_DEFAULT_REGION = 'us-east-2';
