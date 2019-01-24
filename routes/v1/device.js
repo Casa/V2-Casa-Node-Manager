@@ -8,6 +8,8 @@ const validator = require('utils/validator.js');
 
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 
+const PRECONDITION_FAILED = 412;
+
 router.post('/chain-reset', auth.jwt, safeHandler((req, res) => {
   applicationLogic.reset();
 
@@ -18,6 +20,20 @@ router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
   applicationLogic.reset(true);
 
   return res.json({status: 'factory-reset'});
+}));
+
+router.post('/resync-chain', auth.accountJWTProtected, safeHandler(async(req, res) => {
+
+  const full = req.body.full; // optional parameter to fully wipe all bitcoind data
+
+  // TODO come up with unified strategy on handling resets
+  if ((await applicationLogic.getSystemStatus()).resync) {
+    res.status(PRECONDITION_FAILED).json({status: 'bitcoind-already-resyncing'});
+  } else {
+    applicationLogic.resyncChainFromServer(full);
+
+    return res.json({status: 'bitcoind-reset'});
+  }
 }));
 
 router.post('/user-reset', auth.accountJWTProtected, safeHandler((req, res) => {
@@ -34,7 +50,7 @@ router.post('/shutdown', auth.basic, safeHandler((req, res) => { // eslint-disab
     })
     .catch(function(error) {
       if (error instanceof DockerPullingError) {
-        res.status(412).json({ // eslint-disable-line no-magic-numbers
+        res.status(PRECONDITION_FAILED).json({
           message: 'Cannot Shutdown. We are downloading new software. Try again in 30 minutes.'
         });
       } else {

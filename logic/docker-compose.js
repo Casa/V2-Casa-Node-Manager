@@ -42,6 +42,8 @@ function composeFile(options) {
 
   if (options.service === constants.SERVICES.DEVICE_HOST) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DEVICE_HOST;
+  } else if (options.service === constants.SERVICES.DOWNLOAD) {
+    return WORKING_DIR + '/' + constants.COMPOSE_FILES.DOWNLOAD;
   } else if (options.service === constants.SERVICES.LOGSPOUT
     || options.service === constants.SERVICES.PAPERTRAIL
     || options.service === constants.SERVICES.SYSLOG) {
@@ -195,6 +197,12 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
+  } else if (service === constants.SERVICES.DOWNLOAD) {
+    options.env.ARCHIVE_CHAIN = 'bitcoind';
+    options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK']; 
+    options.env.AWS_ACCESS_KEY_ID = encryption.decryptAws(constants.AWS_ACCESS_KEY_ID_ENCRYPTED);
+    options.env.AWS_SECRET_ACCESS_KEY = encryption.decryptAws(constants.AWS_SECRET_ACCESS_KEY_ENCRYPTED);
+    options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
   var composeOptions = ['-f', file, 'up'];
