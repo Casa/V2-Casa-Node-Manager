@@ -26,7 +26,7 @@ phases:
 
         # Copy the YMLs into the container
       - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-      - rsync -av --exclude=manager.yml --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
+      - rsync -av --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
 
       - echo Installing source NPM dependencies...
       - npm install
@@ -67,16 +67,26 @@ phases:
       # Since a git commit can be in multiple branches, we will start with master and work our way down. If a git commit
       # exists in master, release, and develop, it really means we want to deploy master. Likewise, if a git commit exists
       # in release and develop, we release want to deploy release.
+      #
+      # Public vs Private
+      # Casa Inc releases code publicly for various reasons. We also develop features in private before the public
+      # release. Historically we have used the private casacomputer organization on docker hub. We have since migrated
+      # to casanode for our public releases. We will support legacy nodes running on casacomputer until March 2020.
       - |
         if [ "$masterBranchText" = "master" ]; then
           echo "pushing production to docker"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
           docker push $ORGANIZATION/$REPOSITORY:$ARCH
-        elif [ "$releaseBranchText" = "release" ]; then
+
+          if [ "$PUBLIC" = "true" ]; then
+            docker tag casacomputer/$REPOSITORY:$ARCH casacomputer/$REPOSITORY:$ARCH
+            docker push casacomputer/$REPOSITORY:$ARCH
+          fi
+        elif [ "$releaseBranchText" = "release" && "$PUBLIC" = "false" ]; then
           echo "pushing to stage to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage
-        elif [ "$developBranchText" = "develop" ]; then
+        elif [ "$developBranchText" = "develop" && "$PUBLIC" = "false" ]; then
           echo "pushing develop to docker"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop
