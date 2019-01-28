@@ -3,7 +3,6 @@ const decamelizeKeys = require('decamelize-keys');
 
 const bashService = require('services/bash.js');
 const constants = require('utils/const.js');
-const encryption = require('utils/encryption.js');
 const DockerComposeError = require('models/errors').DockerComposeError;
 const diskLogic = require('logic/disk.js');
 
@@ -199,9 +198,7 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   } else if (service === constants.SERVICES.DOWNLOAD) {
     options.env.ARCHIVE_CHAIN = 'bitcoind';
-    options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK']; 
-    options.env.AWS_ACCESS_KEY_ID = encryption.decryptAws(constants.AWS_ACCESS_KEY_ID_ENCRYPTED);
-    options.env.AWS_SECRET_ACCESS_KEY = encryption.decryptAws(constants.AWS_SECRET_ACCESS_KEY_ENCRYPTED);
+    options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK'];
     options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
@@ -237,17 +234,19 @@ async function dockerLogin(options = {}, username, password) {
 }
 
 async function dockerLoginCasabuilder() {
-  const username = encryption.decryptCasabuilder(constants.CASABUILDER_USERNAME_ENCRYPTED);
-  const password = encryption.decryptCasabuilder(constants.CASABUILDER_PASSWORD_ENCRYPTED);
 
-  await dockerLogin({}, username, password);
+  if (process.env.CASABUILDER_PASSWORD) {
+    await dockerLogin({}, 'casabuilder', process.env.CASABUILDER_PASSWORD);
+  }
+
 }
 
 async function dockerLoginCasaworker() {
-  const username = encryption.decryptCasaworker(constants.CASAWORKER_USERNAME_ENCRYPTED);
-  const password = encryption.decryptCasaworker(constants.CASAWORKER_PASSWORD_ENCRYPTED);
 
-  await dockerLogin({}, username, password);
+  if (process.env.CASAWORKER_PASSWORD) {
+    await dockerLogin({}, 'casaworker', process.env.CASAWORKER_PASSWORD);
+  }
+
 }
 
 async function dockerLogout(options = {}) {
