@@ -78,11 +78,11 @@ phases:
             docker tag casacomputer/$REPOSITORY:$ARCH casacomputer/$REPOSITORY:$ARCH
             docker push casacomputer/$REPOSITORY:$ARCH
           fi
-        elif [ "$releaseBranchText" = "release" && "$PUBLIC" = "false" ]; then
+        elif [ "$releaseBranchText" = "release" ] && [ "$PUBLIC" = "false" ]; then
           echo "pushing to stage to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage
-        elif [ "$developBranchText" = "develop" && "$PUBLIC" = "false" ]; then
+        elif [ "$developBranchText" = "develop" ] && [ "$PUBLIC" = "false" ]; then
           echo "pushing develop to docker"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop
