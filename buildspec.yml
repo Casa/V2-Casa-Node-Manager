@@ -24,10 +24,6 @@ phases:
       # tools.
       - mkdir -p /root/lightning-node
 
-        # Copy the YMLs into the container
-      - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-      - rsync -av --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
-
       - echo Installing source NPM dependencies...
       - npm install
   build:
@@ -46,7 +42,7 @@ phases:
         else
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
         fi
-      - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$ARCH
+      - docker build --build-arg GITHUB_USER=$GITHUB_USER --build-arg GITHUB_PASS=$GITHUB_PASS . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$ARCH
       - docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
 
       # Hacky way to determine what branch we are in. $CODEBUILD_SOURCE_VERSION is the git commit we are currently
