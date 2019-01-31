@@ -12,10 +12,6 @@ RUN apt-get update \
 # Create app directory
 WORKDIR /usr/src/app
 
-# Use this to inject yml files
-# git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-# rsync -av --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources
-
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
