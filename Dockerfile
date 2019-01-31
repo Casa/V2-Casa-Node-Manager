@@ -1,9 +1,6 @@
 # specify the node base image with your desired version node:<version>
 FROM node:8
 
-ARG GITHUB_USER
-ARG GITHUB_PASS
-
 # install tools
 RUN apt-get update \
   && apt-get install -y vim \
@@ -11,12 +8,6 @@ RUN apt-get update \
 
 # Create app directory
 WORKDIR /usr/src/app
-
-# inject yml files if available
-RUN if [ ! -z "$GITHUB_USER" ] && [ ! -z "$GITHUB_PASS" ] ; then \
-    git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse; \
-    rsync -av --exclude=update-manager.yml /warehouse/lightning-node/*.yml ./resources; \
-  fi
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
