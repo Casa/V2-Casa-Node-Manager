@@ -73,21 +73,24 @@ phases:
       # release. Historically we have used the private casacomputer organization on docker hub. We have since migrated
       # to casanode for our public releases. We will support legacy nodes running on casacomputer until March 2020.
       - |
-        if [ "$masterBranchText" = "master" ]; then
-          echo "pushing production to docker"
+        if [ "$masterBranchText" = "master" ] && [ "$PUBLIC" = "false" ]; then
+          echo "pushing master branch to docker hub"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH
+        elif [ "$masterBranchText" = "master" ] && [ "$PUBLIC" = "true" ]; then
+          echo "pushing master branch to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
           docker push $ORGANIZATION/$REPOSITORY:$ARCH
 
-          if [ "$PUBLIC" = "true" ]; then
-            docker tag casacomputer/$REPOSITORY:$ARCH casacomputer/$REPOSITORY:$ARCH
-            docker push casacomputer/$REPOSITORY:$ARCH
-          fi
+          echo "pushing master branch to legacy docker hub"
+          docker tag casacomputer/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
+          docker push casacomputer/$REPOSITORY:$ARCH
         elif [ "$releaseBranchText" = "release" ] && [ "$PUBLIC" = "false" ]; then
-          echo "pushing to stage to docker hub"
+          echo "pushing release branch to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage
         elif [ "$developBranchText" = "develop" ] && [ "$PUBLIC" = "false" ]; then
-          echo "pushing develop to docker"
+          echo "pushing develop branch to docker hub"
           docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop
           docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop
         else
