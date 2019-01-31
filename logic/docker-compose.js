@@ -9,6 +9,7 @@ const diskLogic = require('logic/disk.js');
 const WORKING_DIR = constants.WORKING_DIRECTORY;
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 const DOCKER_COMMAND = 'docker';
+const DOCKER_TIMEOUT_SECONDS = 600;
 
 const injectSettings = async() => {
 
@@ -78,7 +79,7 @@ async function dockerComposeUp(options) {
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   }
 
-  const composeOptions = ['-f', file, 'up', '-d'];
+  const composeOptions = ['-f', file, 'up', '-d', '-t', DOCKER_TIMEOUT_SECONDS];
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
@@ -141,8 +142,7 @@ function dockerComposeStop(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-
-  var composeOptions = ['-f', file, 'stop', service];
+  var composeOptions = ['-f', file, 'stop', '-t', DOCKER_TIMEOUT_SECONDS, service];
 
   function handleSuccess() {
     deferred.resolve();
@@ -210,7 +210,7 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     composeOptions.push('-d');
   }
 
-  composeOptions.push('--no-deps', service);
+  composeOptions.push('-t', DOCKER_TIMEOUT_SECONDS, '--no-deps', service);
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
