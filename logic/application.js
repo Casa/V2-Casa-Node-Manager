@@ -568,7 +568,6 @@ function deleteLogArchives() {
 // The manager should have the latest YMLs.
 async function checkYMLs() {
   const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
-  delete knownYMLs.WELCOME;
 
   const updatableYMLs = Object.values(knownYMLs);
 
