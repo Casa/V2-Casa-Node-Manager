@@ -115,7 +115,7 @@ async function getVersions() {
     // RepoTags is a nullable array. We have to null check and then loop over each tag.
     if (image.RepoTags) {
       for (const tag of image.RepoTags) {
-        if (tag.split(':')[1] === constants.TAG) {
+        if (tag.split(':')[1] === 'arm' && tag.split(':')[0].includes(constants.DOCKER_ORGANIZATION)) {
           const service = getServiceFromImage(tag);
           imageDict[service] = image;
         }
@@ -124,7 +124,6 @@ async function getVersions() {
   }
 
   for (const container of containers) {
-
     const service = container['Labels']['com.docker.compose.service'];
     const containerVersion = container['ImageID'];
     const containerImage = container['Image'];
@@ -136,8 +135,14 @@ async function getVersions() {
     // sha256 hash by docker. In those instances, we need to use the service for lookup.
     const lookupService = getServiceFromImage(containerImage) || service;
 
-    const imageVersion = imageDict[lookupService]['Id'];
-    const updatable = containerVersion !== imageVersion;
+    // During migration from `casacomputer` to `casanode` we cannot always retrieve the correct image. Filter for only
+    // casanode* images.
+    let updatable = false;
+    let imageVersion = 'old-service';
+    if (imageDict[lookupService]) {
+      imageVersion = imageDict[lookupService]['Id'];
+      updatable = containerVersion !== imageVersion;
+    }
 
     // TODO: Filter out problematic welcome service, need to fix properly by shutting it down.
     if (service === constants.SERVICES.WELCOME) {
