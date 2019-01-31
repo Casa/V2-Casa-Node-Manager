@@ -1,9 +1,6 @@
 # specify the node base image with your desired version node:<version>
 FROM node:8
 
-ARG GITHUB_USER
-ARG GITHUB_PASS
-
 # install tools
 RUN apt-get update \
   && apt-get install -y vim \
