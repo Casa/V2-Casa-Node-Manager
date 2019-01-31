@@ -83,7 +83,7 @@ phases:
           docker push $ORGANIZATION/$REPOSITORY:$ARCH
 
           echo "pushing master branch to legacy docker hub"
-          docker tag casacomputer/$REPOSITORY:$ARCH casacomputer/$REPOSITORY:$ARCH
+          docker tag casacomputer/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
           docker push casacomputer/$REPOSITORY:$ARCH
         elif [ "$releaseBranchText" = "release" ] && [ "$PUBLIC" = "false" ]; then
           echo "pushing release branch to docker hub"
