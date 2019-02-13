@@ -396,9 +396,9 @@ async function resyncChain(full, syncFromAWS) {
     await dockerLogic.pruneImages();
 
     systemStatus.details = 'starting bitcoind...';
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND});
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
     systemStatus.details = 'starting lnd...';
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LND});
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
 
     resetSystemStatus();
   } catch (error) {
