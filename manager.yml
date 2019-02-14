@@ -17,6 +17,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - DEVICE_HOST
       - CASABUILDER_PASSWORD
       - CASAWORKER_PASSWORD
       - DISABLE_YML_UPDATE
