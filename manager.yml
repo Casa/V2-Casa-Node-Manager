@@ -11,6 +11,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - /usr/local/bin/docker-compose:/usr/local/bin/docker-compose
       - /usr/local/casa/applications:/usr/local/casa/applications
+      - /usr/local/casa:/usr/local/casa
       - applications_accounts:/accounts
       - settings:/settings
     ports:
