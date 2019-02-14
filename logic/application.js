@@ -285,6 +285,7 @@ async function startup() {
   do {
     try {
       await settingsFileIntegrityCheck();
+      await checkAndUpdateLaunchScript();
 
       // initial setup after a reset or manufacture, force an update.
       const firstBoot = await auth.isRegistered();
@@ -608,6 +609,25 @@ async function updateYMLs(outdatedYMLs) {
     clearInterval(autoImagePullInterval);
     await pullAllImages();
     await startAutoImagePull();
+    systemStatus.error = false;
+  } catch (error) {
+    systemStatus.error = true;
+  } finally {
+    systemStatus.updating = false;
+  }
+}
+
+async function checkAndUpdateLaunchScript() { // eslint-disable-line id-length
+  try {
+    systemStatus.updating = true;
+    const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY.concat('/' + constants.LAUNCH_SCRIPT));
+    const ondeviceMd5 = md5Check.sync(constants.LAUNCH_DIRECTORY.concat('/' + constants.LAUNCH_SCRIPT));
+
+    // TODO: tell space-fleet to tell the user to restart their device.
+    if (canonicalMd5 !== ondeviceMd5) {
+      const launchScriptFile = constants.CANONICAL_YML_DIRECTORY + '/' + constants.LAUNCH_SCRIPT;
+      await bashService.exec('cp', [launchScriptFile, constants.LAUNCH_DIRECTORY], {});
+    }
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
