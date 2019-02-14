@@ -7,7 +7,7 @@ const morgan = require('morgan');
 const passport = require('passport');
 const cors = require('cors');
 
-// Keep equestCorrelationId middleware as the first middleware. Otherwise we risk loosing logs.
+// Keep requestCorrelationId middleware as the first middleware. Otherwise we risk losing logs.
 const requestCorrelationMiddleware = require('middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
 const errorHandleMiddleware = require('middlewares/errorHandling.js');
 const corsOptions = require('middlewares/cors.js').corsOptions;
