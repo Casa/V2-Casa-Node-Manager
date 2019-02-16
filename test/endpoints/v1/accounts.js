@@ -1,14 +1,72 @@
-/* eslint-disable max-len,id-length */
+/* eslint-disable max-len,id-length,no-magic-numbers */
+/* eslint-env mocha */
 /* globals requester, reset */
 const sinon = require('sinon');
+const uuidv4 = require('uuid/v4');
+const fs = require('fs');
+
+// Clears any existing users out of the system
+const clearUsers = () => {
+  fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', function() {
+    console.log('erased file'); // TODO is a callback a requirement here?
+  });
+};
+
+after(async() => {
+  clearUsers();
+});
 
 describe('v1/accounts endpoints', () => {
   let token;
 
   before(async() => {
     reset();
+  });
 
-    token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InRlc3QtdXNlciIsImlhdCI6MTU3NTIyNjQxMn0.N06esl2dhN1mFqn-0o4KQmmAaDW9OsHA39calpp_N9B3Ig3aXWgl064XAR9YVK0qwX7zMOnK9UrJ48KUZ-Sb4A';
+  describe('v1/accounts/register POST', () => {
+
+    const randomUsername = uuidv4();
+    const randomPassword = uuidv4();
+
+    it('should register a new user and return a new JWT', done => {
+
+      // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
+      clearUsers();
+
+      requester
+        .post('/v1/accounts/register')
+        .auth('username', 'password')  // TODO you shouldn't need a JWT to register. Basic Auth is being enforced here.
+        //.set('authorization', `Basic ${token}`)  // This line also works
+        .send({username: randomUsername, password: randomPassword})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          token = res.body.jwt;
+          done();
+        });
+    });
+
+    it('should use the new JWT', done => {
+      console.log(`USING NEW JWT: ${token}`);
+      requester
+        .post('/v1/accounts/refresh')
+        .set('authorization', `jwt ${token}`)
+        .send({user: 'some user'})  // is it okay that this user isn't being valiated?
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
   });
 
   describe('v1/accounts/registered GET', function() {
@@ -51,6 +109,42 @@ describe('v1/accounts endpoints', () => {
           res.should.have.status(200);
           res.should.be.json;
           res.body.registered.should.be.equal(true);
+          done();
+        });
+    });
+  });
+
+  describe('v1/accounts/refresh POST', () => {
+
+    it('should return a new JWT', done => {
+      requester
+        .post('/v1/accounts/refresh')
+        .set('authorization', `JWT ${token}`)
+        .send({user: 'some user'})  // is it okay that this user isn't being valiated?
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+
+          // TODO chain another request that tries to use the new JWT
+          done();
+        });
+    });
+
+    it('should not let unauthorized user refresh JWT', done => {
+      requester
+        .post('/v1/accounts/refresh')
+        .set('authorization', 'JWT invalid')
+        .send({user: 'some user'})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
           done();
         });
     });

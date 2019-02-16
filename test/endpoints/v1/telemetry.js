@@ -1,19 +1,51 @@
-/* eslint-disable max-len,id-length */
+/* eslint-disable max-len,id-length,no-magic-numbers,no-empty-function,no-undef */
 /* globals requester, reset */
 const sinon = require('sinon');
 const dockerodeMocks = require('../../mocks/dockerode.js');
+const uuidv4 = require('uuid/v4');
+const fs = require('fs');
 
 describe('v1/telemetry endpoints', () => {
   let token;
 
   before(async() => {
     reset();
-
-    token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InRlc3QtdXNlciIsImlhdCI6MTU3NTIyNjQxMn0.N06esl2dhN1mFqn-0o4KQmmAaDW9OsHA39calpp_N9B3Ig3aXWgl064XAR9YVK0qwX7zMOnK9UrJ48KUZ-Sb4A';
   });
 
   after(async() => {
 
+  });
+
+  // Get a JWT
+  // TODO: This should be moved to a place where the code can be shared.
+  describe('v1/accounts/register POST', () => {
+
+    const randomUsername = uuidv4();
+    const randomPassword = uuidv4();
+
+    it('should register a new user and return a new JWT', done => {
+
+      // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
+      fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', function() {
+        console.log('erased file'); // TODO is a callback a requirement here?
+      });
+
+      requester
+        .post('/v1/accounts/register')
+        .auth('username', 'password')  // TODO you shouldn't need a JWT to register. Basic Auth is being enforced here.
+        //.set('authorization', `Basic ${token}`)  // This line also works
+        .send({username: randomUsername, password: randomPassword})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          token = res.body.jwt;
+          done();
+        });
+    });
   });
 
   describe('v1/telemetry/versions GET', function() {

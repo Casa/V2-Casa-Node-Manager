@@ -14,3 +14,4 @@ jwt.pem*
 resources/*.yml
 .nyc_output
 coverage
+jsconfig.json

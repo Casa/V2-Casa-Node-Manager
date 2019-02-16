@@ -48,7 +48,8 @@
   "nyc": {
     "exclude": [
       "test",
-      "test.setup.js"
+      "test.setup.js",
+      "coverage/lcov-report/*"
     ],
     "sourceMap": false,
     "reporter": [
