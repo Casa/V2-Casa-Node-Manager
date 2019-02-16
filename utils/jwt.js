@@ -6,18 +6,22 @@ const diskLogic = require('logic/disk.js');
 const expiresIn = process.env.JWT_EXPIRATION ? parseInt(process.env.JWT_EXPIRATION, 3600) : 3600;
 
 async function generateJWT(account) {
-
   const jwtPrivateKey = await diskLogic.readJWTPrivateKeyFile();
 
   const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
 
-  // eslint-disable-next-line object-shorthand
-  const token = await jwt.sign({id: account}, jwtPrivateKey, {expiresIn: expiresIn, algorithm: 'RS256'});
+  let token;
 
-  await jwt.verify(token, jwtPubKey, function(error) {
-    if (error) {
-      return Promise.reject(new Error('Error generating JWT token.'));
-    }
+  // Use await to make sure the account name resolves before putting it in the JWT
+  await account.then(async res => {
+    // eslint-disable-next-line object-shorthand
+    token = await jwt.sign({id: res}, jwtPrivateKey, {expiresIn: expiresIn, algorithm: 'RS256'});
+
+    await jwt.verify(token, jwtPubKey, function(error) {
+      if (error) {
+        return Promise.reject(new Error('Error generating JWT token.'));
+      }
+    });
   });
 
   return token;
