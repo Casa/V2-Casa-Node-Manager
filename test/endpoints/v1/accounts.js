@@ -5,10 +5,16 @@ const sinon = require('sinon');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 
+// A random username and password to test with
+const randomUsername = uuidv4();
+const randomPassword = uuidv4();
+
 // Clears any existing users out of the system
 const clearUsers = () => {
-  fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', function() {
-    console.log('erased file'); // TODO is a callback a requirement here?
+  fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', err => {
+    if (err) {
+      throw err;
+    }
   });
 };
 
@@ -25,19 +31,13 @@ describe('v1/accounts endpoints', () => {
 
   describe('v1/accounts/register POST', () => {
 
-    const randomUsername = uuidv4();
-    const randomPassword = uuidv4();
-
     it('should register a new user and return a new JWT', done => {
 
       // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
       clearUsers();
-
       requester
         .post('/v1/accounts/register')
-        .auth('username', 'password')  // TODO you shouldn't need a JWT to register. Basic Auth is being enforced here.
-        //.set('authorization', `Basic ${token}`)  // This line also works
-        .send({username: randomUsername, password: randomPassword})
+        .auth(randomUsername, randomPassword)
         .end((err, res) => {
           if (err) {
             done(err);
@@ -50,8 +50,7 @@ describe('v1/accounts endpoints', () => {
         });
     });
 
-    it('should use the new JWT', done => {
-      console.log(`USING NEW JWT: ${token}`);
+    it('should be able to use the new JWT', done => {
       requester
         .post('/v1/accounts/refresh')
         .set('authorization', `jwt ${token}`)
@@ -63,6 +62,23 @@ describe('v1/accounts endpoints', () => {
 
           res.should.have.status(200);
           res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
+  });
+
+  describe('v1/accounts/login POST', () => {
+
+    it('should login as the newly registered user', done => {
+      requester
+        .post('/v1/accounts/login')
+        .auth(randomUsername, randomPassword)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
           res.body.jwt.should.not.be.empty;
           done();
         });
