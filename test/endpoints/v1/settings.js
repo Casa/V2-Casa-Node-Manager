@@ -111,14 +111,14 @@ describe('v1/settings endpoints', () => {
         .get('/v1/settings/read')
         .set('authorization', `JWT ${token}`)
         .end((err, res) => {
+          putBackSettingsFile();
+
           if (err) {
-            putBackSettingsFile();
             done(err);
           }
           res.should.have.status(500);
           res.body.should.equal('Unable to read settings');
 
-          putBackSettingsFile();
           done();
         });
     });
