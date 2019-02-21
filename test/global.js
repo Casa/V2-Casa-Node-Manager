@@ -13,12 +13,12 @@ global.clock = sinon.useFakeTimers({
   shouldAdvanceTime: false,
 });
 
+global.uuidSerialId = sinon.stub(require('../utils/UUID.js'), 'fetchSerial')
+  .resolves('fake_serial_id');
 global.applicationStartup = sinon.stub(require('../logic/application.js'), 'startup')
   .resolves({});
 global.uuidBootId = sinon.stub(require('../utils/UUID.js'), 'fetchBootUUID')
   .resolves('fake_boot_id');
-global.uuidSerialId = sinon.stub(require('../utils/UUID.js'), 'fetchSerial')
-  .resolves('fake_serial_id');
 
 // require and start app
 const server = require('../app.js');

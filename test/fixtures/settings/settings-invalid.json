@@ -1,0 +1,9 @@
+{  
+    "network":"updated-mainnet",
+    "bitcoindListen":"true",
+    "nickName":5,
+    "autopilot":"false",
+    "maxChannels":"ten",
+    "maxChanSize":"one-hundred",
+    "externalIP":100
+ }

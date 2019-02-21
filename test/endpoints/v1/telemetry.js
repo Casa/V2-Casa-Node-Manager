@@ -16,6 +16,12 @@ describe('v1/telemetry endpoints', () => {
 
   });
 
+  afterEach(() => {
+    clock.restore();
+    dockerodeListAllContainers.restore();
+    dockerodeListImages.restore();
+  });
+
   // Get a JWT
   // TODO: This should be moved to a place where the code can be shared.
   describe('v1/accounts/register POST', () => {
@@ -26,15 +32,15 @@ describe('v1/telemetry endpoints', () => {
     it('should register a new user and return a new JWT', done => {
 
       // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
-      fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', function() {
-        console.log('erased file'); // TODO is a callback a requirement here?
+      fs.writeFile(`${__dirname}/../../fixtures/accounts/user.json`, '', err => {
+        if (err) {
+          throw err;
+        }
       });
 
       requester
         .post('/v1/accounts/register')
-        .auth('username', 'password')  // TODO you shouldn't need a JWT to register. Basic Auth is being enforced here.
-        //.set('authorization', `Basic ${token}`)  // This line also works
-        .send({username: randomUsername, password: randomPassword})
+        .auth(randomUsername, randomPassword)
         .end((err, res) => {
           if (err) {
             done(err);
@@ -49,16 +55,6 @@ describe('v1/telemetry endpoints', () => {
   });
 
   describe('v1/telemetry/versions GET', function() {
-
-    let clock;
-    let dockerodeListAllContainers;
-    let dockerodeListImages;
-
-    afterEach(() => {
-      clock.restore();
-      dockerodeListAllContainers.restore();
-      dockerodeListImages.restore();
-    });
 
     it('should have no updatable containers', done => {
 
@@ -189,5 +185,49 @@ describe('v1/telemetry endpoints', () => {
         });
     });
   });
+
+  describe('v1/telemetry/serial GET', function() {
+
+    it('should return the serial ID of the device', done => {
+      requester
+        .get('/v1/telemetry/serial')
+        .set('authorization', `JWT ${token}`)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.body.should.equal('fake_serial_id'); // From the stub in globals.js
+          done();
+        });
+    });
+  });
+
+  describe.skip('v1/telemetry/status GET', function() {
+
+    dockerodeListAllContainers = sinon.stub(require('dockerode').prototype, 'listContainers')
+      .yields(null, dockerodeMocks.listAllContainers());
+    dockerodeListImages = sinon.stub(require('dockerode').prototype, 'listImages')
+      .yields(null, dockerodeMocks.listImages());
+    // TODO: stub the dockerode.df() function (gets disk usage)
+    //dockerodeGetDiskUsage = sinon.stub(require('dockerode').prototype, 'df')
+    //  .yields(null, dockerodeMocks.df());
+
+
+    it('should return the status of the containers', done => {
+      requester
+        .get('/v1/telemetry/status')
+        .set('authorization', `JWT ${token}`)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          console.log(res.body);
+          res.should.have.status(200);
+          done();
+        });
+    });
+  });
+
 });
 
