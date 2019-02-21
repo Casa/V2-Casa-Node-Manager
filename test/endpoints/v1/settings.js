@@ -6,6 +6,8 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const sinon = require('sinon');
 
+const dockerodeMocks = require('../../mocks/dockerode.js');
+
 const randomUsername = uuidv4();
 const randomPassword = uuidv4();
 
@@ -28,7 +30,7 @@ const putBackSettingsFile = () => {
 };
 
 const restoreOriginalSettingsFile = () => {
-  fs.copyFile(`${__dirname}/../../fixtures/settings/settings-original.json`, `${__dirname}/../../fixtures/settings/settings.json`, err => {
+  fs.copyFileSync(`${__dirname}/../../fixtures/settings/settings-original.json`, `${__dirname}/../../fixtures/settings/settings.json`, err => {
     if (err) {
       throw err;
     }
@@ -36,6 +38,24 @@ const restoreOriginalSettingsFile = () => {
 };
 
 describe('v1/settings endpoints', () => {
+
+  before(() => {
+    // Saving settings performs a `docker-compose up`
+    dockerodeListAllContainers = sinon.stub(require('dockerode').prototype, 'listContainers')
+      .yields(null, dockerodeMocks.listAllContainers());
+    dockerodeListImages = sinon.stub(require('dockerode').prototype, 'listImages')
+      .yields(null, dockerodeMocks.listImages());
+
+    const dockerCompose = `${__dirname}/../../../logic/docker-compose.js`;
+    dockerComposeUpStub = sinon.stub(require(dockerCompose), 'dockerComposeUpSingleService');
+  });
+
+  after(() => {
+    dockerodeListAllContainers.restore();
+    dockerodeListImages.restore();
+    dockerComposeUpStub.restore();
+    restoreOriginalSettingsFile();
+  });
 
   // Get a JWT
   // TODO: This should be moved to a place where the code can be shared.
@@ -123,7 +143,7 @@ describe('v1/settings endpoints', () => {
         });
     });
 
-    it('should not save invalid settings and return the appropriate validation errors', done => {
+    it('should not save invalid settings and should return the appropriate validation errors', done => {
       requester
         .post('/v1/settings/save')
         .set('authorization', `JWT ${token}`)
@@ -294,9 +314,6 @@ describe('v1/settings endpoints', () => {
 
     it('should save new settings', done => {
 
-      const dockerCompose = `${__dirname}/../../../logic/docker-compose.js`;
-      sinon.stub(require(dockerCompose), 'dockerComposeUpSingleService');
-
       requester
         .post('/v1/settings/save')
         .set('authorization', `JWT ${token}`)
@@ -316,8 +333,6 @@ describe('v1/settings endpoints', () => {
         .get('/v1/settings/read')
         .set('authorization', `JWT ${token}`)
         .end((err, res) => {
-          restoreOriginalSettingsFile();
-
           if (err) {
             done(err);
           }
@@ -348,7 +363,6 @@ describe('v1/settings endpoints', () => {
           res.body.lnd.maxChanSize.should.equal(100);
           res.body.lnd.should.have.property('nickName');
           res.body.lnd.nickName.should.equal('updated-unit-test-node');
-
 
           done();
         });
