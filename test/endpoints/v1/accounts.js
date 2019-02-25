@@ -4,6 +4,7 @@
 const sinon = require('sinon');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
 // A random username and password to test with
 const randomUsername = uuidv4();
@@ -48,6 +49,12 @@ describe('v1/accounts endpoints', () => {
           token = res.body.jwt;
           done();
         });
+    });
+
+    it('should check that the issuer in the JWT', done => {
+      const decoded = jwt.decode(token);
+      decoded.id.should.equal('fake_boot_id'); // stubbed in global.js
+      done();
     });
 
     it('should be able to use the new JWT', done => {

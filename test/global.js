@@ -18,7 +18,7 @@ global.uuidSerialId = sinon.stub(require('../utils/UUID.js'), 'fetchSerial')
 global.applicationStartup = sinon.stub(require('../logic/application.js'), 'startup')
   .resolves({});
 global.uuidBootId = sinon.stub(require('../utils/UUID.js'), 'fetchBootUUID')
-  .resolves('fake_boot_id');
+  .returns('fake_boot_id');
 
 // require and start app
 const server = require('../app.js');
