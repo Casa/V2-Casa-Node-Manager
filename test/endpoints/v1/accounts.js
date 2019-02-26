@@ -61,7 +61,7 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/refresh')
         .set('authorization', `jwt ${token}`)
-        .send({user: 'some user'})  // is it okay that this user isn't being valiated?
+        .send({user: randomUsername})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -143,7 +143,7 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/refresh')
         .set('authorization', `JWT ${token}`)
-        .send({user: 'some user'})  // is it okay that this user isn't being valiated?
+        .send({user: randomUsername})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -153,7 +153,6 @@ describe('v1/accounts endpoints', () => {
           res.should.be.json;
           res.body.jwt.should.not.be.empty;
 
-          // TODO chain another request that tries to use the new JWT
           done();
         });
     });

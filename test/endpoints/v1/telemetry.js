@@ -353,30 +353,4 @@ describe('v1/telemetry endpoints', () => {
         });
     });
   });
-
-  describe.skip('v1/telemetry/logs GET', function() {
-
-    afterEach(() => {
-      dockerodeListAllContainers.restore();
-    });
-
-    it('should return the logs', done => {
-      dockerodeListAllContainers = sinon.stub(require('dockerode').prototype, 'listContainers')
-        .yields(null, dockerodeMocks.listAllContainers());
-      // TODO mock the logs in docker-logic.getLogs
-
-      requester
-        .get('/v1/telemetry/logs')
-        .set('authorization', `JWT ${token}`)
-        .end((err, res) => {
-          if (err) {
-            done(err);
-          }
-
-          res.should.have.status(200);
-          done();
-        });
-    });
-  });
-
 });

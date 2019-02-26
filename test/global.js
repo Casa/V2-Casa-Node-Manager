@@ -43,6 +43,7 @@ global.reset = () => {
   global.applicationStartup.restore();
   global.uuidBootId.restore();
   global.uuidSerialId.restore();
+  global.downloadLogsStub.restore();
 };
 
 after(() => {
