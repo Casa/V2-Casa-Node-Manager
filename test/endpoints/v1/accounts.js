@@ -51,7 +51,7 @@ describe('v1/accounts endpoints', () => {
         });
     });
 
-    it('should check that the issuer in the JWT', done => {
+    it('should check the issuer in the JWT', done => {
       const decoded = jwt.decode(token);
       decoded.id.should.equal('fake_boot_id'); // stubbed in global.js
       done();

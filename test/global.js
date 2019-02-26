@@ -1,6 +1,7 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const sinon = require('sinon');
+var path = require('path');
 
 // manager startup mocks
 require('module-alias/register');
@@ -19,6 +20,10 @@ global.applicationStartup = sinon.stub(require('../logic/application.js'), 'star
   .resolves({});
 global.uuidBootId = sinon.stub(require('../utils/UUID.js'), 'fetchBootUUID')
   .returns('fake_boot_id');
+global.appRoot = path.resolve(__dirname);
+
+const mockLog = global.appRoot + '/fixtures/logs/sample-casa-lightning-node-logs.tar.bz2';
+global.downloadLogsStub = sinon.stub(require('../logic/application.js'), 'downloadLogs').resolves(mockLog);
 
 // require and start app
 const server = require('../app.js');
