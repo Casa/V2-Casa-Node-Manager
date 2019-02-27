@@ -1,8 +1,8 @@
 const whitelist = [
-  'http://casa-node.local', 
-  'http://debug.keys.casa', 
-  'chrome-extension://lnaedehiikghclgaikolambpbpeknpef', 
-  process.env.DEVICE_HOST
+  'http://casa-node.local',
+  'http://debug.keys.casa',
+  'chrome-extension://lnaedehiikghclgaikolambpbpeknpef',
+  process.env.DEVICE_HOST,
 ];
 
 const corsOptions = {
