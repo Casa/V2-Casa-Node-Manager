@@ -48,12 +48,16 @@ describe('v1/settings endpoints', () => {
 
     const dockerCompose = `${__dirname}/../../../logic/docker-compose.js`;
     dockerComposeUpStub = sinon.stub(require(dockerCompose), 'dockerComposeUpSingleService');
+    dockerComposeStopStub = sinon.stub(require(dockerCompose), 'dockerComposeStop');
+    dockerComposeRemoveStub = sinon.stub(require(dockerCompose), 'dockerComposeRemove');
   });
 
   after(() => {
     dockerodeListAllContainers.restore();
     dockerodeListImages.restore();
     dockerComposeUpStub.restore();
+    dockerComposeStopStub.restore();
+    dockerComposeRemoveStub.restore();
     restoreOriginalSettingsFile();
   });
 

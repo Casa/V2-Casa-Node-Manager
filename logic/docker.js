@@ -103,6 +103,26 @@ function getServiceFromImage(image) {
   }
 }
 
+// Do we have an image for the given service on device.
+async function hasImageForService(service) {
+  const images = await dockerService.getImages();
+
+  for (const image of images) {
+    // RepoTags is a nullable array. We have to null check and then loop over each tag.
+    if (image.RepoTags) {
+      for (const tag of image.RepoTags) {
+        // example tag 'casanode/manager:arm'
+        if (tag.split('/')[1].split(':')[0] === service) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+
 // Get the version and updatable status of each running container.
 async function getVersions() {
   const versions = {};
@@ -234,6 +254,7 @@ module.exports = {
   getVersions,
   getVolumeUsage,
   getLogs,
+  hasImageForService,
   stopNonPersistentContainers, // eslint-disable-line id-length
   pruneContainers,
   pruneNetworks,
