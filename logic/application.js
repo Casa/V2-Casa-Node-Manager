@@ -222,18 +222,15 @@ async function saveSettings(settings) {
 
   await diskLogic.writeSettingsFile(newConfig);
 
-  if (isTorNeeded(newConfig)) {
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-  } else {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
-    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
-  }
-
   // Spin up applications
+  await startTorAsNeeded(newConfig);
+
   if (recreateBitcoind) {
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
   }
   if (recreateLnd) {
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
   }
 }
@@ -296,14 +293,21 @@ async function getFilteredVersions() {
   return versions;
 }
 
-// Do we need to spin up a tor container?
-function isTorNeeded(settings) {
-
+// Start Tor as needed otherwise remove the container if it exists.
+async function startTorAsNeeded(settings) {
   if (settings.lnd.tor || settings.bitcoind.tor) {
-    return true;
-  }
 
-  return false;
+    // Pull Tor image if needed
+    if (!await dockerLogic.hasImageForService(constants.SERVICES.TOR)) {
+      await dockerComposeLogic.dockerLoginCasaworker();
+      await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.TOR});
+    }
+
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+  } else {
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
+    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
+  }
 }
 
 // Run startup functions
@@ -362,12 +366,8 @@ async function startup() {
       // clean up old images
       await dockerLogic.pruneImages();
 
-      // Spin up application dependencies
-      if (isTorNeeded(settings)) {
-        await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-      }
-
       // Spin up applications
+      await startTorAsNeeded(settings);
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -467,12 +467,8 @@ async function reset(factoryReset) {
     }
     const settings = await settingsFileIntegrityCheck();
 
-    // Spin up application dependencies
-    if (isTorNeeded(settings)) {
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-    }
-
     // Spin up applications
+    await startTorAsNeeded(settings);
     await startSpaceFleet();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -503,12 +499,8 @@ async function userReset() {
 
     const settings = await settingsFileIntegrityCheck();
 
-    // Spin up application dependencies
-    if (isTorNeeded(settings)) {
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-    }
-
     // Spin up applications
+    await startTorAsNeeded(settings);
     await startSpaceFleet();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
