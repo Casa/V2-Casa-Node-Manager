@@ -40,12 +40,14 @@ async function downloadChain() {
   });
 }
 
-// Checks whether the settings.json file exists, and attempts to create it with default value should it not.
+// Checks whether the settings.json file exists, and attempts to create it with default value should it not. Returns
+// the settings.
 async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
   const defaultConfig = {
     bitcoind: {
       bitcoinNetwork: 'mainnet',
       bitcoindListen: true,
+      tor: false, // Added February 2019
     },
     lnd: {
       chain: 'bitcoin',
@@ -53,6 +55,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
       externalIP: '',
+      tor: false, // Added February 2019
     }
   };
 
@@ -66,11 +69,14 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     await rpcCredIntegrityCheck(defaultConfig);
     await diskLogic.writeSettingsFile(defaultConfig);
 
+    return defaultConfig;
   } else {
     const settings = await diskLogic.readSettingsFile();
 
     await rpcCredIntegrityCheck(settings);
     await diskLogic.writeSettingsFile(settings);
+
+    return settings;
   }
 }
 
@@ -188,6 +194,12 @@ async function saveSettings(settings) {
   var lndSettings = settings['lnd'];
   var bitcoindSettings = settings['bitcoind'];
 
+  // If Tor is active for Lnd, we erase the manually entered externalIP. This results in Lnd only being available over
+  // Tor. This increases privacy by only advertising the onion address.
+  if (lndSettings.tor) {
+    lndSettings.externalIP = '';
+  }
+
   for (const key in lndSettings) {
     if (lndSettings[key] !== undefined) {
       newConfig['lnd'][key] = lndSettings[key];
@@ -210,6 +222,14 @@ async function saveSettings(settings) {
 
   await diskLogic.writeSettingsFile(newConfig);
 
+  if (isTorNeeded(newConfig)) {
+    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+  } else {
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
+    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
+  }
+
+  // Spin up applications
   if (recreateBitcoind) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
   }
@@ -276,6 +296,16 @@ async function getFilteredVersions() {
   return versions;
 }
 
+// Do we need to spin up a tor container?
+function isTorNeeded(settings) {
+
+  if (settings.lnd.tor || settings.bitcoind.tor) {
+    return true;
+  }
+
+  return false;
+}
+
 // Run startup functions
 async function startup() {
 
@@ -283,8 +313,8 @@ async function startup() {
 
   // keep retrying the startup process if there are any errors
   do {
+    const settings = await settingsFileIntegrityCheck();
     try {
-      await settingsFileIntegrityCheck();
       await checkAndUpdateLaunchScript();
 
       // initial setup after a reset or manufacture, force an update.
@@ -332,6 +362,12 @@ async function startup() {
       // clean up old images
       await dockerLogic.pruneImages();
 
+      // Spin up application dependencies
+      if (isTorNeeded(settings)) {
+        await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+      }
+
+      // Spin up applications
       await startSpaceFleet();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -429,7 +465,14 @@ async function reset(factoryReset) {
       await dockerLogic.pruneImages(true);
       await pullAllImages();
     }
-    await settingsFileIntegrityCheck();
+    const settings = await settingsFileIntegrityCheck();
+
+    // Spin up application dependencies
+    if (isTorNeeded(settings)) {
+      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+    }
+
+    // Spin up applications
     await startSpaceFleet();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -458,7 +501,14 @@ async function userReset() {
     await dockerLogic.removeVolume('applications_channel-data');
     await dockerLogic.removeVolume('applications_lnd-data');
 
-    await settingsFileIntegrityCheck();
+    const settings = await settingsFileIntegrityCheck();
+
+    // Spin up application dependencies
+    if (isTorNeeded(settings)) {
+      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+    }
+
+    // Spin up applications
     await startSpaceFleet();
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services

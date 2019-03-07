@@ -9,6 +9,7 @@ module.exports = {
     LIGHTNING_NODE: 'lightning-node.yml',
     LOGSPOUT: 'logspout.yml',
     MANAGER: 'manager.yml',
+    TOR: 'tor.yml',
     WELCOME: 'welcome.yml'
   },
   WORKING_DIRECTORY: '/usr/local/casa/applications',
@@ -30,6 +31,7 @@ module.exports = {
     PAPERTRAIL: 'papertrail',
     SPACE_FLEET: 'space-fleet',
     SYSLOG: 'syslog',
+    TOR: 'tor',
     UPDATE_MANAGER: 'update-manager',
     WELCOME: 'welcome'
   },
