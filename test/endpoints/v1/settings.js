@@ -316,6 +316,71 @@ describe('v1/settings endpoints', () => {
         });
     });
 
+    it('should not save settings if maxChannel or maxChannelSize is too large', done => {
+      const payload = require(`${__dirname}/../../fixtures/settings/settings-original.json`);
+      payload.maxChannels = 50;
+      payload.maxChanSize = 20000000; // 0.2 BTC
+
+      requester
+        .post('/v1/settings/save')
+        .set('authorization', `JWT ${token}`)
+        .send(payload)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+
+          res.should.have.status(500);
+
+          res.should.be.json;
+          res.body.should.be.an('array');
+
+          res.body[0].should.have.property('property');
+          res.body[0].property.should.be.equal('instance.lnd.maxChannels');
+          const maxChannels = res.body[0];
+          maxChannels.should.have.property('message');
+          maxChannels.message.should.equal('must have a maximum value of 40');
+          maxChannels.should.have.property('schema');
+          maxChannels.schema.should.have.property('type');
+          maxChannels.schema.type.should.equal('integer');
+          maxChannels.schema.should.have.property('minimum');
+          maxChannels.schema.minimum.should.equal(0);
+          maxChannels.schema.should.have.property('maximum');
+          maxChannels.schema.maximum.should.equal(40);
+          maxChannels.should.have.property('instance');
+          maxChannels.instance.should.equal(payload.maxChannels);
+          maxChannels.should.have.property('name');
+          maxChannels.name.should.equal('maximum');
+          maxChannels.should.have.property('argument');
+          maxChannels.argument.should.be.an('number');
+          maxChannels.argument.should.equal(40);
+          maxChannels.should.have.property('stack');
+          maxChannels.stack.should.equal('instance.lnd.maxChannels must have a maximum value of 40');
+
+          res.body[1].should.have.property('property');
+          res.body[1].property.should.be.equal('instance.lnd.maxChanSize');
+          const maxChanSize = res.body[1];
+          maxChanSize.should.have.property('message');
+          maxChanSize.message.should.equal('must have a maximum value of 16777216');
+          maxChanSize.should.have.property('schema');
+          maxChanSize.schema.should.have.property('type');
+          maxChanSize.schema.type.should.equal('integer');
+          maxChanSize.schema.should.have.property('maximum');
+          maxChanSize.schema.maximum.should.equal(16777216);
+          maxChanSize.should.have.property('instance');
+          maxChanSize.instance.should.equal(payload.maxChanSize);
+          maxChanSize.should.have.property('name');
+          maxChanSize.name.should.equal('maximum');
+          maxChanSize.should.have.property('argument');
+          maxChanSize.argument.should.be.an('number');
+          maxChanSize.argument.should.equal(16777216);
+          maxChanSize.should.have.property('stack');
+          maxChanSize.stack.should.equal('instance.lnd.maxChanSize must have a maximum value of 16777216');
+
+          done();
+        });
+    });
+
     it('should save new settings', done => {
 
       requester
