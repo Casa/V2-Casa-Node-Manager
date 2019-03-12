@@ -37,8 +37,11 @@ module.exports = {
   },
   TAG: process.env.TAG || 'arm',
   TIME: {
+    THREE_AM: 14,
+    ONE_SECOND_IN_MILLIS: 1000,
     ONE_HOUR_IN_MILLIS: 1 * 60 * 60 * 1000,
     NINETY_MINUTES_IN_MILLIS: 90 * 60 * 1000,
+    HOURS_IN_TWO_DAYS: 47,
   },
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',

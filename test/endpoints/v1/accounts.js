@@ -27,7 +27,19 @@ describe('v1/accounts endpoints', () => {
   let token;
 
   before(async() => {
+
+    const application = `${__dirname}/../../../logic/application.js`;
+    startLndManagementStub = sinon.stub(require(application), 'startLndManagement');
+
     reset();
+  });
+
+  after(() => {
+    startLndManagementStub.restore();
+
+    // Stop all interval services. Otherwise npm test will not exit.
+    const application = `${__dirname}/../../../logic/application.js`;
+    require(application).stopIntervalServices();
   });
 
   describe('v1/accounts/register POST', () => {

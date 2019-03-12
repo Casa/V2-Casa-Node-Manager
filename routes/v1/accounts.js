@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('middlewares/auth.js');
+const applicationLogic = require('logic/application.js');
 const authLogic = require('logic/auth.js');
 const safeHandler = require('utils/safeHandler');
 
@@ -17,7 +18,7 @@ router.post('/register', auth.register, safeHandler((req, res) =>
 ));
 
 router.post('/login', auth.basic, safeHandler((req, res) =>
-  authLogic.login(req.user)
+  applicationLogic.login(req.user)
     .then(jwt => res.json(jwt))
 ));
 

@@ -1,10 +1,12 @@
 /* eslint-disable max-lines */
 
+const authLogic = require('logic/auth.js');
 const dockerComposeLogic = require('logic/docker-compose.js');
 const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
+const lnapiService = require('services/lnapi.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 const schemaValidator = require('utils/settingsSchema.js');
@@ -12,6 +14,12 @@ const md5Check = require('md5-file');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
 const auth = require('logic/auth');
+
+let devicePassword = '';
+let lndManagementInterval = {};
+let lndManagementRunning = false;
+const RETRY_SECONDS = 5;
+const RETRY_ATTEMPTS = 5;
 
 let autoImagePullInterval = {};
 let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled
@@ -232,6 +240,7 @@ async function saveSettings(settings) {
   if (recreateLnd) {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
+    await lndManagement();
   }
 }
 
@@ -446,6 +455,17 @@ async function resyncChain(full, syncFromAWS) {
   }
 }
 
+// Stop all interval services
+function stopIntervalServices() {
+  if (autoImagePullInterval !== {}) {
+    clearInterval(autoImagePullInterval);
+  }
+
+  if (lndManagementInterval !== {}) {
+    clearInterval(lndManagementInterval);
+  }
+}
+
 // Stops all services and removes artifacts that aren't labeled with 'casa=persist'.
 // Remove docker images and pull then again if factory reset.
 async function reset(factoryReset) {
@@ -453,7 +473,7 @@ async function reset(factoryReset) {
     resetSystemStatus();
     systemStatus.resetting = true;
     systemStatus.error = false;
-    clearInterval(autoImagePullInterval);
+    stopIntervalServices();
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
     await dockerLogic.pruneNetworks();
@@ -487,7 +507,7 @@ async function userReset() {
     resetSystemStatus();
     systemStatus.resetting = true;
     systemStatus.error = false;
-    clearInterval(autoImagePullInterval);
+    stopIntervalServices();
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
     await dockerLogic.pruneNetworks();
@@ -650,7 +670,7 @@ async function updateYMLs(outdatedYMLs) {
       await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
     }
 
-    clearInterval(autoImagePullInterval);
+    stopIntervalServices();
     await pullAllImages();
     await startAutoImagePull();
     systemStatus.error = false;
@@ -680,15 +700,110 @@ async function checkAndUpdateLaunchScript() { // eslint-disable-line id-length
   }
 }
 
+// Sleep for a given number of seconds
+function sleepSeconds(seconds) {
+  return new Promise(resolve => {
+    setTimeout(resolve, seconds * constants.TIME.ONE_SECOND_IN_MILLIS);
+  });
+}
+
+function getRandomInt(minimum, maximum) {
+  return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+}
+
+// Start the Lnd Management interval service.
+async function startLndManagement() {
+
+  // Only start lnd management if another instance is not already running.
+  if (lndManagementInterval !== {} || lndManagementRunning) {
+
+    // Run lnd management immediately and then rerun every hour. This makes it more likely that the user skips the
+    // initial login modal for lnd.
+    await lndManagement();
+    lndManagementInterval = setInterval(lndManagement, constants.TIME.ONE_HOUR_IN_MILLIS);
+  }
+}
+
+// Checks to make sure lnd is running then unlocks lnd.
+async function lndManagement() {
+  lndManagementRunning = true;
+
+  try {
+
+    // Check to see if lnd is currently running.
+    if (await dockerLogic.hasRunningService(constants.SERVICES.LND)) {
+
+      // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
+      // we run lnd management every hour, this will average to 1 restart every 24 hours.
+      if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0) {
+        await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
+        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
+      }
+
+      // Make sure we have a valid auth token.
+      const genericUser = {
+        username: 'admin',
+      };
+
+      const jwt = (await authLogic.login(genericUser)).jwt;
+
+      // Unlock lnd via api call. Try up to 5 times. Lnd can fail to unlock if it was just started. It takes a few
+      // seconds to boot up.
+      let attempt = 0;
+      let errorOccurred;
+
+      do {
+        errorOccurred = false;
+        try {
+          attempt++;
+          await lnapiService.unlockLnd(devicePassword, jwt);
+        } catch (error) {
+          errorOccurred = true;
+          logger.error(error.message, 'lnd-management', error.stack);
+          await sleepSeconds(RETRY_SECONDS);
+        }
+
+      } while (errorOccurred && attempt < RETRY_ATTEMPTS);
+
+    }
+
+  } catch (error) {
+    throw error;
+  } finally {
+    lndManagementRunning = false;
+  }
+}
+
+
+async function login(user) {
+  try {
+
+    devicePassword = user.password;
+    const jwt = await authLogic.login(user);
+
+    // Don't wait for lnd management to complete. It takes 10 seconds on a Raspberry Pi 3B+. Running in the background
+    // improves UX.
+    startLndManagement();
+
+    return jwt;
+  } catch (error) {
+    devicePassword = '';
+    throw error;
+  }
+}
+
 module.exports = {
   downloadLogs,
   deleteLogArchives,
   getSerial,
   getSystemStatus,
   getFilteredVersions,
+  login,
   saveSettings,
   shutdown,
+  startLndManagement,
   startup,
+  stopIntervalServices,
   reset,
   resyncChain,
   userReset,
