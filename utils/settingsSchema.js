@@ -113,6 +113,7 @@ const sparseLndSchema = {
     maxChannels: {
       type: 'integer',
       minimum: 0,
+      maximum: 40,
     },
     maxChanSize: {
       type: 'integer',
