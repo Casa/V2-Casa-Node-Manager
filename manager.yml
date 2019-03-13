@@ -27,16 +27,12 @@ services:
       - DISABLE_YML_UPDATE
       - SYSTEM_USER
       - TAG
-    networks:
-      - manager
+    network_mode: host
     labels:
       - casa=persist
     mem_limit: 256m
     memswap_limit: -1 # unlimited access to device swap
     oom_kill_disable: true
-
-networks:
-  manager:
 
 volumes:
   settings:
