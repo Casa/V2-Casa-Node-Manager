@@ -62,7 +62,7 @@ describe('v1/settings endpoints', () => {
     dockerComposeStopStub.restore();
     dockerComposeRemoveStub.restore();
     unlockLndStub.restore();
-    
+
     restoreOriginalSettingsFile();
 
     // Stop all interval services. Otherwise npm test will not exit.

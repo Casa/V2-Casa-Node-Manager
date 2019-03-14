@@ -64,6 +64,7 @@ function addDefaultOptions(options) {
   options.log = true;
   options.env = options.env || {};
   options.env.TAG = constants.TAG;
+  options.env.DEVICE_HOST = process.env.DEVICE_HOST;
 }
 
 async function dockerComposeUp(options) {

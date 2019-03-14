@@ -163,6 +163,7 @@ describe('v1/telemetry endpoints', () => {
           }
           res.should.have.status(200);
           res.should.be.json;
+          console.log(res.body)
 
           res.body.should.have.property('lnd');
           res.body['lnd'].updatable.should.equal(false);
