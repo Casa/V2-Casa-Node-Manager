@@ -253,7 +253,7 @@ async function saveSettings(settings) {
 //
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
-async function startImagePullManagement() {
+async function startImageIntervalService() {
   if (autoImagePullInterval !== {}) {
     autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
   }
@@ -412,7 +412,7 @@ async function startup() {
 }
 
 // Starts the interval service Lan IP Management.
-async function startLanIPManagement() {
+async function startLanIPIntervalService() {
   if (lanIPManagementInterval !== {}) {
     lanIPManagementInterval = setInterval(lanIPManagement, constants.TIME.FIVE_MINUTES_IN_MILLIS);
   }
@@ -516,9 +516,9 @@ async function resyncChain(full, syncFromAWS) {
 
 // Start all interval services.
 async function startIntervalServices() {
-  await startLanIPManagement();
-  await startLndManagement();
-  await startImagePullManagement();
+  await startLanIPIntervalService();
+  await startLndIntervalService();
+  await startImageIntervalService();
 }
 
 // Stop scheduling new interval services. Currently running interval services will still complete.
@@ -736,7 +736,7 @@ function getRandomInt(minimum, maximum) {
 }
 
 // Start the Lnd Management interval service.
-async function startLndManagement() {
+async function startLndIntervalService() {
 
   // Only start lnd management if another instance is not already running.
   if (lndManagementInterval !== {} || lndManagementRunning) {
@@ -780,7 +780,7 @@ async function lndManagement() {
       const jwt = await getJwt();
 
       const currentConfig = await diskLogic.readSettingsFile();
-      const externalIP = (await lnapiService.getPublicIp(jwt)).data.externalIP;
+      const externalIP = (await lnapiService.getExternalIp(jwt)).data.externalIP;
 
       // If an external ip has been set and is not equal to the current external ip and tor is not active. Tor handles
       // external address on its own.
@@ -853,7 +853,7 @@ module.exports = {
   login,
   saveSettings,
   shutdown,
-  startLndManagement,
+  startLndIntervalService,
   startup,
   stopIntervalServices,
   reset,

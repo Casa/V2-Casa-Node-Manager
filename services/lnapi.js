@@ -18,7 +18,7 @@ async function unlockLnd(password, jwt) {
     .post(lnapiUrl + ':' + lnapiPort + '/v1/lnd/wallet/unlock', body, headers);
 }
 
-async function getPublicIp(jwt) {
+async function getExternalIp(jwt) {
 
   const headers = {
     headers: {
@@ -32,5 +32,5 @@ async function getPublicIp(jwt) {
 
 module.exports = {
   unlockLnd,
-  getPublicIp,
+  getExternalIp,
 };

@@ -29,7 +29,7 @@ describe('v1/accounts endpoints', () => {
   before(async() => {
 
     const application = `${__dirname}/../../../logic/application.js`;
-    startLndManagementStub = sinon.stub(require(application), 'startLndManagement');
+    startLndManagementStub = sinon.stub(require(application), 'startLndIntervalService');
     postAxiosStub = sinon.stub(require('axios'), 'post');
 
     reset();
