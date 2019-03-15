@@ -780,11 +780,15 @@ async function lndManagement() {
       const jwt = await getJwt();
 
       const currentConfig = await diskLogic.readSettingsFile();
-      const publicIp = (await lnapiService.getPublicIp(jwt)).data.externalIP;
+      const externalIP = (await lnapiService.getPublicIp(jwt)).data.externalIP;
 
-      // ExternalIP === '' when not being used
-      if (currentConfig.externalIP !== '' && currentConfig.externalIP !== publicIp) {
-        currentConfig.externalIP = publicIp;
+      // If an external ip has been set and is not equal to the current external ip and tor is not active. Tor handles
+      // external address on its own.
+      if (currentConfig.externalIP !== ''
+        && currentConfig.externalIP !== externalIP
+        && !currentConfig.lnd.tor) {
+
+        currentConfig.externalIP = externalIP;
         await saveSettings(currentConfig);
 
       // Generate a random number between 0 and 47. This will average out to 24. Since
