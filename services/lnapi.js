@@ -18,6 +18,19 @@ async function unlockLnd(password, jwt) {
     .post(lnapiUrl + ':' + lnapiPort + '/v1/lnd/wallet/unlock', body, headers);
 }
 
+async function getPublicIp(jwt) {
+
+  const headers = {
+    headers: {
+      Authorization: 'JWT ' + jwt
+    }
+  };
+
+  return axios
+    .get(lnapiUrl + ':' + lnapiPort + '/v1/bitcoind/info/ip', headers);
+}
+
 module.exports = {
   unlockLnd,
+  getPublicIp,
 };

@@ -243,7 +243,7 @@ async function saveSettings(settings) {
   if (recreateLnd) {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-    await lndManagement();
+    await unlockLnd();
   }
 }
 
@@ -255,10 +255,13 @@ async function saveSettings(settings) {
 //
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
-async function startAutoImagePull() {
-  autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+async function startImagePullManagement() {
+  if (autoImagePullInterval !== {}) {
+    autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+  }
 }
 
+// Pull all docker images from docker hub.
 async function pullAllImages() {
   pullingImages = true;
 
@@ -396,7 +399,8 @@ async function startup() {
       await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-      await startAutoImagePull(); // handles docker logout
+
+      await startIntervalServices();
 
       errorThrown = false;
     } catch (error) {
@@ -407,7 +411,6 @@ async function startup() {
     }
   } while (errorThrown);
 
-  await startLanIPManagement();
 }
 
 // Starts the interval service Lan IP Management.
@@ -513,7 +516,14 @@ async function resyncChain(full, syncFromAWS) {
   }
 }
 
-// Stop all interval services
+// Start all interval services.
+async function startIntervalServices() {
+  await startLanIPManagement();
+  await startLndManagement();
+  await startImagePullManagement();
+}
+
+// Stop scheduling new interval services. Currently running interval services will still complete.
 function stopIntervalServices() {
   if (autoImagePullInterval !== {}) {
     clearInterval(autoImagePullInterval);
@@ -557,7 +567,7 @@ async function reset(factoryReset) {
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startAutoImagePull();
+    await startIntervalServices();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -589,7 +599,7 @@ async function userReset() {
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startAutoImagePull();
+    await startIntervalServices();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -725,7 +735,6 @@ async function updateYMLs(outdatedYMLs) {
 
     stopIntervalServices();
     await pullAllImages();
-    await startAutoImagePull();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -760,6 +769,7 @@ function sleepSeconds(seconds) {
   });
 }
 
+// Get a random int.
 function getRandomInt(minimum, maximum) {
   return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 }
@@ -777,8 +787,27 @@ async function startLndManagement() {
   }
 }
 
-// Checks to make sure lnd is running then unlocks lnd.
+// Get a new valid jwt token.
+async function getJwt() {
+  const genericUser = {
+    username: 'admin',
+  };
+
+  return (await authLogic.login(genericUser)).jwt;
+}
+
+// Keeps lnd unlocked and up to date with the most accurate external ip.
 async function lndManagement() {
+
+  // If this service is already running, do not run a second instance.
+  if (lndManagementRunning) {
+    return;
+  }
+
+  if (!devicePassword) {
+    return;
+  }
+
   lndManagementRunning = true;
 
   try {
@@ -786,41 +815,25 @@ async function lndManagement() {
     // Check to see if lnd is currently running.
     if (await dockerLogic.hasRunningService(constants.SERVICES.LND)) {
 
-      // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
+      // Make sure we have a valid auth token.
+      const jwt = await getJwt();
+
+      const currentConfig = await diskLogic.readSettingsFile();
+      const publicIp = (await lnapiService.getPublicIp(jwt)).data.externalIP;
+
+      // ExternalIP === '' when not being used
+      if (currentConfig.externalIP !== '' && currentConfig.externalIP !== publicIp) {
+        currentConfig.externalIP = publicIp;
+        await saveSettings(currentConfig);
+
+      // Generate a random number between 0 and 47. This will average out to 24. Since
       // we run lnd management every hour, this will average to 1 restart every 24 hours.
       //
-      // TODO should not recreate if a new version is available
-      if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0) {
-        await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
-        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
+      // We restart lnd instead of recreated it to avoid recreating the newest image on device.
+      } else if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0) {
+        await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
+        await unlockLnd(jwt);
       }
-
-      // Make sure we have a valid auth token.
-      const genericUser = {
-        username: 'admin',
-      };
-
-      const jwt = (await authLogic.login(genericUser)).jwt;
-
-      // Unlock lnd via api call. Try up to 5 times. Lnd can fail to unlock if it was just started. It takes a few
-      // seconds to boot up.
-      let attempt = 0;
-      let errorOccurred;
-
-      do {
-        errorOccurred = false;
-        try {
-          attempt++;
-          await lnapiService.unlockLnd(devicePassword, jwt);
-        } catch (error) {
-          errorOccurred = true;
-          logger.error(error.message, 'lnd-management', error.stack);
-
-          await sleepSeconds(RETRY_SECONDS);
-        }
-
-      } while (errorOccurred && attempt < RETRY_ATTEMPTS);
-
     }
 
   } catch (error) {
@@ -830,6 +843,26 @@ async function lndManagement() {
   }
 }
 
+async function unlockLnd(jwt) {
+  // Unlock lnd via api call. Try up to 5 times. Lnd can fail to unlock if it was just started. It takes a few
+  // seconds to boot up on a Raspberry pi 3B+.
+  let attempt = 0;
+  let errorOccurred;
+
+  do {
+    errorOccurred = false;
+    try {
+      attempt++;
+      await lnapiService.unlockLnd(devicePassword, jwt);
+    } catch (error) {
+      errorOccurred = true;
+      logger.error(error.message, 'lnd-management', error.stack);
+
+      await sleepSeconds(RETRY_SECONDS);
+    }
+
+  } while (errorOccurred && attempt < RETRY_ATTEMPTS);
+}
 
 async function login(user) {
   try {
@@ -839,7 +872,7 @@ async function login(user) {
 
     // Don't wait for lnd management to complete. It takes 10 seconds on a Raspberry Pi 3B+. Running in the background
     // improves UX.
-    startLndManagement();
+    unlockLnd(jwt.jwt);
 
     return jwt;
   } catch (error) {

@@ -138,38 +138,29 @@ async function dockerComposePullAll() {
   await dockerLogout();
 }
 
-function dockerComposeStop(options = {}) {
-  var deferred = q.defer();
-
-  const file = composeFile(options);
-  const service = options.service;
-  addDefaultOptions(options);
-
-  var composeOptions = ['-f', file, 'stop', '-t', DOCKER_TIMEOUT_SECONDS, service];
-
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
+// Stop a docker container.
+async function dockerComposeStop(options = {}) {
+  return await dockerCompose(options, ['stop', '-t', DOCKER_TIMEOUT_SECONDS]);
 }
 
-function dockerComposeRemove(options = {}) {
+// Remove a stopped docker container.
+async function dockerComposeRemove(options = {}) {
+  return await dockerCompose(options, ['rm', '-f']);
+}
+
+// Restart a docker container.
+async function dockerComposeRestart(options = {}) {
+  return await dockerCompose(options, ['restart', '-t', DOCKER_TIMEOUT_SECONDS]);
+}
+
+function dockerCompose(options = {}, uniqueComposeOptions) {
   var deferred = q.defer();
 
   const file = composeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
-  var composeOptions = ['-f', file, 'rm', '-f', service];
+  var composeOptions = ['-f', file].concat(uniqueComposeOptions).concat([service]);
 
   function handleSuccess() {
     deferred.resolve();
@@ -271,7 +262,7 @@ module.exports = {
   dockerComposePullAll,
   dockerComposeStop,
   dockerComposeRemove,
+  dockerComposeRestart,
   dockerComposeUpSingleService, // eslint-disable-line id-length
   dockerLoginCasaworker,
-  dockerLogout,
 };
