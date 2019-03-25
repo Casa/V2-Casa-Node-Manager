@@ -128,7 +128,7 @@ async function hasImageForService(service) {
 }
 
 // Returns true if the given service is currently running.
-async function hasRunningService(serviceToFind) {
+async function isRunningService(serviceToFind) {
   const containers = await getAllContainers();
 
   for (const container of containers) {
@@ -270,7 +270,7 @@ module.exports = {
   getVolumeUsage,
   getLogs,
   hasImageForService,
-  hasRunningService,
+  isRunningService,
   stopNonPersistentContainers, // eslint-disable-line id-length
   pruneContainers,
   pruneNetworks,
