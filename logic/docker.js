@@ -128,14 +128,14 @@ async function hasImageForService(service) {
 }
 
 // Returns true if the given service is currently running.
-async function isRunningService(serviceToFind) {
+async function isRunningService(service) {
   const containers = await getAllContainers();
 
   for (const container of containers) {
-    const service = container['Labels']['com.docker.compose.service'];
+    const dockerComposeService = container['Labels']['com.docker.compose.service'];
     const containerImage = container['Image'];
 
-    if (getServiceFromImage(containerImage, service) === serviceToFind) {
+    if (getServiceFromImage(containerImage, dockerComposeService) === service) {
       return true;
     }
   }
