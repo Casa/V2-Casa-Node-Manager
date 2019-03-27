@@ -11,26 +11,32 @@ const LNNodeError = require('models/errors.js').NodeError;
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 const schemaValidator = require('utils/settingsSchema.js');
 const md5Check = require('md5-file');
+const ipAddressUtil = require('utils/ipAddress.js');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
 const auth = require('logic/auth');
 
+let lanIPManagementInterval = {};
+let ipManagementRunning = false;
+
 let devicePassword = '';
 let lndManagementInterval = {};
 let lndManagementRunning = false;
+let repsSinceLndRestart = 0;
+
+const MIN_REPS_BEFORE_RESTART = 6;
 const RETRY_SECONDS = 5;
 const RETRY_ATTEMPTS = 5;
 
-let autoImagePullInterval = {};
-let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled
+let lastJwtCreation;
 
+let autoImagePullInterval = {};
+let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
 let pullingImages = false; // Is the manager currently pulling images
 
 let systemStatus;
 resetSystemStatus();
 
-const logArchiveLocalPath = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE;
-const logArchiveLocalPathTemp = constants.WORKING_DIRECTORY + '/' + constants.NODE_LOG_ARCHIVE_TEMP;
 const MAX_RESYNC_ATTEMPTS = 5;
 
 function resetSystemStatus() {
@@ -240,7 +246,7 @@ async function saveSettings(settings) {
   if (recreateLnd) {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-    await lndManagement();
+    await unlockLnd();
   }
 }
 
@@ -252,10 +258,13 @@ async function saveSettings(settings) {
 //
 // Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
 // we release to make sure it does not put over load the pi.
-async function startAutoImagePull() {
-  autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+async function startImageIntervalService() {
+  if (autoImagePullInterval !== {}) {
+    autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+  }
 }
 
+// Pull all docker images from docker hub.
 async function pullAllImages() {
   pullingImages = true;
 
@@ -291,11 +300,17 @@ async function getFilteredVersions() {
   const now = new Date().getTime();
   const elapsedTime = now - lastImagePulled;
 
-  if (elapsedTime < constants.TIME.ONE_HOUR_IN_MILLIS || pullingImages) {
-    for (const version in versions) {
-      if (Object.prototype.hasOwnProperty.call(versions, version)) {
+  for (const version in versions) {
+    if (Object.prototype.hasOwnProperty.call(versions, version)) {
+      let filtered = false;
+
+      if (elapsedTime < constants.TIME.NINETY_MINUTES_IN_MILLIS || pullingImages) {
+        filtered = true;
         versions[version].updatable = false;
       }
+
+      // Return the fact that all services are being filtered.
+      versions[version].filtered = filtered;
     }
   }
 
@@ -329,6 +344,13 @@ async function startup() {
     const settings = await settingsFileIntegrityCheck();
     try {
       await checkAndUpdateLaunchScript();
+
+      const ipv4 = ipAddressUtil.getLanIPAddress();
+      if (ipv4) {
+        process.env.DEVICE_HOST = ipv4;
+      } else {
+        throw new Error('No ipv4 address available. Plug in ethernet.');
+      }
 
       // initial setup after a reset or manufacture, force an update.
       const firstBoot = await auth.isRegistered();
@@ -377,24 +399,66 @@ async function startup() {
 
       // Spin up applications
       await startTorAsNeeded(settings);
-      await startSpaceFleet();
+      await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-      await startAutoImagePull(); // handles docker logout
+
+      await startIntervalServices();
 
       errorThrown = false;
     } catch (error) {
       errorThrown = true;
       logger.error(error.message, error.stack);
+
+      await sleepSeconds(RETRY_SECONDS);
     }
   } while (errorThrown);
+
 }
 
-// Set the host device-host and restart space-fleet
-async function startSpaceFleet() {
-  await dockerComposeLogic.dockerLoginCasaworker();
-  await runDeviceHost();
-  await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
+// Starts the interval service Lan IP Management.
+async function startLanIPIntervalService() {
+  if (lanIPManagementInterval !== {}) {
+    lanIPManagementInterval = setInterval(lanIPManagement, constants.TIME.FIVE_MINUTES_IN_MILLIS);
+  }
+}
+
+// If the lan ip address has changed, we need to recreate most services. In the future it
+// would be ideal if we could update the dependencies without having to recreate them.
+async function lanIPManagement() {
+
+  // If this service is already running, do not run a second instance.
+  if (ipManagementRunning) {
+    return;
+  }
+
+  ipManagementRunning = true;
+
+  try {
+    const newDeviceHost = ipAddressUtil.getLanIPAddress();
+
+    if (process.env.DEVICE_HOST !== newDeviceHost) {
+
+      // When we recreate services, they are automatically updated to the most recent image on device. This
+      // could cause compatibility issues if we are auto currently pulling images or we have only pull half of all the
+      // images that are needed for a full update. To get around this, we will only restart and fix the ip problem if
+      // images are not being filtered.
+      //
+      // The consequence of this is that if a node downloads images at the same time the node lan ip address changes,
+      // this service will not resolved the issue until the versions are not being filtered and this service runs again.
+      // Today, versions are filtered for 90 minutes and then it could be an additional hour for this service to run
+      // again.
+      const versions = await getFilteredVersions();
+
+      if (!versions[constants.SERVICES.MANAGER].filtered) {
+        await startup();
+      }
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    ipManagementRunning = false;
+  }
 }
 
 // Removes the bitcoind chain if full is true and optionally resync it from Casa's aws server.
@@ -455,14 +519,28 @@ async function resyncChain(full, syncFromAWS) {
   }
 }
 
-// Stop all interval services
+// Start all interval services.
+async function startIntervalServices() {
+  await startLanIPIntervalService();
+  await startLndIntervalService();
+  await startImageIntervalService();
+}
+
+// Stop scheduling new interval services. Currently running interval services will still complete.
 function stopIntervalServices() {
   if (autoImagePullInterval !== {}) {
     clearInterval(autoImagePullInterval);
+    autoImagePullInterval = {};
   }
 
   if (lndManagementInterval !== {}) {
     clearInterval(lndManagementInterval);
+    lndManagementInterval = {};
+  }
+
+  if (lanIPManagementInterval !== {}) {
+    clearInterval(lanIPManagementInterval);
+    lanIPManagementInterval = {};
   }
 }
 
@@ -489,14 +567,14 @@ async function reset(factoryReset) {
 
     // Spin up applications
     await startTorAsNeeded(settings);
-    await startSpaceFleet();
+    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startAutoImagePull();
+    await startIntervalServices();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
-    await startSpaceFleet();
+    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
   } finally {
     systemStatus.resetting = false;
   }
@@ -521,29 +599,17 @@ async function userReset() {
 
     // Spin up applications
     await startTorAsNeeded(settings);
-    await startSpaceFleet();
+    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startAutoImagePull();
+    await startIntervalServices();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
-    await startSpaceFleet();
+    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
   } finally {
     systemStatus.resetting = false;
   }
-}
-
-// Update .env with new host IP.
-async function runDeviceHost() {
-  const options = {
-    attached: true,
-    service: constants.SERVICES.DEVICE_HOST,
-  };
-
-  await dockerComposeLogic.dockerComposePull(options);
-  await dockerComposeLogic.dockerComposeUpSingleService(options);
-  await dockerComposeLogic.dockerComposeRemove(options);
 }
 
 // Puts the device in a state where it is safe to unplug the power. Currently, we shutdown lnd and bitcoind
@@ -592,43 +658,6 @@ async function wipeSettingsVolume() {
   await bashService.exec('rm', ['-f', 'settings.json'], options);
 }
 
-// Launch docker container which will tar logs.
-async function downloadLogs() {
-  const logArchiveBackupPath = '/backup/' + constants.NODE_LOG_ARCHIVE_TEMP;
-
-  const backUpCommandOptions = [
-    'run',
-    '--rm',
-    '-v', 'applications_logs:/logs',
-    '-v', constants.WORKING_DIRECTORY.concat(':/backup'),
-    'alpine',
-    'tar', '-cjf', logArchiveBackupPath, '-C', '/logs', './'
-  ];
-
-  await bashService.exec('docker', backUpCommandOptions, {});
-
-  const gpgCommandOptions = [
-    '--batch', '--yes', // allow overwriting.
-    '--output', logArchiveLocalPath,
-    '-r', constants.NODE_LOG_ARCHIVE_GPG_RECIPIENT,
-    '--trust-model', 'always', // TODO: Can we register our GPG public key with some CA?
-    '--encrypt', logArchiveLocalPathTemp
-  ];
-
-  await bashService.exec('gpg', gpgCommandOptions, {});
-
-  return logArchiveLocalPath;
-}
-
-// Remove log archive.
-function deleteLogArchives() {
-  const options = {
-    cwd: constants.WORKING_DIRECTORY
-  };
-
-  bashService.exec('rm', ['-f', logArchiveLocalPath, logArchiveLocalPathTemp], options);
-}
-
 // Compare known compose files, except manager.yml, with on-device YMLs.
 // The manager should have the latest YMLs.
 async function checkYMLs() {
@@ -672,7 +701,6 @@ async function updateYMLs(outdatedYMLs) {
 
     stopIntervalServices();
     await pullAllImages();
-    await startAutoImagePull();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -707,12 +735,13 @@ function sleepSeconds(seconds) {
   });
 }
 
+// Get a random int.
 function getRandomInt(minimum, maximum) {
   return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 }
 
 // Start the Lnd Management interval service.
-async function startLndManagement() {
+async function startLndIntervalService() {
 
   // Only start lnd management if another instance is not already running.
   if (lndManagementInterval !== {} || lndManagementRunning) {
@@ -724,47 +753,78 @@ async function startLndManagement() {
   }
 }
 
-// Checks to make sure lnd is running then unlocks lnd.
+// Restart Lnd if the appropriate criteria is met. We do this to help solve memory issue created by lnd.
+async function restartLndAsNeeded(jwt) {
+
+  // Don't restart if jwt was created in the last hour.
+  if ((new Date().getTime() - lastJwtCreation) < constants.TIME.ONE_HOUR_IN_MILLIS) { // eslint-disable-line no-extra-parens
+    return;
+  }
+
+  // Don't restart if a restart already happened recently
+  if (repsSinceLndRestart < MIN_REPS_BEFORE_RESTART) {
+    return;
+  }
+
+  // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
+  // we run lnd management every hour, this will average to 1 restart every 24 hours.
+  if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0
+      || repsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
+
+    await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
+    await unlockLnd(jwt);
+
+    repsSinceLndRestart = 0;
+  }
+}
+
+// Get a new valid jwt token.
+async function getJwt() {
+  const genericUser = {
+    username: 'admin',
+  };
+
+  return (await authLogic.login(genericUser)).jwt;
+}
+
+// Keeps lnd unlocked and up to date with the most accurate external ip.
 async function lndManagement() {
+
+  // If this service is already running, do not run a second instance.
+  if (lndManagementRunning) {
+    return;
+  }
+
+  if (!devicePassword) {
+    return;
+  }
+
   lndManagementRunning = true;
+  repsSinceLndRestart++;
 
   try {
 
     // Check to see if lnd is currently running.
-    if (await dockerLogic.hasRunningService(constants.SERVICES.LND)) {
-
-      // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
-      // we run lnd management every hour, this will average to 1 restart every 24 hours.
-      if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0) {
-        await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
-        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-      }
+    if (await dockerLogic.isRunningService(constants.SERVICES.LND)) {
 
       // Make sure we have a valid auth token.
-      const genericUser = {
-        username: 'admin',
-      };
+      const jwt = await getJwt();
 
-      const jwt = (await authLogic.login(genericUser)).jwt;
+      const currentConfig = await diskLogic.readSettingsFile();
+      const externalIP = (await lnapiService.getExternalIp(jwt)).data.externalIP;
 
-      // Unlock lnd via api call. Try up to 5 times. Lnd can fail to unlock if it was just started. It takes a few
-      // seconds to boot up.
-      let attempt = 0;
-      let errorOccurred;
+      // If an external ip has been set and is not equal to the current external ip and tor is not active. Tor handles
+      // external address on its own.
+      if (currentConfig.externalIP !== ''
+        && currentConfig.externalIP !== externalIP
+        && !currentConfig.lnd.tor) {
 
-      do {
-        errorOccurred = false;
-        try {
-          attempt++;
-          await lnapiService.unlockLnd(devicePassword, jwt);
-        } catch (error) {
-          errorOccurred = true;
-          logger.error(error.message, 'lnd-management', error.stack);
-          await sleepSeconds(RETRY_SECONDS);
-        }
+        currentConfig.externalIP = externalIP;
+        await saveSettings(currentConfig);
 
-      } while (errorOccurred && attempt < RETRY_ATTEMPTS);
-
+      } else {
+        await restartLndAsNeeded(jwt);
+      }
     }
 
   } catch (error) {
@@ -774,6 +834,26 @@ async function lndManagement() {
   }
 }
 
+async function unlockLnd(jwt) {
+  // Unlock lnd via api call. Try up to 5 times. Lnd can fail to unlock if it was just started. It takes a few
+  // seconds to boot up on a Raspberry pi 3B+.
+  let attempt = 0;
+  let errorOccurred;
+
+  do {
+    errorOccurred = false;
+    try {
+      attempt++;
+      await lnapiService.unlockLnd(devicePassword, jwt);
+    } catch (error) {
+      errorOccurred = true;
+      logger.error(error.message, 'lnd-management', error.stack);
+
+      await sleepSeconds(RETRY_SECONDS);
+    }
+
+  } while (errorOccurred && attempt < RETRY_ATTEMPTS);
+}
 
 async function login(user) {
   try {
@@ -783,7 +863,9 @@ async function login(user) {
 
     // Don't wait for lnd management to complete. It takes 10 seconds on a Raspberry Pi 3B+. Running in the background
     // improves UX.
-    startLndManagement();
+    unlockLnd(jwt.jwt);
+
+    lastJwtCreation = new Date().getTime();
 
     return jwt;
   } catch (error) {
@@ -792,20 +874,26 @@ async function login(user) {
   }
 }
 
+async function refresh(user) {
+
+  lastJwtCreation = new Date().getTime();
+
+  return await authLogic.refresh(user);
+}
+
 module.exports = {
-  downloadLogs,
-  deleteLogArchives,
   getSerial,
   getSystemStatus,
   getFilteredVersions,
   login,
   saveSettings,
   shutdown,
-  startLndManagement,
+  startLndIntervalService,
   startup,
   stopIntervalServices,
   reset,
   resyncChain,
+  refresh,
   userReset,
   update,
 };

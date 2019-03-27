@@ -64,6 +64,7 @@ function addDefaultOptions(options) {
   options.log = true;
   options.env = options.env || {};
   options.env.TAG = constants.TAG;
+  options.env.DEVICE_HOST = process.env.DEVICE_HOST;
 }
 
 async function dockerComposeUp(options) {
@@ -137,6 +138,7 @@ async function dockerComposePullAll() {
   await dockerLogout();
 }
 
+// Stop a docker container.
 function dockerComposeStop(options = {}) {
   var deferred = q.defer();
 
@@ -161,6 +163,7 @@ function dockerComposeStop(options = {}) {
   return deferred.promise;
 }
 
+// Remove a stopped docker container.
 function dockerComposeRemove(options = {}) {
   var deferred = q.defer();
 
@@ -169,6 +172,31 @@ function dockerComposeRemove(options = {}) {
   addDefaultOptions(options);
 
   var composeOptions = ['-f', file, 'rm', '-f', service];
+
+  function handleSuccess() {
+    deferred.resolve();
+  }
+
+  function handleError(error) {
+    deferred.reject(error);
+  }
+
+  bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options)
+    .then(handleSuccess)
+    .catch(handleError);
+
+  return deferred.promise;
+}
+
+// Restart a docker container.
+function dockerComposeRestart(options = {}) {
+  var deferred = q.defer();
+
+  const file = composeFile(options);
+  const service = options.service;
+  addDefaultOptions(options);
+
+  var composeOptions = ['-f', file, 'restart', '-t', DOCKER_TIMEOUT_SECONDS, service];
 
   function handleSuccess() {
     deferred.resolve();
@@ -270,7 +298,7 @@ module.exports = {
   dockerComposePullAll,
   dockerComposeStop,
   dockerComposeRemove,
+  dockerComposeRestart,
   dockerComposeUpSingleService, // eslint-disable-line id-length
   dockerLoginCasaworker,
-  dockerLogout,
 };
