@@ -118,6 +118,8 @@ describe('v1/settings endpoints', () => {
           res.body.bitcoind.bitcoinNetwork.should.equal('mainnet');
           res.body.bitcoind.should.have.property('bitcoindListen');
           res.body.bitcoind.bitcoindListen.should.equal(true);
+          res.body.bitcoind.should.have.property('bitcoindPort');
+          res.body.bitcoind.bitcoindPort.should.equal(8333);
           res.body.should.have.property('lnd');
           res.body.lnd.should.have.property('chain');
           res.body.lnd.chain.should.equal('bitcoin');
@@ -191,25 +193,43 @@ describe('v1/settings endpoints', () => {
 
           res.body[1].should.have.property('property');
           res.body[1].property.should.be.equal('instance.bitcoind.bitcoindListen');
-          const bitciondListen = res.body[1];
-          bitciondListen.should.have.property('message');
-          bitciondListen.message.should.equal('is not of a type(s) boolean');
-          bitciondListen.should.have.property('schema');
-          bitciondListen.schema.should.have.property('type');
-          bitciondListen.schema.type.should.equal('boolean');
-          bitciondListen.should.have.property('instance');
-          bitciondListen.instance.should.equal('true');
-          bitciondListen.should.have.property('name');
-          bitciondListen.name.should.equal('type');
-          bitciondListen.should.have.property('argument');
-          bitciondListen.argument.should.be.an('array');
-          bitciondListen.argument[0].should.equal('boolean');
-          bitciondListen.should.have.property('stack');
-          bitciondListen.stack.should.equal('instance.bitcoind.bitcoindListen is not of a type(s) boolean');
+          const bitcoindListen = res.body[1];
+          bitcoindListen.should.have.property('message');
+          bitcoindListen.message.should.equal('is not of a type(s) boolean');
+          bitcoindListen.should.have.property('schema');
+          bitcoindListen.schema.should.have.property('type');
+          bitcoindListen.schema.type.should.equal('boolean');
+          bitcoindListen.should.have.property('instance');
+          bitcoindListen.instance.should.equal('true');
+          bitcoindListen.should.have.property('name');
+          bitcoindListen.name.should.equal('type');
+          bitcoindListen.should.have.property('argument');
+          bitcoindListen.argument.should.be.an('array');
+          bitcoindListen.argument[0].should.equal('boolean');
+          bitcoindListen.should.have.property('stack');
+          bitcoindListen.stack.should.equal('instance.bitcoind.bitcoindListen is not of a type(s) boolean');
 
           res.body[2].should.have.property('property');
-          res.body[2].property.should.be.equal('instance.lnd.lndNetwork');
-          const lndNetwork = res.body[2];
+          res.body[2].property.should.be.equal('instance.bitcoind.bitcoindPort');
+          const bitcoindPort = res.body[2];
+          bitcoindPort.should.have.property('message');
+          bitcoindPort.message.should.equal('is not of a type(s) integer');
+          bitcoindPort.should.have.property('schema');
+          bitcoindPort.schema.should.have.property('type');
+          bitcoindPort.schema.type.should.equal('integer');
+          bitcoindPort.should.have.property('instance');
+          bitcoindPort.instance.should.equal('8333');
+          bitcoindPort.should.have.property('name');
+          bitcoindPort.name.should.equal('type');
+          bitcoindPort.should.have.property('argument');
+          bitcoindPort.argument.should.be.an('array');
+          bitcoindPort.argument[0].should.equal('integer');
+          bitcoindPort.should.have.property('stack');
+          bitcoindPort.stack.should.equal('instance.bitcoind.bitcoindPort is not of a type(s) integer');
+
+          res.body[3].should.have.property('property');
+          res.body[3].property.should.be.equal('instance.lnd.lndNetwork');
+          const lndNetwork = res.body[3];
           lndNetwork.should.have.property('message');
           lndNetwork.message.should.equal('is not one of enum values: testnet,mainnet');
           lndNetwork.should.have.property('schema');
@@ -225,9 +245,9 @@ describe('v1/settings endpoints', () => {
           lndNetwork.should.have.property('stack');
           lndNetwork.stack.should.equal('instance.lnd.lndNetwork is not one of enum values: testnet,mainnet');
 
-          res.body[3].should.have.property('property');
-          res.body[3].property.should.be.equal('instance.lnd.lndNodeAlias');
-          const lndNodeAlias = res.body[3];
+          res.body[4].should.have.property('property');
+          res.body[4].property.should.be.equal('instance.lnd.lndNodeAlias');
+          const lndNodeAlias = res.body[4];
           lndNodeAlias.should.have.property('message');
           lndNodeAlias.message.should.equal('is not of a type(s) string');
           lndNodeAlias.should.have.property('schema');
@@ -245,9 +265,9 @@ describe('v1/settings endpoints', () => {
           lndNodeAlias.should.have.property('stack');
           lndNodeAlias.stack.should.equal('instance.lnd.lndNodeAlias is not of a type(s) string');
 
-          res.body[4].should.have.property('property');
-          res.body[4].property.should.be.equal('instance.lnd.autopilot');
-          const autopilot = res.body[4];
+          res.body[5].should.have.property('property');
+          res.body[5].property.should.be.equal('instance.lnd.autopilot');
+          const autopilot = res.body[5];
           autopilot.should.have.property('message');
           autopilot.message.should.equal('is not of a type(s) boolean');
           autopilot.should.have.property('schema');
@@ -263,9 +283,9 @@ describe('v1/settings endpoints', () => {
           autopilot.should.have.property('stack');
           autopilot.stack.should.equal('instance.lnd.autopilot is not of a type(s) boolean');
 
-          res.body[5].should.have.property('property');
-          res.body[5].property.should.be.equal('instance.lnd.maxChannels');
-          const maxChannels = res.body[5];
+          res.body[6].should.have.property('property');
+          res.body[6].property.should.be.equal('instance.lnd.maxChannels');
+          const maxChannels = res.body[6];
           maxChannels.should.have.property('message');
           maxChannels.message.should.equal('is not of a type(s) integer');
           maxChannels.should.have.property('schema');
@@ -283,9 +303,9 @@ describe('v1/settings endpoints', () => {
           maxChannels.should.have.property('stack');
           maxChannels.stack.should.equal('instance.lnd.maxChannels is not of a type(s) integer');
 
-          res.body[6].should.have.property('property');
-          res.body[6].property.should.be.equal('instance.lnd.maxChanSize');
-          const maxChanSize = res.body[6];
+          res.body[7].should.have.property('property');
+          res.body[7].property.should.be.equal('instance.lnd.maxChanSize');
+          const maxChanSize = res.body[7];
           maxChanSize.should.have.property('message');
           maxChanSize.message.should.equal('is not of a type(s) integer');
           maxChanSize.should.have.property('schema');
@@ -303,9 +323,9 @@ describe('v1/settings endpoints', () => {
           maxChanSize.should.have.property('stack');
           maxChanSize.stack.should.equal('instance.lnd.maxChanSize is not of a type(s) integer');
 
-          res.body[7].should.have.property('property');
-          res.body[7].property.should.be.equal('instance.lnd.externalIP');
-          const externalIP = res.body[7];
+          res.body[8].should.have.property('property');
+          res.body[8].property.should.be.equal('instance.lnd.externalIP');
+          const externalIP = res.body[8];
           externalIP.should.have.property('message');
           externalIP.message.should.equal('is not of a type(s) string');
           externalIP.should.have.property('schema');
@@ -358,6 +378,8 @@ describe('v1/settings endpoints', () => {
           res.body.bitcoind.bitcoinNetwork.should.equal('testnet');
           res.body.bitcoind.should.have.property('bitcoindListen');
           res.body.bitcoind.bitcoindListen.should.equal(true);
+          res.body.bitcoind.should.have.property('bitcoindPort');
+          res.body.bitcoind.bitcoindPort.should.equal(8335);
 
           res.body.should.have.property('lnd');
           res.body.lnd.should.have.property('chain');
