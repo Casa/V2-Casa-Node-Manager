@@ -23,7 +23,7 @@ global.uuidBootId = sinon.stub(require('../utils/UUID.js'), 'fetchBootUUID')
 global.appRoot = path.resolve(__dirname);
 
 const mockLog = global.appRoot + '/fixtures/logs/sample-casa-lightning-node-logs.tar.bz2';
-global.downloadLogsStub = sinon.stub(require('../logic/application.js'), 'downloadLogs').resolves(mockLog);
+global.downloadLogsStub = sinon.stub(require('../logic/logs.js'), 'downloadLogs').resolves(mockLog);
 
 // require and start app
 const server = require('../app.js');

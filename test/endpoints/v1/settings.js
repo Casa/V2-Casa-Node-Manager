@@ -50,6 +50,9 @@ describe('v1/settings endpoints', () => {
     dockerComposeUpStub = sinon.stub(require(dockerCompose), 'dockerComposeUpSingleService');
     dockerComposeStopStub = sinon.stub(require(dockerCompose), 'dockerComposeStop');
     dockerComposeRemoveStub = sinon.stub(require(dockerCompose), 'dockerComposeRemove');
+
+    const lnapi = `${__dirname}/../../../services/lnapi.js`;
+    unlockLndStub = sinon.stub(require(lnapi), 'unlockLnd');
   });
 
   after(() => {
@@ -58,7 +61,13 @@ describe('v1/settings endpoints', () => {
     dockerComposeUpStub.restore();
     dockerComposeStopStub.restore();
     dockerComposeRemoveStub.restore();
+    unlockLndStub.restore();
+
     restoreOriginalSettingsFile();
+
+    // Stop all interval services. Otherwise npm test will not exit.
+    const application = `${__dirname}/../../../logic/application.js`;
+    require(application).stopIntervalServices();
   });
 
   // Get a JWT
