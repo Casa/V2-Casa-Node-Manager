@@ -15,6 +15,16 @@ function getLanIPAddress() {
     }
   }
 
+  // The first time the this ip address strategy is preformed, the manager will still be running on its own docker
+  // network. This means it will think it's ip address is a docker address which always looks like '172.x.y.z'. We will
+  // check for that and use the default DEVICE_HOST env variable in that case.
+  //
+  // In the future this could be resolved if the startup function in the manager can recreate itself of offload yml
+  // management to a service closer to the operating system, potentially a new linux service.
+  if (ipv4.startsWith('http://172.')) {
+    return process.env.DEVICE_HOST;
+  }
+
   return ipv4;
 }
 

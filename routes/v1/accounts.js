@@ -23,7 +23,7 @@ router.post('/login', auth.basic, safeHandler((req, res) =>
 ));
 
 router.post('/refresh', auth.jwt, safeHandler((req, res) =>
-  authLogic.refresh(req.user)
+  applicationLogic.refresh(req.user)
     .then(jwt => res.json(jwt))
 ));
 

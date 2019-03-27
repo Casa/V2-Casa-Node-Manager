@@ -22,8 +22,13 @@ let ipManagementRunning = false;
 let devicePassword = '';
 let lndManagementInterval = {};
 let lndManagementRunning = false;
+let repsSinceLndRestart = 0;
+
+const MIN_REPS_BEFORE_RESTART = 6;
 const RETRY_SECONDS = 5;
 const RETRY_ATTEMPTS = 5;
+
+let lastJwtCreation;
 
 let autoImagePullInterval = {};
 let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
@@ -748,6 +753,31 @@ async function startLndIntervalService() {
   }
 }
 
+// Restart Lnd if the appropriate criteria is met. We do this to help solve memory issue created by lnd.
+async function restartLndAsNeeded(jwt) {
+
+  // Don't restart if jwt was created in the last hour.
+  if ((new Date().getTime() - lastJwtCreation) < constants.TIME.ONE_HOUR_IN_MILLIS) { // eslint-disable-line no-extra-parens
+    return;
+  }
+
+  // Don't restart if a restart already happened recently
+  if (repsSinceLndRestart < MIN_REPS_BEFORE_RESTART) {
+    return;
+  }
+
+  // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
+  // we run lnd management every hour, this will average to 1 restart every 24 hours.
+  if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0
+      || repsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
+
+    await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
+    await unlockLnd(jwt);
+
+    repsSinceLndRestart = 0;
+  }
+}
+
 // Get a new valid jwt token.
 async function getJwt() {
   const genericUser = {
@@ -770,11 +800,12 @@ async function lndManagement() {
   }
 
   lndManagementRunning = true;
+  repsSinceLndRestart++;
 
   try {
 
     // Check to see if lnd is currently running.
-    if (await dockerLogic.hasRunningService(constants.SERVICES.LND)) {
+    if (await dockerLogic.isRunningService(constants.SERVICES.LND)) {
 
       // Make sure we have a valid auth token.
       const jwt = await getJwt();
@@ -791,13 +822,8 @@ async function lndManagement() {
         currentConfig.externalIP = externalIP;
         await saveSettings(currentConfig);
 
-      // Generate a random number between 0 and 47. This will average out to 24. Since
-      // we run lnd management every hour, this will average to 1 restart every 24 hours.
-      //
-      // We restart lnd instead of recreated it to avoid recreating the newest image on device.
-      } else if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0) {
-        await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
-        await unlockLnd(jwt);
+      } else {
+        await restartLndAsNeeded(jwt);
       }
     }
 
@@ -839,11 +865,20 @@ async function login(user) {
     // improves UX.
     unlockLnd(jwt.jwt);
 
+    lastJwtCreation = new Date().getTime();
+
     return jwt;
   } catch (error) {
     devicePassword = '';
     throw error;
   }
+}
+
+async function refresh(user) {
+
+  lastJwtCreation = new Date().getTime();
+
+  return await authLogic.refresh(user);
 }
 
 module.exports = {
@@ -858,6 +893,7 @@ module.exports = {
   stopIntervalServices,
   reset,
   resyncChain,
+  refresh,
   userReset,
   update,
 };
