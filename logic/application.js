@@ -771,11 +771,19 @@ async function restartLndAsNeeded(jwt) {
   if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0
       || repsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
 
+    await backUpLndData(jwt);
     await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
     await unlockLnd(jwt);
 
     repsSinceLndRestart = 0;
   }
+}
+
+// Request that the LNAPI performs LND backup as it creates and has access to the lnd-data volume.
+// Perform backup only when LND is not processing.
+async function backUpLndData(jwt) {
+  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
+  await lnapiService.backUpLndData(jwt);
 }
 
 // Get a new valid jwt token.
@@ -896,4 +904,5 @@ module.exports = {
   refresh,
   userReset,
   update,
+  backUpLndData,
 };
