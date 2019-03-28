@@ -22,9 +22,9 @@ let ipManagementRunning = false;
 let devicePassword = '';
 let lndManagementInterval = {};
 let lndManagementRunning = false;
-let repsSinceLndRestart = 0;
+let intervalsSinceLndRestart = 0;
 
-const MIN_REPS_BEFORE_RESTART = 6;
+const MIN_INTERVALS_FOR_RESTART = 6;
 const RETRY_SECONDS = 10;
 const RETRY_ATTEMPTS = 10;
 
@@ -36,8 +36,6 @@ let pullingImages = false; // Is the manager currently pulling images
 
 let systemStatus;
 resetSystemStatus();
-
-const MAX_RESYNC_ATTEMPTS = 5;
 
 // Get all ip or onion address that can be used to connect to this Casa node.
 async function getAddresses() {
@@ -547,7 +545,7 @@ async function resyncChain(full, syncFromAWS) {
         // removing download container to erase logs from previous attempts
         await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.DOWNLOAD});
 
-      } while (failed && attempt <= MAX_RESYNC_ATTEMPTS);
+      } while (failed && attempt <= RETRY_ATTEMPTS);
     }
 
     systemStatus.details = 'removing excess images...';
@@ -811,19 +809,19 @@ async function restartLndAsNeeded(jwt) {
   }
 
   // Don't restart if a restart already happened recently
-  if (repsSinceLndRestart < MIN_REPS_BEFORE_RESTART) {
+  if (intervalsSinceLndRestart < MIN_INTERVALS_FOR_RESTART) {
     return;
   }
 
   // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
   // we run lnd management every hour, this will average to 1 restart every 24 hours.
   if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0
-      || repsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
+      || intervalsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
 
     await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
     await unlockLnd(jwt);
 
-    repsSinceLndRestart = 0;
+    intervalsSinceLndRestart = 0;
   }
 }
 
@@ -849,7 +847,7 @@ async function lndManagement() {
   }
 
   lndManagementRunning = true;
-  repsSinceLndRestart++;
+  intervalsSinceLndRestart++;
 
   try {
 
