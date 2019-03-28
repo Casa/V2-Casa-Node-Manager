@@ -18,6 +18,7 @@ services:
       # Tor is optional for Bitcoind and Lnd, however docker still requires the volume exist.
       # This volume can be removed after Lnd can use Tor passwords. Bitcoind already accepts Tor passwords.
       - tor-cookie:/root/.tor/:ro
+      - tor-hidden-services:/var/lib/tor/
     ports:
       - "3000:3000"
     environment:
@@ -39,3 +40,4 @@ volumes:
   applications_accounts:
     external: true
   tor-cookie: # remove this volume after lnd can use tor passwords
+  tor-hidden-services:

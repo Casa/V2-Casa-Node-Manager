@@ -3,6 +3,7 @@
 const UUID = require('utils/UUID');
 
 module.exports = {
+  CASA_NODE_HIDDEN_SERVICE_FILE: '/var/lib/tor/casa-node/hostname',
   COMPOSE_FILES: {
     DEVICE_HOST: 'device-host.yml',
     DOWNLOAD: 'download.yml',

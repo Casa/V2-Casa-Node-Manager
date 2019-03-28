@@ -25,8 +25,8 @@ let lndManagementRunning = false;
 let repsSinceLndRestart = 0;
 
 const MIN_REPS_BEFORE_RESTART = 6;
-const RETRY_SECONDS = 5;
-const RETRY_ATTEMPTS = 5;
+const RETRY_SECONDS = 10;
+const RETRY_ATTEMPTS = 10;
 
 let lastJwtCreation;
 
@@ -38,6 +38,22 @@ let systemStatus;
 resetSystemStatus();
 
 const MAX_RESYNC_ATTEMPTS = 5;
+
+// Get all ip or onion address that can be used to connect to this Casa node.
+async function getAddresses() {
+
+  // Get ip address.
+  const addresses = [ipAddressUtil.getLanIPAddress()];
+
+  const currentConfig = await diskLogic.readSettingsFile();
+
+  // Check to see if tor is turned on and add onion address if Tor has created a new hidden service.
+  if (currentConfig.lnd.tor && process.env.CASA_NODE_HIDDEN_SERVICE) {
+    addresses.push(process.env.CASA_NODE_HIDDEN_SERVICE);
+  }
+
+  return addresses;
+}
 
 function resetSystemStatus() {
   systemStatus = {};
@@ -231,6 +247,7 @@ async function saveSettings(settings) {
     throw new LNNodeError(validation.errors);
   }
 
+  const recreateSpaceFleet = !currentConfig.bitcoind.tor && newConfig.bitcoind.tor;
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
   const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
 
@@ -239,14 +256,22 @@ async function saveSettings(settings) {
   // Spin up applications
   await startTorAsNeeded(newConfig);
 
+  if (recreateSpaceFleet) {
+    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
+    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+  }
+
   if (recreateBitcoind) {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
   }
+
   if (recreateLnd) {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-    await unlockLnd();
+
+    const jwt = await getJwt();
+    await unlockLnd(jwt);
   }
 }
 
@@ -328,10 +353,33 @@ async function startTorAsNeeded(settings) {
     }
 
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
+    await setHiddenServiceEnv();
+
   } else {
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
     await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
   }
+}
+
+// Set the CASA_NODE_HIDDEN_SERVICE env variable.
+//
+// The Casa Node Hidden Service is created after tor boot. It happens quickly, but it isn't instant. We retry several
+// times to retrieve it. If it cannot be retrieved Casa Node services will not be available via tor.
+async function setHiddenServiceEnv() {
+
+  let attempt = 0;
+
+  do {
+
+    attempt++;
+
+    if (await diskLogic.hiddenServiceFileExists()) {
+      process.env.CASA_NODE_HIDDEN_SERVICE = ('http://'
+        + await diskLogic.readHiddenService()).replace('\n', '');
+    } else {
+      await sleepSeconds(RETRY_SECONDS);
+    }
+  } while (!process.env.CASA_NODE_HIDDEN_SERVICE && attempt <= RETRY_ATTEMPTS);
 }
 
 // Run startup functions
@@ -757,7 +805,8 @@ async function startLndIntervalService() {
 async function restartLndAsNeeded(jwt) {
 
   // Don't restart if jwt was created in the last hour.
-  if ((new Date().getTime() - lastJwtCreation) < constants.TIME.ONE_HOUR_IN_MILLIS) { // eslint-disable-line no-extra-parens
+  if ((new Date().getTime() - lastJwtCreation) // eslint-disable-line no-extra-parens
+    < constants.TIME.ONE_HOUR_IN_MILLIS) {
     return;
   }
 
@@ -882,6 +931,7 @@ async function refresh(user) {
 }
 
 module.exports = {
+  getAddresses,
   getSerial,
   getSystemStatus,
   getFilteredVersions,
