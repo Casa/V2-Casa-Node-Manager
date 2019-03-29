@@ -65,6 +65,11 @@ function addDefaultOptions(options) {
   options.env = options.env || {};
   options.env.TAG = constants.TAG;
   options.env.DEVICE_HOST = process.env.DEVICE_HOST;
+
+  // Add Casa Node Hidden Service if available.
+  if (process.env.CASA_NODE_HIDDEN_SERVICE) {
+    options.env.CASA_NODE_HIDDEN_SERVICE = process.env.CASA_NODE_HIDDEN_SERVICE;
+  }
 }
 
 async function dockerComposeUp(options) {
