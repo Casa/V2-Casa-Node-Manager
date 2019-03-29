@@ -23,6 +23,7 @@ const bitcoindSchema = {
     bitcoindPort: {
       type: 'integer',
       minimum: 0,
+      maximum: 65535,
     },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
@@ -99,6 +100,7 @@ const sparseBitcoindSchema = {
     bitcoindPort: {
       type: 'integer',
       minimum: 0,
+      maximum: 65535,
     },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
