@@ -30,6 +30,7 @@ async function getExternalIp(jwt) {
     .get(lnapiUrl + ':' + lnapiPort + '/v1/bitcoind/info/ip', headers);
 }
 
+// Perform backup only when LND is not processing.
 async function backUpLndData(jwt) {
   const headers = {
     headers: {
