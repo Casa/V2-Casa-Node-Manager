@@ -1,6 +1,7 @@
 const corsOptions = {
   origin: (origin, callback) => {
     const whitelist = [
+      'http://localhost:3000',
       'http://casa-node.local',
       'http://debug.keys.casa',
       'chrome-extension://lnaedehiikghclgaikolambpbpeknpef',
