@@ -20,6 +20,11 @@ const bitcoindSchema = {
   properties: {
     bitcoinNetwork: {$ref: '/networks'},
     bitcoindListen: {type: 'boolean'},
+    bitcoindPort: {
+      type: 'integer',
+      minimum: 0,
+      maximum: 65535,
+    },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
     tor: {type: 'boolean'},
@@ -92,6 +97,11 @@ const sparseBitcoindSchema = {
   properties: {
     bitcoinNetwork: {$ref: '/networks'},
     bitcoindListen: {type: 'boolean'},
+    bitcoindPort: {
+      type: 'integer',
+      minimum: 0,
+      maximum: 65535,
+    },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
     tor: {type: 'boolean'},

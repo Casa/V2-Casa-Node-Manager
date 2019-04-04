@@ -1,6 +1,7 @@
-{  
+{
     "network":"testnet",
     "bitcoindListen":true,
+    "bitcoindPort":8335,
     "nickName":"updated-unit-test-node",
     "autopilot":false,
     "maxChannels":10,
