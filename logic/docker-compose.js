@@ -9,7 +9,7 @@ const diskLogic = require('logic/disk.js');
 const WORKING_DIR = constants.WORKING_DIRECTORY;
 const DOCKER_COMPOSE_COMMAND = 'docker-compose';
 const DOCKER_COMMAND = 'docker';
-const DOCKER_TIMEOUT_SECONDS = 600;
+const DOCKER_TIMEOUT_SECONDS = 60;
 
 const injectSettings = async() => {
 

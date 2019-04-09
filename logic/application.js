@@ -46,7 +46,9 @@ async function getAddresses() {
   const currentConfig = await diskLogic.readSettingsFile();
 
   // Check to see if tor is turned on and add onion address if Tor has created a new hidden service.
-  if (currentConfig.lnd.tor && process.env.CASA_NODE_HIDDEN_SERVICE) {
+  if (process.env.CASA_NODE_HIDDEN_SERVICE
+    && (currentConfig.lnd.tor || currentConfig.bitcoind.tor)) {
+
     addresses.push(process.env.CASA_NODE_HIDDEN_SERVICE);
   }
 
@@ -245,7 +247,9 @@ async function saveSettings(settings) {
     throw new LNNodeError(validation.errors);
   }
 
-  const recreateSpaceFleet = !currentConfig.bitcoind.tor && newConfig.bitcoind.tor;
+  // Recreate space-fleet if tor is turned on or tor is turned off for both.
+  const recreateSpaceFleet = (currentConfig.bitcoind.tor || currentConfig.lnd.tor)
+    !== (newConfig.bitcoind.tor || newConfig.lnd.tor);
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
   const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
 
