@@ -18,7 +18,8 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       bitcoinNetwork: req.body.network,
       bitcoindListen: req.body.bitcoindListen, // eslint-disable-line object-shorthand
       bitcoindPort: req.body.bitcoindPort,
-      tor: req.body.bitcoindTor || req.body.lndTor, // Turn on Tor for both Bitcoind and Lnd
+      tor: req.body.bitcoindTor,
+      torOnly: req.body.bitcoindTorOnly,
     },
     lnd: {
       lndNodeAlias: req.body.nickName,
@@ -27,7 +28,7 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       maxChannels: req.body.maxChannels,
       maxChanSize: req.body.maxChanSize,
       externalIP: req.body.externalIP,
-      tor: req.body.bitcoindTor || req.body.lndTor, // Turn on Tor for both Bitcoind and Lnd
+      tor: req.body.lndTor,
     }
   };
 

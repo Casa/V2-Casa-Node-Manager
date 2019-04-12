@@ -28,6 +28,7 @@ const bitcoindSchema = {
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
     tor: {type: 'boolean'},
+    torOnly: {type: 'boolean'},
   },
   required: ['bitcoinNetwork', 'bitcoindListen'],
   additionalProperties: false
@@ -105,6 +106,7 @@ const sparseBitcoindSchema = {
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
     tor: {type: 'boolean'},
+    torOnly: {type: 'boolean'},
   },
   required: [],
   additionalProperties: false
