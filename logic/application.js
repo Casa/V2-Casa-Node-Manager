@@ -346,7 +346,7 @@ async function getFilteredVersions() {
 
 // Start Tor as needed otherwise remove the container if it exists.
 async function startTorAsNeeded(settings) {
-  if (settings.lnd.tor || settings.bitcoind.tor) {
+  if (settings.lnd.lndTor || settings.bitcoind.bitcoindTor) {
 
     // Pull Tor image if needed
     if (!await dockerLogic.hasImageForService(constants.SERVICES.TOR)) {
