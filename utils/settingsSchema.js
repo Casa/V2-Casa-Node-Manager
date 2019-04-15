@@ -27,7 +27,7 @@ const bitcoindSchema = {
     },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
-    tor: {type: 'boolean'},
+    bitcoindTor: {type: 'boolean'},
     torOnly: {type: 'boolean'},
   },
   required: ['bitcoinNetwork', 'bitcoindListen'],
@@ -57,7 +57,7 @@ const lndSchema = {
     externalIP: {
       type: 'string'
     },
-    tor: {type: 'boolean'},
+    lndTor: {type: 'boolean'},
   },
   oneOf: [
     {
@@ -105,7 +105,7 @@ const sparseBitcoindSchema = {
     },
     rpcPassword: {type: 'string'},
     rpcUser: {type: 'string'},
-    tor: {type: 'boolean'},
+    bitcoindTor: {type: 'boolean'},
     torOnly: {type: 'boolean'},
   },
   required: [],
@@ -134,7 +134,7 @@ const sparseLndSchema = {
     externalIP: {
       type: 'string'
     },
-    tor: {type: 'boolean'},
+    lndTor: {type: 'boolean'},
   },
   required: [],
   additionalProperties: false
