@@ -18,7 +18,7 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       bitcoinNetwork: req.body.network,
       bitcoindListen: req.body.bitcoindListen, // eslint-disable-line object-shorthand
       bitcoindPort: req.body.bitcoindPort,
-      tor: req.body.bitcoindTor,
+      bitcoindTor: req.body.bitcoindTor,
       torOnly: req.body.bitcoindTorOnly,
     },
     lnd: {
@@ -28,7 +28,7 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
       maxChannels: req.body.maxChannels,
       maxChanSize: req.body.maxChanSize,
       externalIP: req.body.externalIP,
-      tor: req.body.lndTor,
+      lndTor: req.body.lndTor,
     }
   };
 
