@@ -18,7 +18,7 @@ async function unlockLnd(password, jwt) {
     .post(lnapiUrl + ':' + lnapiPort + '/v1/lnd/wallet/unlock', body, headers);
 }
 
-async function getExternalIp(jwt) {
+async function getBitcoindAddresses(jwt) {
 
   const headers = {
     headers: {
@@ -27,7 +27,7 @@ async function getExternalIp(jwt) {
   };
 
   return axios
-    .get(lnapiUrl + ':' + lnapiPort + '/v1/bitcoind/info/ip', headers);
+    .get(lnapiUrl + ':' + lnapiPort + '/v1/bitcoind/info/addresses', headers);
 }
 
 // Perform backup only when LND is not processing.
@@ -44,6 +44,6 @@ async function backUpLndData(jwt) {
 
 module.exports = {
   unlockLnd,
-  getExternalIp,
+  getBitcoindAddresses,
   backUpLndData,
 };
