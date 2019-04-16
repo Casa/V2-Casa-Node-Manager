@@ -868,7 +868,14 @@ async function lndManagement() {
       const jwt = await getJwt();
 
       const currentConfig = await diskLogic.readSettingsFile();
-      const externalIP = (await lnapiService.getExternalIp(jwt)).data.externalIP;
+      const addresses = (await lnapiService.getBitcoindAddresses(jwt)).data;
+
+      let externalIP;
+      for (const address of addresses) {
+        if (!address.includes('onion')) {
+          externalIP = address;
+        }
+      }
 
       // If an external ip has been set and is not equal to the current external ip and tor is not active. Tor handles
       // external address on its own.
