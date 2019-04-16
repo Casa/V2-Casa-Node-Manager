@@ -47,7 +47,7 @@ async function getAddresses() {
 
   // Check to see if tor is turned on and add onion address if Tor has created a new hidden service.
   if (process.env.CASA_NODE_HIDDEN_SERVICE
-    && (currentConfig.lnd.tor || currentConfig.bitcoind.tor)) {
+    && (currentConfig.lnd.lndTor || currentConfig.bitcoind.bitcoindTor)) {
 
     addresses.push(process.env.CASA_NODE_HIDDEN_SERVICE);
   }
