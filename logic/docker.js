@@ -8,6 +8,13 @@ const constants = require('utils/const.js');
 
 const q = require('q'); // eslint-disable-line id-length
 
+async function ensureVolumesCreated() {
+
+  // Create tor volumes. This ensures they are created the very first time the manager runs.
+  await dockerService.createVolume('applications_tor-cookie');
+  await dockerService.createVolume('applications_tor-hidden-services');
+}
+
 function getAllContainers() {
   return dockerService.getContainers(true);
 }
@@ -264,6 +271,7 @@ async function removeVolume(name) {
 }
 
 module.exports = {
+  ensureVolumesCreated,
   getImages,
   getStatuses,
   getVersions,
