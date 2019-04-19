@@ -447,8 +447,8 @@ async function startup() {
       // Clean up old images.
       await dockerLogic.pruneImages();
 
-      // Ensure all volumes are created.
-      await dockerLogic.ensureVolumesCreated();
+      // Ensure tor volumes are created before launching applications.
+      await dockerLogic.ensureTorVolumes();
 
       // Spin up applications
       await startTorAsNeeded(settings);
