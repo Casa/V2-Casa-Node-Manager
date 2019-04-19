@@ -58,6 +58,9 @@ function getStatuses() {
       if (container['Labels']['com.docker.compose.service'] === constants.SERVICES.WELCOME) {
         return;
       }
+      if (container['Labels']['com.docker.compose.service'] === constants.SERVICES.DEVICE_HOST) {
+        return;
+      }
       statuses.push({
         id: container['Id'],
         service: container['Labels']['com.docker.compose.service'],
