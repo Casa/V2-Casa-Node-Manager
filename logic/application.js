@@ -32,9 +32,10 @@ let lastJwtCreation;
 
 let autoImagePullInterval = {};
 let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
-let pullingImages = false; // Is the manager currently pulling images
+let pullingImages = false; // Is the manager currently pulling images.
 
 let systemStatus;
+let bootPercent = 0; // An approximate state of where the manager is during boot.
 resetSystemStatus();
 
 // Get all ip or onion address that can be used to connect to this Casa node.
@@ -53,6 +54,10 @@ async function getAddresses() {
   }
 
   return addresses;
+}
+
+async function getBootPercent() {
+  return bootPercent;
 }
 
 function resetSystemStatus() {
@@ -404,6 +409,8 @@ async function startup() {
 
       // initial setup after a reset or manufacture, force an update.
       const firstBoot = await auth.isRegistered();
+      bootPercent = 10;
+
       if (!firstBoot.registered) {
         await dockerComposeLogic.dockerLoginCasaworker();
         await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
@@ -435,10 +442,11 @@ async function startup() {
         }
       }
 
-      // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
+      bootPercent = 20;
       if (process.env.DISABLE_YML_UPDATE !== 'true') {
         await checkYMLs();
       }
+      bootPercent = 30;
 
       // Previous releases will have a paused Welcome service, let us be good stewarts.
       await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
@@ -446,15 +454,21 @@ async function startup() {
 
       // Clean up old images.
       await dockerLogic.pruneImages();
+      bootPercent = 40;
 
       // Ensure tor volumes are created before launching applications.
       await dockerLogic.ensureTorVolumes();
+      bootPercent = 50;
 
       // Spin up applications
       await startTorAsNeeded(settings);
+      bootPercent = 60;
       await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
+      bootPercent = 70;
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
+      bootPercent = 80;
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
+      bootPercent = 90;
 
       await startIntervalServices();
 
@@ -467,6 +481,7 @@ async function startup() {
     }
   } while (errorThrown);
 
+  bootPercent = 100;
 }
 
 // Starts the interval service Lan IP Management.
@@ -950,6 +965,7 @@ async function refresh(user) {
 
 module.exports = {
   getAddresses,
+  getBootPercent,
   getSerial,
   getSystemStatus,
   getFilteredVersions,
