@@ -223,6 +223,7 @@ async function saveSettings(settings) {
 
   var lndSettings = settings['lnd'];
   var bitcoindSettings = settings['bitcoind'];
+  var systemSettings = settings['system'];
 
   // If Tor is active for Lnd, we erase the manually entered externalIP. This results in Lnd only being available over
   // Tor. This increases privacy by only advertising the onion address.
@@ -240,6 +241,21 @@ async function saveSettings(settings) {
     if (bitcoindSettings[key] !== undefined) {
       newConfig['bitcoind'][key] = bitcoindSettings[key];
     }
+  }
+
+  for (const key in systemSettings) {
+    if (systemSettings[key] !== undefined) {
+      newConfig['system'][key] = systemSettings[key];
+    }
+  }
+
+  // Adding some default values. These properties were created after initial release.
+  if (!newConfig['system']) {
+    newConfig['system'] = {};
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(newConfig['system'], 'systemDisplayUnits')) {
+    newConfig['system']['systemDisplayUnits'] = 'btc';
   }
 
   const validation = schemaValidator.validateSettingsSchema(newConfig);

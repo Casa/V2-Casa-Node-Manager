@@ -173,6 +173,8 @@ describe('v1/settings endpoints', () => {
           res.should.be.json;
           res.body.should.be.an('array');
 
+          console.log(res.body)
+
           res.body[0].should.have.property('property');
           res.body[0].property.should.be.equal('instance.bitcoind.bitcoinNetwork');
           const bitcoinNetwork = res.body[0];
@@ -341,6 +343,19 @@ describe('v1/settings endpoints', () => {
           externalIP.should.have.property('stack');
           externalIP.stack.should.equal('instance.lnd.externalIP is not of a type(s) string');
 
+          res.body[9].should.have.property('property');
+          res.body[9].property.should.be.equal('instance.system.systemDisplayUnits');
+          const systemDisplayUnits = res.body[9];
+          systemDisplayUnits.should.have.property('message');
+          systemDisplayUnits.message.should.equal('is not one of enum values: btc,sats');
+          systemDisplayUnits.should.have.property('schema');
+          systemDisplayUnits.schema.should.equal('/displayUnits');
+          systemDisplayUnits.should.have.property('instance');
+          systemDisplayUnits.instance.should.equal('millisats');
+          systemDisplayUnits.should.have.property('name');
+          systemDisplayUnits.name.should.equal('enum');
+          systemDisplayUnits.stack.should.equal('instance.system.systemDisplayUnits is not one of enum values: btc,sats');
+
           done();
         });
     });
@@ -421,6 +436,7 @@ describe('v1/settings endpoints', () => {
             done(err);
           }
 
+          console.log(res.body)
           res.should.have.status(200);
           done();
         });
@@ -437,6 +453,8 @@ describe('v1/settings endpoints', () => {
 
           res.should.have.status(200);
           res.should.be.json;
+
+          console.log(res.body)
 
           res.body.should.have.property('bitcoind');
           res.body.bitcoind.should.have.property('bitcoinNetwork');
