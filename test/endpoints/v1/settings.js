@@ -173,8 +173,6 @@ describe('v1/settings endpoints', () => {
           res.should.be.json;
           res.body.should.be.an('array');
 
-          console.log(res.body)
-
           res.body[0].should.have.property('property');
           res.body[0].property.should.be.equal('instance.bitcoind.bitcoinNetwork');
           const bitcoinNetwork = res.body[0];
@@ -436,7 +434,6 @@ describe('v1/settings endpoints', () => {
             done(err);
           }
 
-          console.log(res.body)
           res.should.have.status(200);
           done();
         });
@@ -453,8 +450,6 @@ describe('v1/settings endpoints', () => {
 
           res.should.have.status(200);
           res.should.be.json;
-
-          console.log(res.body)
 
           res.body.should.have.property('bitcoind');
           res.body.bitcoind.should.have.property('bitcoinNetwork');
