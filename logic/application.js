@@ -248,17 +248,17 @@ async function saveSettings(settings) {
     }
   }
 
-  for (const key in systemSettings) {
-    if (systemSettings[key] !== undefined) {
-      newConfig['system'][key] = systemSettings[key];
-    }
-  }
-
   // Adding some default values. These properties were created after initial release.
   if (!newConfig['system']) {
     newConfig['system'] = {};
   }
 
+  for (const key in systemSettings) {
+    if (systemSettings[key] !== undefined) {
+      newConfig['system'][key] = systemSettings[key];
+    }
+  }
+  
   if (!Object.prototype.hasOwnProperty.call(newConfig['system'], 'systemDisplayUnits')) {
     newConfig['system']['systemDisplayUnits'] = 'btc';
   }
