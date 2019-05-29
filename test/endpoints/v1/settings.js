@@ -384,9 +384,9 @@ describe('v1/settings endpoints', () => {
           externalIP.should.have.property('stack');
           externalIP.stack.should.equal('instance.lnd.externalIP is not of a type(s) string');
 
-          res.body[9].should.have.property('property');
-          res.body[9].property.should.be.equal('instance.system.systemDisplayUnits');
-          const systemDisplayUnits = res.body[9];
+          res.body[11].should.have.property('property');
+          res.body[11].property.should.be.equal('instance.system.systemDisplayUnits');
+          const systemDisplayUnits = res.body[11];
           systemDisplayUnits.should.have.property('message');
           systemDisplayUnits.message.should.equal('is not one of enum values: btc,sats');
           systemDisplayUnits.should.have.property('schema');
