@@ -82,7 +82,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     bitcoind: {
       bitcoinNetwork: 'mainnet',
       bitcoindListen: true,
-      tor: false, // Added February 2019
+      bitcoindTor: false, // Added February 2019
     },
     lnd: {
       chain: 'bitcoin',
@@ -90,8 +90,10 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
       externalIP: '',
-      tor: false, // Added February 2019
-    }
+      lndTor: false, // Added February 2019
+    },
+    system: {
+    },
   };
 
   const exists = await diskLogic.settingsFileExists();
