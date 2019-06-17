@@ -22,13 +22,9 @@ let ipManagementRunning = false;
 let devicePassword = '';
 let lndManagementInterval = {};
 let lndManagementRunning = false;
-let intervalsSinceLndRestart = 0;
 
-const MIN_INTERVALS_FOR_RESTART = 6;
 const RETRY_SECONDS = 10;
 const RETRY_ATTEMPTS = 10;
-
-let lastJwtCreation;
 
 let autoImagePullInterval = {};
 let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
@@ -92,8 +88,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       externalIP: '',
       lndTor: false, // Added February 2019
     },
-    system: {
-    },
+    system: {},
   };
 
   const exists = await diskLogic.settingsFileExists();
@@ -194,6 +189,7 @@ async function setResyncDetails() {
     // details as is.
   }
 }
+
 /* eslint-enable no-magic-numbers */
 
 // Return the serial id of the device.
@@ -503,6 +499,7 @@ async function startup() {
 
   bootPercent = 100;
 }
+
 /* eslint-enable no-magic-numbers */
 
 // Starts the interval service Lan IP Management.
@@ -824,11 +821,6 @@ function sleepSeconds(seconds) {
   });
 }
 
-// Get a random int.
-function getRandomInt(minimum, maximum) {
-  return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
-}
-
 // Start the Lnd Management interval service.
 async function startLndIntervalService() {
 
@@ -839,38 +831,6 @@ async function startLndIntervalService() {
     // initial login modal for lnd.
     await lndManagement();
     lndManagementInterval = setInterval(lndManagement, constants.TIME.ONE_HOUR_IN_MILLIS);
-  }
-}
-
-// Restart Lnd if the appropriate criteria is met. We do this to help solve memory issue created by lnd.
-async function restartLndAsNeeded(jwt) {
-
-  // Don't restart if jwt was created in the last hour.
-  if ((new Date().getTime() - lastJwtCreation) // eslint-disable-line no-extra-parens
-    < constants.TIME.ONE_HOUR_IN_MILLIS) {
-    return;
-  }
-
-  // Don't restart if a restart already happened recently
-  if (intervalsSinceLndRestart < MIN_INTERVALS_FOR_RESTART) {
-    return;
-  }
-
-  // Every time we run lnd management, generate a random number between 0 and 47. This will average out to 24. Since
-  // we run lnd management every hour, this will average to 1 restart every 24 hours.
-  if (getRandomInt(0, constants.TIME.HOURS_IN_TWO_DAYS) === 0
-      || intervalsSinceLndRestart > constants.TIME.HOURS_IN_TWO_DAYS) {
-
-    // Perform backup only when LND is not processing.
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
-
-    // Request that the LNAPI performs LND backup as it creates and has access to the lnd-data volume.
-    await lnapiService.backUpLndData(jwt);
-
-    await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
-    await unlockLnd(jwt);
-
-    intervalsSinceLndRestart = 0;
   }
 }
 
@@ -896,8 +856,6 @@ async function lndManagement() {
   }
 
   lndManagementRunning = true;
-  intervalsSinceLndRestart++;
-
   try {
 
     // Check to see if lnd is currently running.
@@ -924,9 +882,6 @@ async function lndManagement() {
 
         currentConfig.externalIP = externalIP;
         await saveSettings(currentConfig);
-
-      } else {
-        await restartLndAsNeeded(jwt);
       }
     }
 
@@ -968,8 +923,6 @@ async function login(user) {
     // improves UX.
     unlockLnd(jwt.jwt);
 
-    lastJwtCreation = new Date().getTime();
-
     return jwt;
   } catch (error) {
     devicePassword = '';
@@ -978,9 +931,6 @@ async function login(user) {
 }
 
 async function refresh(user) {
-
-  lastJwtCreation = new Date().getTime();
-
   return await authLogic.refresh(user);
 }
 
