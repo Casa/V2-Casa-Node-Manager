@@ -15,7 +15,7 @@ async function ensureTorVolumes() {
   await dockerService.createVolume('applications_tor-hidden-services');
 }
 
-async function getAllContainers() {
+function getAllContainers() {
   return dockerService.getContainers(true);
 }
 
