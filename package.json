@@ -21,6 +21,7 @@
     "dockerode": "^2.5.5",
     "express": "^4.16.1",
     "fs": "0.0.1-security",
+    "fs-extra": "^8.1.0",
     "jsonschema": "^1.2.4",
     "md5-file": "^4.0.0",
     "module-alias": "^2.1.0",

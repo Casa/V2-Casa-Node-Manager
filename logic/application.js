@@ -4,17 +4,19 @@ const authLogic = require('logic/auth.js');
 const dockerComposeLogic = require('logic/docker-compose.js');
 const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
+const git = require('logic/git.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
 const lnapiService = require('services/lnapi.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 const schemaValidator = require('utils/settingsSchema.js');
-const md5Check = require('md5-file');
 const ipAddressUtil = require('utils/ipAddress.js');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
 const auth = require('logic/auth');
+
+const md5Check = require('md5-file');
 
 let lanIPManagementInterval = {};
 let ipManagementRunning = false;
@@ -418,6 +420,7 @@ async function startup() {
   do {
     const settings = await settingsFileIntegrityCheck();
     try {
+      await updateBuildArtifacts();
       await checkAndUpdateLaunchScript();
 
       const ipv4 = ipAddressUtil.getLanIPAddress();
@@ -924,6 +927,13 @@ async function unlockLnd(jwt) {
     }
 
   } while (errorOccurred && attempt < RETRY_ATTEMPTS);
+}
+
+async function updateBuildArtifacts() {
+  await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
+  await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
+  await git.clone({});
+  await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.WORKING_DIRECTORY);
 }
 
 async function login(user) {

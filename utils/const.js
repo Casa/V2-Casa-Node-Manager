@@ -54,6 +54,8 @@ module.exports = {
     NINETY_MINUTES_IN_MILLIS: 90 * 60 * 1000,
     HOURS_IN_TWO_DAYS: 47,
   },
+  TMP_BUILD_ARTIFACTS_DIRECTORY: '/tmp/build-artifacts',
+  TMP_DIRECTORY: '/tmp',
   LOGGING_SERVICES: ['syslog', 'papertrail', 'logspout'],
   USER_PASSWORD_FILE: process.env.USER_PASSWORD_FILE || '/accounts/user.json',
   CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources',

@@ -5,6 +5,14 @@ async function deleteUserFile() {
   return await diskService.deleteFile(constants.USER_PASSWORD_FILE);
 }
 
+async function deleteFoldersInDir(directory) {
+  await diskService.deleteFoldersInDir(directory);
+}
+
+async function moveFoldersToDir(fromDir, toDir) {
+  await diskService.moveFoldersToDir(fromDir, toDir);
+}
+
 function readUserFile() {
   return diskService.readJsonFile(constants.USER_PASSWORD_FILE);
 }
@@ -55,6 +63,8 @@ function writeJWTPublicKeyFile(data) {
 
 module.exports = {
   deleteUserFile,
+  deleteFoldersInDir,
+  moveFoldersToDir,
   readSettingsFile,
   readUserFile,
   writeSettingsFile,
