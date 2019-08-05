@@ -14,7 +14,7 @@ async function clone(options) {
   addDefaultOptions(options);
 
   const commandArgs = ['clone',
-    'https://' + process.env.GIT_USERNAME + ':' + process.env.GIT_PASSWORD + '@github.com/Casa/supernode-warehouse',
+    'https://casabuilder:' + process.env.CASABUILDER_GIT_PASSWORD + '@github.com/Casa/supernode-warehouse',
     '--depth', '1', '--single-branch', constants.TMP_BUILD_ARTIFACTS_DIRECTORY];
 
   try {
