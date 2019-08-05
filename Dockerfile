@@ -3,11 +3,12 @@ FROM node:8-slim
 
 # install tools
 RUN apt-get update --no-install-recommends \
-  && apt-get install -y --no-install-recommends vim \
-  && apt-get install -y --no-install-recommends python \
   && apt-get install -y --no-install-recommends build-essential g++ \
-  && apt-get install -y libltdl7 \
+  && apt-get install -y --no-install-recommends git \
+  && apt-get install -y --no-install-recommends libltdl7 \
+  && apt-get install -y --no-install-recommends python \
   && apt-get install -y --no-install-recommends rsync \
+  && apt-get install -y --no-install-recommends vim \
   && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
