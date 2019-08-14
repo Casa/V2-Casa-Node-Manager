@@ -913,10 +913,24 @@ async function unlockLnd(jwt) {
   } while (errorOccurred && attempt < RETRY_ATTEMPTS);
 }
 
+async function changePassword(currentPassword, newPassword, authorization) {
+  await authLogic.changePassword(currentPassword, newPassword, authorization);
+
+  cachePassword(newPassword);
+}
+
+function cachePassword(password) {
+  devicePassword = password;
+}
+
+function resetPasswordCache() {
+  devicePassword = '';
+}
+
 async function login(user) {
   try {
 
-    devicePassword = user.password;
+    cachePassword(user.password);
     const jwt = await authLogic.login(user);
 
     // Don't wait for lnd management to complete. It takes 10 seconds on a Raspberry Pi 3B+. Running in the background
@@ -925,7 +939,8 @@ async function login(user) {
 
     return jwt;
   } catch (error) {
-    devicePassword = '';
+    resetPasswordCache();
+
     throw error;
   }
 }
@@ -935,6 +950,7 @@ async function refresh(user) {
 }
 
 module.exports = {
+  changePassword,
   getAddresses,
   getBootPercent,
   getSerial,

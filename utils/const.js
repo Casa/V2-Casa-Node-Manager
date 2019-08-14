@@ -36,6 +36,11 @@ module.exports = {
     UPDATE_MANAGER: 'update-manager',
     WELCOME: 'welcome'
   },
+  STATUS_CODES: {
+    BAD_GATEWAY: 502,
+    OK: 200,
+    UNAUTHORIZED: 401,
+  },
   TAG: process.env.TAG || 'arm',
   TIME: {
     FIVE_MINUTES_IN_MILLIS: 5 * 60 * 1000,

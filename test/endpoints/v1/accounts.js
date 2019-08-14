@@ -89,6 +89,37 @@ describe('v1/accounts endpoints', () => {
     });
   });
 
+  describe('v1/accounts/changePassword POST', () => {
+
+    xit('should login using the post body as the newly registered user', done => {
+      requester
+        .post('/v1/accounts/login')
+        .auth(randomUsername, randomPassword)
+        .send({password: randomPassword})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
+
+    xit('should unauth using the post body for bad credentials', done => {
+      requester
+        .post('/v1/accounts/login')
+        .send({password: 'notthecorrectpassword'})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
+          done();
+        });
+    });
+  });
+
   describe('v1/accounts/login POST', () => {
 
     it('should login as the newly registered user', done => {
@@ -101,6 +132,47 @@ describe('v1/accounts endpoints', () => {
           }
           res.should.have.status(200);
           res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
+
+    it('should unauth for bad credentials', done => {
+      requester
+        .post('/v1/accounts/login')
+        .auth(randomUsername, 'notthecorrectpassword')
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
+          done();
+        });
+    });
+
+    it('should login using the post body as the newly registered user', done => {
+      requester
+        .post('/v1/accounts/login')
+        .auth(randomUsername, randomPassword)
+        .send({password: randomPassword})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
+
+    it('should unauth using the post body for bad credentials', done => {
+      requester
+        .post('/v1/accounts/login')
+        .send({password: 'notthecorrectpassword'})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
           done();
         });
     });

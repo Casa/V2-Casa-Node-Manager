@@ -5,16 +5,29 @@ const UPDATABLE_SERVICES = [constants.SERVICES.LND, constants.SERVICES.BITCOIND,
   constants.SERVICES.LOGSPOUT];
 
 const MAX_ALIAS_LENGTH = 32;
-
-function isUpdatableService(service) {
-  if (!UPDATABLE_SERVICES.includes(service)) {
-    throw new ValidationError('Unknown service or not updatable');
-  }
-}
+const MIN_PASSWORD_LENGTH = 12;
 
 function isBoolean(key, value) {
   if (value !== true && value !== false) {
     throw new ValidationError(key + ': Must be true or false.');
+  }
+}
+
+function isString(object) {
+  if (typeof object !== 'string') {
+    throw new ValidationError('Object must be of type string.');
+  }
+}
+
+function isMinPasswordLength(password) {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new ValidationError('Must be 12 or more characters.');
+  }
+}
+
+function isUpdatableService(service) {
+  if (!UPDATABLE_SERVICES.includes(service)) {
+    throw new ValidationError('Unknown service or not updatable');
   }
 }
 
@@ -25,7 +38,9 @@ function isValidAliasLength(object) {
 }
 
 module.exports = {
-  isUpdatableService,
   isBoolean,
+  isString,
+  isMinPasswordLength,
+  isUpdatableService,
   isValidAliasLength,
 };
