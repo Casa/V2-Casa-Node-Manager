@@ -91,30 +91,80 @@ describe('v1/accounts endpoints', () => {
 
   describe('v1/accounts/changePassword POST', () => {
 
-    xit('should login using the post body as the newly registered user', done => {
+    let dockerComposeStopStub;
+    let dockerComposeUpSingleStub;
+
+    before(() => {
+      dockerComposeStopStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeStop')
+        .returns({});
+      dockerComposeUpSingleStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeUpSingleService')
+        .returns({});
+    });
+
+    after(() => {
+      dockerComposeStopStub.restore();
+      dockerComposeUpSingleStub.restore();
+    });
+
+    it('should return 400 with missing parameters', done => {
+
       requester
-        .post('/v1/accounts/login')
-        .auth(randomUsername, randomPassword)
-        .send({password: randomPassword})
+        .post('/v1/accounts/changePassword')
+        .set('authorization', `jwt ${token}`)
+        .send({})
         .end((err, res) => {
           if (err) {
             done(err);
           }
-          res.should.have.status(200);
-          res.body.jwt.should.not.be.empty;
+          res.should.have.status(400);
           done();
         });
     });
 
-    xit('should unauth using the post body for bad credentials', done => {
+    it('should return 400 with passwords that are too short', done => {
+
       requester
-        .post('/v1/accounts/login')
-        .send({password: 'notthecorrectpassword'})
+        .post('/v1/accounts/changePassword')
+        .set('authorization', `jwt ${token}`)
+        .send({currentPassword: 'tooShort', newPassword: 'tooShort'})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(400);
+
+          done();
+        });
+    });
+
+    it('should return 401 if token is bad', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .set('authorization', '')
+        .send({currentPassword: randomPassword, newPassword: randomPassword})
         .end((err, res) => {
           if (err) {
             done(err);
           }
           res.should.have.status(401);
+
+          done();
+        });
+    });
+
+    it('should return successful', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .set('authorization', `jwt ${token}`)
+        .send({currentPassword: randomPassword, newPassword: randomPassword})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+
           done();
         });
     });

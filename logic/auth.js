@@ -34,9 +34,6 @@ async function changePassword(currentPassword, newPassword, authorization) {
     try {
       attempt++;
 
-      // wait for lnd to boot up
-      await sleepSeconds(1);
-
       // call lnapi to change password
       await lnapiService.changePassword(currentPassword, newPassword, authorization);
 
@@ -51,6 +48,9 @@ async function changePassword(currentPassword, newPassword, authorization) {
       if (error.response.status !== constants.STATUS_CODES.BAD_GATEWAY) {
         throw error;
       }
+
+      // wait for lnd to boot up
+      await sleepSeconds(1);
     }
   } while (attemptChangePassword && attempt < MAX_ATTEMPTS);
 
