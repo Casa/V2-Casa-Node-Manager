@@ -27,19 +27,17 @@ router.post('/changePassword', auth.jwt, safeHandler(async(req, res, next) => {
     return next(error);
   }
 
-  try {
-    await applicationLogic.changePassword(currentPassword, newPassword, jwt);
-  } catch (error) {
+  // start change password process in the background and immediately return
+  authLogic.changePassword(currentPassword, newPassword, jwt);
 
-    // If lnapi returned 401 for invalid jwt or bad current password.
-    if (error.response.status === constants.STATUS_CODES.UNAUTHORIZED) {
-      return res.status(constants.STATUS_CODES.UNAUTHORIZED).json();
-    } else {
-      throw error;
-    }
-  }
+  return res.status(constants.STATUS_CODES.OK).json();
+}));
 
-  res.status(constants.STATUS_CODES.OK).json();
+// Returns the current status of the change password process.
+router.get('/changePassword/status', auth.jwt, safeHandler(async(req, res) => {
+  const status = await authLogic.getChangePasswordStatus();
+
+  return res.status(constants.STATUS_CODES.OK).json(status);
 }));
 
 // Registered does not need auth. This is because the user may not be registered at the time and thus won't always have

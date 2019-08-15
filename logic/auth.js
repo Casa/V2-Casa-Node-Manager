@@ -8,8 +8,16 @@ const constants = require('utils/const.js');
 const UUID = require('utils/UUID.js');
 
 const saltRounds = 10;
-
 const SYSTEM_USER = UUID.fetchBootUUID() || 'admin';
+
+let devicePassword = '';
+let changePasswordStatus;
+
+resetChangePasswordStatus();
+
+function resetChangePasswordStatus() {
+  changePasswordStatus = {percent: 0};
+}
 
 async function sleepSeconds(seconds) {
   return new Promise(resolve => {
@@ -17,21 +25,36 @@ async function sleepSeconds(seconds) {
   });
 }
 
+// Caches the password.
+function cachePassword(password) {
+  devicePassword = password;
+}
+
+// Gets the cached the password.
+function getCachedPassword() {
+  return devicePassword;
+}
+
+// Change the device and lnd password.
 async function changePassword(currentPassword, newPassword, jwt) {
 
   // restart lnd
+  resetChangePasswordStatus();
+  changePasswordStatus.percent = 1; // eslint-disable-line no-magic-numbers
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
+  changePasswordStatus.percent = 40; // eslint-disable-line no-magic-numbers
   await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
 
-  let attemptChangePassword = true;
+  let complete = false;
   let attempt = 0;
-  const MAX_ATTEMPTS = 10;
+  const MAX_ATTEMPTS = 20;
 
   do {
     try {
       attempt++;
 
       // call lnapi to change password
+      changePasswordStatus.percent = 60 + attempt; // eslint-disable-line no-magic-numbers
       await lnapiService.changePassword(currentPassword, newPassword, jwt);
 
       // make new password file
@@ -41,19 +64,41 @@ async function changePassword(currentPassword, newPassword, jwt) {
       await diskLogic.deleteUserFile();
       await diskLogic.writeUserFile(credentials);
 
-      attemptChangePassword = false;
+      complete = true;
+
+      // cache the password for later use
+      cachePassword(newPassword);
+
+      changePasswordStatus.percent = 100;
     } catch (error) {
 
-      // When lnd is restarting lnapi will respond with a 502. We will try again until lnd is operational.
-      if (error.response.status !== constants.STATUS_CODES.BAD_GATEWAY) {
+      // wait for lnd to boot up
+      if (error.response.status === constants.STATUS_CODES.BAD_GATEWAY) {
+        await sleepSeconds(1);
+
+      // user supplied incorrect credentials
+      } else if (error.response.status === constants.STATUS_CODES.UNAUTHORIZED) {
+        changePasswordStatus.unauthorized = true;
+
+      // unknown error occurred
+      } else {
+        changePasswordStatus.error = true;
+
         throw error;
       }
-
-      // wait for lnd to boot up
-      await sleepSeconds(1);
     }
-  } while (attemptChangePassword && attempt < MAX_ATTEMPTS);
+  } while (!complete && attempt < MAX_ATTEMPTS && !changePasswordStatus.unauthorized && !changePasswordStatus.error);
 
+  if (!complete && attempt === MAX_ATTEMPTS) {
+    changePasswordStatus.error = true;
+
+    throw new Error('Unable to change password. Lnd would not restart properly.');
+  }
+
+}
+
+function getChangePasswordStatus() {
+  return changePasswordStatus;
 }
 
 // Returns an object with the hashed credentials inside.
@@ -63,6 +108,7 @@ function hashCredentials(username, password) {
   return {password: hash, username};
 }
 
+// Returns true if the user is registered otherwise false.
 async function isRegistered() {
   try {
     await diskLogic.readUserFile();
@@ -73,9 +119,11 @@ async function isRegistered() {
   }
 }
 
+// Log the user into the device. Caches the password if login is successful. Then returns jwt.
 async function login(user) {
   try {
     const jwt = await JWTHelper.generateJWT(user.username);
+    cachePassword(user.password);
 
     return {jwt: jwt}; // eslint-disable-line object-shorthand
   } catch (error) {
@@ -83,6 +131,7 @@ async function login(user) {
   }
 }
 
+// Registers the the user to the device. Returns an error if a user already exists.
 async function register(user) {
   if ((await isRegistered()).registered) {
     throw new NodeError('User already exists', 400); // eslint-disable-line no-magic-numbers
@@ -104,6 +153,7 @@ async function register(user) {
   }
 }
 
+// Generate and return a new jwt token.
 async function refresh(user) {
   try {
     const jwt = await JWTHelper.generateJWT(user.username);
@@ -116,6 +166,8 @@ async function refresh(user) {
 
 module.exports = {
   changePassword,
+  getCachedPassword,
+  getChangePasswordStatus,
   hashCredentials,
   isRegistered,
   login,
