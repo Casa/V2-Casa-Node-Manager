@@ -15,6 +15,9 @@ router.post('/changePassword', auth.jwt, safeHandler(async(req, res, next) => {
   const currentPassword = req.body.currentPassword;
   const newPassword = req.body.newPassword;
 
+  // Pull out the existing jwt token for use later
+  const jwt = req.headers.authorization.split(' ').pop();
+
   try {
     validator.isString(currentPassword);
     validator.isMinPasswordLength(currentPassword);
@@ -25,12 +28,12 @@ router.post('/changePassword', auth.jwt, safeHandler(async(req, res, next) => {
   }
 
   try {
-    await applicationLogic.changePassword(currentPassword, newPassword, req.headers.authorization);
+    await applicationLogic.changePassword(currentPassword, newPassword, jwt);
   } catch (error) {
 
     // If lnapi returned 401 for invalid jwt or bad current password.
     if (error.response.status === constants.STATUS_CODES.UNAUTHORIZED) {
-      res.status(constants.STATUS_CODES.UNAUTHORIZED).json();
+      return res.status(constants.STATUS_CODES.UNAUTHORIZED).json();
     } else {
       throw error;
     }
@@ -51,7 +54,7 @@ router.post('/register', auth.register, safeHandler((req, res) =>
     .then(jwt => res.json(jwt))
 ));
 
-router.post('/login', auth.loginBodyToBasic, auth.basic, safeHandler((req, res) =>
+router.post('/login', auth.convertReqBodyToBasicAuth, auth.basic, safeHandler((req, res) =>
   applicationLogic.login(req.user)
     .then(jwt => res.json(jwt))
 ));

@@ -913,8 +913,9 @@ async function unlockLnd(jwt) {
   } while (errorOccurred && attempt < RETRY_ATTEMPTS);
 }
 
-async function changePassword(currentPassword, newPassword, authorization) {
-  await authLogic.changePassword(currentPassword, newPassword, authorization);
+// Change the device and lnd password.
+async function changePassword(currentPassword, newPassword, jwt) {
+  await authLogic.changePassword(currentPassword, newPassword, jwt);
 
   cachePassword(newPassword);
 }

@@ -17,10 +17,7 @@ async function sleepSeconds(seconds) {
   });
 }
 
-async function changePassword(currentPassword, newPassword, authorization) {
-
-  // make new password file
-  const credentials = hashCredentials(SYSTEM_USER, newPassword);
+async function changePassword(currentPassword, newPassword, jwt) {
 
   // restart lnd
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
@@ -35,7 +32,10 @@ async function changePassword(currentPassword, newPassword, authorization) {
       attempt++;
 
       // call lnapi to change password
-      await lnapiService.changePassword(currentPassword, newPassword, authorization);
+      await lnapiService.changePassword(currentPassword, newPassword, jwt);
+
+      // make new password file
+      const credentials = hashCredentials(SYSTEM_USER, newPassword);
 
       // replace user file
       await diskLogic.deleteUserFile();

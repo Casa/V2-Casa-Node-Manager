@@ -62,7 +62,7 @@ passport.use(REGISTRATION_AUTH, new BasicStrategy(function(username, password, n
 }));
 
 // Override the authorization header with password that is in the body of the request.
-function loginBodyToBasic(req, res, next) {
+function convertReqBodyToBasicAuth(req, res, next) {
   if (req.body.password) {
     req.headers.authorization = 'Basic ' + Buffer.from(SYSTEM_USER + ':' + req.body.password).toString('base64');
   }
@@ -154,7 +154,7 @@ function register(req, res, next) {
 
 module.exports = {
   basic,
-  loginBodyToBasic,
+  convertReqBodyToBasicAuth,
   jwt,
   register,
   accountJWTProtected,
