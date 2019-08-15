@@ -21,7 +21,7 @@ function isString(object) {
 
 function isMinPasswordLength(password) {
   if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new ValidationError('Must be 12 or more characters.');
+    throw new ValidationError('Must be ' + MIN_PASSWORD_LENGTH + ' or more characters.');
   }
 }
 
@@ -33,7 +33,7 @@ function isUpdatableService(service) {
 
 function isValidAliasLength(object) {
   if (Buffer.byteLength(String(object), 'utf8') > MAX_ALIAS_LENGTH) {
-    throw new ValidationError('Must be less than 32 bytes.');
+    throw new ValidationError('Must be less than ' + MAX_ALIAS_LENGTH + ' bytes.');
   }
 }
 
