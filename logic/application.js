@@ -19,7 +19,6 @@ const auth = require('logic/auth');
 let lanIPManagementInterval = {};
 let ipManagementRunning = false;
 
-let devicePassword = '';
 let lndManagementInterval = {};
 let lndManagementRunning = false;
 
@@ -851,7 +850,7 @@ async function lndManagement() {
     return;
   }
 
-  if (!devicePassword) {
+  if (!authLogic.getCachedPassword()) {
     return;
   }
 
@@ -902,10 +901,12 @@ async function unlockLnd(jwt) {
     errorOccurred = false;
     try {
       attempt++;
-      await lnapiService.unlockLnd(devicePassword, jwt);
+      await lnapiService.unlockLnd(authLogic.getCachedPassword(), jwt);
     } catch (error) {
+
+      // TODO: Handle this type of expected error the same way that we handle change password.
       errorOccurred = true;
-      logger.error(error.message, 'lnd-management', error.stack);
+      logger.info(error.message, 'lnd-management', error.stack);
 
       await sleepSeconds(RETRY_SECONDS);
     }
@@ -915,8 +916,6 @@ async function unlockLnd(jwt) {
 
 async function login(user) {
   try {
-
-    devicePassword = user.password;
     const jwt = await authLogic.login(user);
 
     // Don't wait for lnd management to complete. It takes 10 seconds on a Raspberry Pi 3B+. Running in the background
@@ -925,7 +924,6 @@ async function login(user) {
 
     return jwt;
   } catch (error) {
-    devicePassword = '';
     throw error;
   }
 }
