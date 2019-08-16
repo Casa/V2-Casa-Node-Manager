@@ -89,6 +89,42 @@ describe('v1/accounts endpoints', () => {
     });
   });
 
+  describe('v1/accounts/changePassword/status GET', () => {
+
+    it('should return 401 if token is bad', done => {
+
+      requester
+        .get('/v1/accounts/changePassword/status')
+        .set('authorization', `jwt`)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
+
+          done();
+        });
+    });
+
+    // Keep this test above the change password tests. Otherwise the percent will change.
+    it('should return successful', done => {
+
+      requester
+        .get('/v1/accounts/changePassword/status')
+        .set('authorization', `jwt ${token}`)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.percent.should.equal(0);
+
+          done();
+        });
+    });
+  });
+
   describe('v1/accounts/changePassword POST', () => {
 
     let dockerComposeStopStub;
