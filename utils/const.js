@@ -37,7 +37,9 @@ module.exports = {
     WELCOME: 'welcome'
   },
   STATUS_CODES: {
+    ACCEPTED: 202,
     BAD_GATEWAY: 502,
+    CONFLICT: 409,
     OK: 200,
     UNAUTHORIZED: 401,
   },
