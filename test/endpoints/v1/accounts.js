@@ -7,8 +7,9 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
 // A random username and password to test with
-const randomUsername = uuidv4();
-const randomPassword = uuidv4();
+const USERNAME = uuidv4();
+const PASSWORD = uuidv4();
+const WRONG_PASSWORD = 'notthecorrectpassword';
 
 // Clears any existing users out of the system
 const clearUsers = () => {
@@ -52,7 +53,7 @@ describe('v1/accounts endpoints', () => {
       clearUsers();
       requester
         .post('/v1/accounts/register')
-        .auth(randomUsername, randomPassword)
+        .auth(USERNAME, PASSWORD)
         .end((err, res) => {
           if (err) {
             done(err);
@@ -75,7 +76,7 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/refresh')
         .set('authorization', `jwt ${token}`)
-        .send({user: randomUsername})
+        .send({user: USERNAME})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -125,12 +126,14 @@ describe('v1/accounts endpoints', () => {
     });
   });
 
-  describe('v1/accounts/changePassword POST', () => {
+  describe('v1/accounts/changePassword POST via basic auth', () => {
 
+    let authStub;
     let dockerComposeStopStub;
     let dockerComposeUpSingleStub;
 
     before(() => {
+      authStub = sinon.stub(require('../../../logic/auth.js'), 'getChangePasswordStatus');
       dockerComposeStopStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeStop')
         .returns({});
       dockerComposeUpSingleStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeUpSingleService')
@@ -138,6 +141,7 @@ describe('v1/accounts endpoints', () => {
     });
 
     after(() => {
+      authStub.restore();
       dockerComposeStopStub.restore();
       dockerComposeUpSingleStub.restore();
     });
@@ -146,7 +150,7 @@ describe('v1/accounts endpoints', () => {
 
       requester
         .post('/v1/accounts/changePassword')
-        .set('authorization', `jwt ${token}`)
+        .auth(USERNAME, PASSWORD)
         .send({})
         .end((err, res) => {
           if (err) {
@@ -161,8 +165,8 @@ describe('v1/accounts endpoints', () => {
 
       requester
         .post('/v1/accounts/changePassword')
-        .set('authorization', `jwt ${token}`)
-        .send({currentPassword: 'tooShort', newPassword: 'tooShort'})
+        .auth(USERNAME, PASSWORD)
+        .send({newPassword: 'tooShort'})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -177,8 +181,8 @@ describe('v1/accounts endpoints', () => {
 
       requester
         .post('/v1/accounts/changePassword')
-        .set('authorization', '')
-        .send({currentPassword: randomPassword, newPassword: randomPassword})
+        .auth(USERNAME, WRONG_PASSWORD)
+        .send({newPassword: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -189,17 +193,138 @@ describe('v1/accounts endpoints', () => {
         });
     });
 
-    it('should return successful', done => {
+    it('should return 409 if a change password process is already running', done => {
+
+      authStub.returns({percent:40});
 
       requester
         .post('/v1/accounts/changePassword')
-        .set('authorization', `jwt ${token}`)
-        .send({currentPassword: randomPassword, newPassword: randomPassword})
+        .auth(USERNAME, PASSWORD)
+        .send({newPassword: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
           }
-          res.should.have.status(200);
+          res.should.have.status(409);
+
+          // TODO how to return stub to default
+          authStub.returns({percent:0});
+
+          done();
+        });
+    });
+
+    it('should return successful', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .auth(USERNAME, PASSWORD)
+        .send({ newPassword: PASSWORD})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(202);
+
+          done();
+        });
+    });
+  });
+
+  describe('v1/accounts/changePassword POST via body', () => {
+
+    let authStub;
+    let dockerComposeStopStub;
+    let dockerComposeUpSingleStub;
+
+    before(() => {
+      authStub = sinon.stub(require('../../../logic/auth.js'), 'getChangePasswordStatus');
+      dockerComposeStopStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeStop')
+        .returns({});
+      dockerComposeUpSingleStub = sinon.stub(require('../../../logic/docker-compose.js'), 'dockerComposeUpSingleService')
+        .returns({});
+    });
+
+    after(() => {
+      authStub.restore();
+      dockerComposeStopStub.restore();
+      dockerComposeUpSingleStub.restore();
+    });
+
+    it('should return 400 with missing parameters', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .send({password: PASSWORD})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should return 400 with passwords that are too short', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .send({password: PASSWORD, newPassword: 'tooShort'})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(400);
+
+          done();
+        });
+    });
+
+    it('should return 401 if token is bad', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .send({password: WRONG_PASSWORD, newPassword: PASSWORD})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(401);
+
+          done();
+        });
+    });
+
+    it('should return 409 if a change password process is already running', done => {
+
+      authStub.returns({percent:40});
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .send({password: PASSWORD, newPassword: PASSWORD})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(409);
+
+          // TODO how to return stub to default
+          authStub.returns({percent:0});
+
+          done();
+        });
+    });
+
+    it('should return successful', done => {
+
+      requester
+        .post('/v1/accounts/changePassword')
+        .send({password: PASSWORD, newPassword: PASSWORD})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(202);
 
           done();
         });
@@ -211,7 +336,7 @@ describe('v1/accounts endpoints', () => {
     it('should login as the newly registered user', done => {
       requester
         .post('/v1/accounts/login')
-        .auth(randomUsername, randomPassword)
+        .auth(USERNAME, PASSWORD)
         .end((err, res) => {
           if (err) {
             done(err);
@@ -225,7 +350,7 @@ describe('v1/accounts endpoints', () => {
     it('should unauth for bad credentials', done => {
       requester
         .post('/v1/accounts/login')
-        .auth(randomUsername, 'notthecorrectpassword')
+        .auth(USERNAME, WRONG_PASSWORD)
         .end((err, res) => {
           if (err) {
             done(err);
@@ -238,8 +363,8 @@ describe('v1/accounts endpoints', () => {
     it('should login using the post body as the newly registered user', done => {
       requester
         .post('/v1/accounts/login')
-        .auth(randomUsername, randomPassword)
-        .send({password: randomPassword})
+        .auth(USERNAME, PASSWORD)
+        .send({password: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -315,7 +440,7 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/refresh')
         .set('authorization', `JWT ${token}`)
-        .send({user: randomUsername})
+        .send({user: USERNAME})
         .end((err, res) => {
           if (err) {
             done(err);

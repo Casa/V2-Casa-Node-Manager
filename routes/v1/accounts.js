@@ -9,14 +9,17 @@ const constants = require('utils/const.js');
 const safeHandler = require('utils/safeHandler');
 const validator = require('utils/validator.js');
 
-// API endpoint to change your lnd password. Wallet must exist and be unlocked.
-router.post('/changePassword', auth.jwt, safeHandler(async(req, res, next) => {
+const COMPLETE = 100;
 
-  const currentPassword = req.body.currentPassword;
+// Endpoint to change your lnd password. Wallet must exist and be unlocked. This endpoint is authorized with basic auth
+// or the property password from the body.
+router.post('/changePassword', auth.convertReqBodyToBasicAuth, auth.basic, safeHandler(async(req, res, next) => {
+
+  // Use password from the body by default. Basic auth has issues handling special characters.
+  const currentPassword = req.body.password || req.user.password;
   const newPassword = req.body.newPassword;
 
-  // Pull out the existing jwt token for use later
-  const jwt = req.headers.authorization.split(' ').pop();
+  const jwt = await authLogic.refresh(req.user);
 
   try {
     validator.isString(currentPassword);
@@ -27,10 +30,17 @@ router.post('/changePassword', auth.jwt, safeHandler(async(req, res, next) => {
     return next(error);
   }
 
-  // start change password process in the background and immediately return
-  authLogic.changePassword(currentPassword, newPassword, jwt);
+  const status = await authLogic.getChangePasswordStatus();
 
-  return res.status(constants.STATUS_CODES.OK).json();
+  // return a conflict if a change password process is already running
+  if (status.percent > 0 && status.percent !== COMPLETE) {
+    return res.status(constants.STATUS_CODES.CONFLICT).json();
+  }
+
+  // start change password process in the background and immediately return
+  authLogic.changePassword(currentPassword, newPassword, jwt.jwt);
+
+  return res.status(constants.STATUS_CODES.ACCEPTED).json();
 }));
 
 // Returns the current status of the change password process.
