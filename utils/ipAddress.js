@@ -1,6 +1,12 @@
+var os = require('os');
+var ifaces = os.networkInterfaces();
+
 function getLanIPAddress() {
-  var os = require('os');
-  var ifaces = os.networkInterfaces();
+
+  // if we are on a dev machine
+  if (process.env.MAC) {
+    return 'http://localhost';
+  }
 
   let ipv4;
 
