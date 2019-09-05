@@ -1,5 +1,5 @@
 const axios = require('axios');
-const lnapiUrl = 'http://127.0.0.1';
+const lnapiUrl = 'lnapi';
 const lnapiPort = 3002;
 
 async function changePassword(currentPassword, newPassword, jwt) {
