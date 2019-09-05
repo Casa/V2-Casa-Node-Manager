@@ -446,7 +446,9 @@ async function startup() {
           await checkYMLs();
         }
 
-        await pullAllImages();
+        if (process.env.DISABLE_YML_UPDATE !== 'true') {
+          await pullAllImages();
+        }
 
         try {
           await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
@@ -613,7 +615,10 @@ async function resyncChain(full, syncFromAWS) {
 async function startIntervalServices() {
   await startLanIPIntervalService();
   await startLndIntervalService();
-  await startImageIntervalService();
+
+  if (process.env.DISABLE_YML_UPDATE !== 'true') {
+    await startImageIntervalService();
+  }
 }
 
 // Stop scheduling new interval services. Currently running interval services will still complete.
