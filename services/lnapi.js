@@ -1,5 +1,7 @@
 const axios = require('axios');
-const lnapiUrl = 'lnapi';
+
+// axios requires http
+const lnapiUrl = 'http://lnapi';
 const lnapiPort = 3002;
 
 async function changePassword(currentPassword, newPassword, jwt) {
