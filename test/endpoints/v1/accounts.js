@@ -222,7 +222,7 @@ describe('v1/accounts endpoints', () => {
         });
     });
 
-    it('should return 401 if token is bad', done => {
+    it('should return 403 if auth is wrong', done => {
 
       requester
         .post('/v1/accounts/changePassword')
@@ -232,7 +232,7 @@ describe('v1/accounts endpoints', () => {
           if (err) {
             done(err);
           }
-          res.should.have.status(401);
+          res.should.have.status(403);
 
           done();
         });
@@ -325,7 +325,7 @@ describe('v1/accounts endpoints', () => {
         });
     });
 
-    it('should return 401 if token is bad', done => {
+    it('should return 403 if the password is bad', done => {
 
       requester
         .post('/v1/accounts/changePassword')
@@ -334,7 +334,7 @@ describe('v1/accounts endpoints', () => {
           if (err) {
             done(err);
           }
-          res.should.have.status(401);
+          res.should.have.status(403);
 
           done();
         });

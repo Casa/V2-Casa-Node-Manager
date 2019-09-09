@@ -77,12 +77,13 @@ async function changePassword(currentPassword, newPassword, jwt) {
         await sleepSeconds(1);
 
       // user supplied incorrect credentials
-      } else if (error.response.status === constants.STATUS_CODES.UNAUTHORIZED) {
-        changePasswordStatus.unauthorized = true;
+      } else if (error.response.status === constants.STATUS_CODES.FORBIDDEN) {
+        changePasswordStatus.forbidden = true;
 
       // unknown error occurred
       } else {
         changePasswordStatus.error = true;
+        changePasswordStatus.percent = 100;
 
         throw error;
       }
@@ -91,6 +92,7 @@ async function changePassword(currentPassword, newPassword, jwt) {
 
   if (!complete && attempt === MAX_ATTEMPTS) {
     changePasswordStatus.error = true;
+    changePasswordStatus.percent = 100;
 
     throw new Error('Unable to change password. Lnd would not restart properly.');
   }
