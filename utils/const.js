@@ -40,6 +40,7 @@ module.exports = {
     ACCEPTED: 202,
     BAD_GATEWAY: 502,
     CONFLICT: 409,
+    FORBIDDEN: 403,
     OK: 200,
     UNAUTHORIZED: 401,
   },
