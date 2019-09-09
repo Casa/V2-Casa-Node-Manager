@@ -57,7 +57,9 @@ router.get('/registered', safeHandler((req, res) =>
     .then(registered => res.json(registered))
 ));
 
-router.post('/register', auth.register, safeHandler((req, res) =>
+// Endpoint to register a password with the device. Wallet must not exist. This endpoint is authorized with basic auth
+// or the property password from the body.
+router.post('/register', auth.convertReqBodyToBasicAuth, auth.register, safeHandler((req, res) =>
   authLogic.register(req.user)
     .then(jwt => res.json(jwt))
 ));

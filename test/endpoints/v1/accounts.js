@@ -45,7 +45,7 @@ describe('v1/accounts endpoints', () => {
     require(application).stopIntervalServices();
   });
 
-  describe('v1/accounts/register POST', () => {
+  describe('v1/accounts/register POST via basic auth', () => {
 
     it('should register a new user and return a new JWT', done => {
 
@@ -54,6 +54,51 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/register')
         .auth(USERNAME, PASSWORD)
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          token = res.body.jwt;
+          done();
+        });
+    });
+
+    it('should check the issuer in the JWT', done => {
+      const decoded = jwt.decode(token);
+      decoded.id.should.equal('fake_boot_id'); // stubbed in global.js
+      done();
+    });
+
+    it('should be able to use the new JWT', done => {
+      requester
+        .post('/v1/accounts/refresh')
+        .set('authorization', `jwt ${token}`)
+        .send({user: USERNAME})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.jwt.should.not.be.empty;
+          done();
+        });
+    });
+  });
+
+  describe('v1/accounts/register POST via body', () => {
+
+    it('should register a new user and return a new JWT', done => {
+
+      // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
+      clearUsers();
+      requester
+        .post('/v1/accounts/register')
+        .send({password: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
