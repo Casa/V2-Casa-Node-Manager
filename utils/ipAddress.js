@@ -1,10 +1,10 @@
-var os = require('os');
-var ifaces = os.networkInterfaces();
+const os = require('os');
+const ifaces = os.networkInterfaces();
 
 function getLanIPAddress() {
 
-  // if we are on a dev machine
-  if (process.env.MAC) {
+  // Manually set lan ip address to local host if we are on a developer machine.
+  if (process.env.DEV === 'true') {
     return 'http://localhost';
   }
 

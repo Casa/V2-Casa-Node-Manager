@@ -311,6 +311,12 @@ async function startImageIntervalService() {
 
 // Pull all docker images from docker hub.
 async function pullAllImages() {
+
+  // Return and skip downloading images
+  if (process.env.DISABLE_IMAGE_PULL === 'true') {
+    return;
+  }
+
   pullingImages = true;
 
   try {
@@ -442,13 +448,9 @@ async function startup() {
         }
 
         // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
-        if (process.env.DISABLE_YML_UPDATE !== 'true') {
-          await checkYMLs();
-        }
+        await checkYMLs();
 
-        if (process.env.DISABLE_YML_UPDATE !== 'true') {
-          await pullAllImages();
-        }
+        await pullAllImages();
 
         try {
           await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
@@ -460,9 +462,8 @@ async function startup() {
       }
 
       bootPercent = 20;
-      if (process.env.DISABLE_YML_UPDATE !== 'true') {
-        await checkYMLs();
-      }
+      await checkYMLs();
+
       bootPercent = 30;
 
       // Previous releases will have a paused Welcome service, let us be good stewarts.
@@ -615,10 +616,7 @@ async function resyncChain(full, syncFromAWS) {
 async function startIntervalServices() {
   await startLanIPIntervalService();
   await startLndIntervalService();
-
-  if (process.env.DISABLE_YML_UPDATE !== 'true') {
-    await startImageIntervalService();
-  }
+  await startImageIntervalService();
 }
 
 // Stop scheduling new interval services. Currently running interval services will still complete.
@@ -756,6 +754,12 @@ async function wipeSettingsVolume() {
 // Compare known compose files, except manager.yml, with on-device YMLs.
 // The manager should have the latest YMLs.
 async function checkYMLs() {
+
+  // Return and skip yml updates
+  if (process.env.DISABLE_YML_UPDATE === 'true') {
+    return;
+  }
+
   const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
 
   const updatableYMLs = Object.values(knownYMLs);

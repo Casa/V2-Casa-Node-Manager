@@ -25,7 +25,6 @@ services:
       - DISABLE_YML_UPDATE
       - SYSTEM_USER
       - TAG
-    network_mode: host
     labels:
       - casa=persist
     mem_limit: 256m
