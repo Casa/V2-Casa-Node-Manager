@@ -469,21 +469,25 @@ async function startup() {
 
       // Clean up old images.
       await dockerLogic.pruneImages();
-      bootPercent = 40;
+      bootPercent = 35;
 
       // Ensure tor volumes are created before launching applications.
       await dockerLogic.ensureTorVolumes();
-      bootPercent = 50;
+      bootPercent = 45;
 
       // Spin up applications
       await startTorAsNeeded(settings);
-      bootPercent = 60;
+      bootPercent = 55;
       await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
-      bootPercent = 70;
+      bootPercent = 65;
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-      bootPercent = 80;
+      bootPercent = 75;
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-      bootPercent = 90;
+      bootPercent = 85;
+
+      // Recreate the update-manager if the yml file has changed.
+      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.UPDATE_MANAGER});
+      bootPercent = 95;
 
       await startIntervalServices();
 

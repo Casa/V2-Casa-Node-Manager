@@ -11,7 +11,8 @@ module.exports = {
     LOGSPOUT: 'logspout.yml',
     MANAGER: 'manager.yml',
     TOR: 'tor.yml',
-    WELCOME: 'welcome.yml'
+    WELCOME: 'welcome.yml',
+    UPDATE_MANAGER: 'update-manager.yml',
   },
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
