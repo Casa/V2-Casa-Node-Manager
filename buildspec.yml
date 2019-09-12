@@ -20,12 +20,35 @@ phases:
 
   pre_build:
     commands:
+
+      # Hacky way to determine what branch we are in. $CODEBUILD_SOURCE_VERSION is the git commit we are currently
+      # building. We search all local branches to get a list of branches that include that git commit. We return all
+      # alpha characters from the branch we are looking for.
+      #
+      # Ex.
+      # master => master
+      # release/1.0.0 => release
+
+      - masterBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep master | sed 's/[^a-zA-Z]//g')
+      - releaseBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep release | sed 's/[^a-zA-Z]//g')
+      - developBranchText=$(git branch --contains $CODEBUILD_SOURCE_VERSION | grep develop | sed 's/[^a-zA-Z]//g')
+
+      # We must choose which branch the manager is pulling from. If we are building the develop or master version of
+      # the manager, we will use the corresponding branch from the warehouse. Unfortunately, there is no good way to
+      # correlate release branches from one repository to another. Because of this, when building a release version of
+      # the manager, we will use the develop branch of the warehouse.
+      - warehouseBranch=develop
+      - |
+        if [ "$masterBranchText" = "master" ]; then
+          warehouseBranch=master
+        fi
+
       # make a default directory that is required for the manager to start up. Normally this is handled by the install
       # tools.
       - mkdir -p /root/lightning-node
 
       # Copy the YMLs into the container
-      - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
+      - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --branch $warehouseBranch --single-branch --depth 1 /warehouse
       - rsync -av /warehouse/lightning-node/*.yml ./resources
 
       # Copy the launch file
