@@ -43,6 +43,8 @@ phases:
           warehouseBranch=master
         fi
 
+      - echo "Pulling Warehouse from branch $warehouseBranch"
+
       # make a default directory that is required for the manager to start up. Normally this is handled by the install
       # tools.
       - mkdir -p /root/lightning-node
