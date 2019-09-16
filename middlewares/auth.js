@@ -61,9 +61,9 @@ passport.use(REGISTRATION_AUTH, new BasicStrategy(function(username, password, n
   return next(null, credentials);
 }));
 
-// Override the authorization header with password that is in the body of the request.
+// Override the authorization header with password that is in the body of the request if basic auth was not supplied.
 function convertReqBodyToBasicAuth(req, res, next) {
-  if (req.body.password) {
+  if (req.body.password && !req.headers.authorization) {
     req.headers.authorization = 'Basic ' + Buffer.from(SYSTEM_USER + ':' + req.body.password).toString('base64');
   }
 

@@ -245,7 +245,8 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/changePassword')
         .auth(USERNAME, PASSWORD)
-        .send({newPassword: PASSWORD})
+        .send({ password: PASSWORD,
+          newPassword: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -264,7 +265,8 @@ describe('v1/accounts endpoints', () => {
       requester
         .post('/v1/accounts/changePassword')
         .auth(USERNAME, PASSWORD)
-        .send({ newPassword: PASSWORD})
+        .send({ password: PASSWORD,
+          newPassword: PASSWORD})
         .end((err, res) => {
           if (err) {
             done(err);
