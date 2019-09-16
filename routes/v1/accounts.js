@@ -18,7 +18,7 @@ const COMPLETE = 100;
 router.post('/changePassword', auth.convertReqBodyToBasicAuth, auth.basic, changePasswordAuthHandler, safeHandler(async(req, res, next) => {
 
   // Use password from the body by default. Basic auth has issues handling special characters.
-  const currentPassword = req.body.password || req.user.password;
+  const currentPassword = req.body.password;
   const newPassword = req.body.newPassword;
 
   const jwt = await authLogic.refresh(req.user);
