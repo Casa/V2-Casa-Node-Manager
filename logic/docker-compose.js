@@ -145,6 +145,17 @@ async function dockerComposePullAll() {
   await dockerLogout();
 }
 
+// Pull just the update manager.
+async function pullUpdateManager() {
+
+  // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
+  // the raspberry pi.
+  await dockerLoginCasabuilder();
+  await dockerComposePull({service: constants.SERVICES.UPDATE_MANAGER});
+
+  await dockerLogout();
+}
+
 // Stop a docker container.
 function dockerComposeStop(options = {}) {
   var deferred = q.defer();
@@ -308,4 +319,5 @@ module.exports = {
   dockerComposeRestart,
   dockerComposeUpSingleService, // eslint-disable-line id-length
   dockerLoginCasaworker,
+  pullUpdateManager,
 };
