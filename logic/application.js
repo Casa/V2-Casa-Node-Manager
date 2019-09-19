@@ -486,6 +486,7 @@ async function startup() {
       bootPercent = 85;
 
       // Recreate the update-manager if the yml file has changed.
+      await dockerComposeLogic.pullUpdateManager();
       await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.UPDATE_MANAGER});
       bootPercent = 95;
 
