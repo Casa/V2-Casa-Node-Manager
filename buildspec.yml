@@ -33,6 +33,7 @@ phases:
       - rsync -av /tools/launch.sh ./resources
 
       - echo Installing source NPM dependencies...
+      - npm --build-from-source install bcrypt@3.0.6
       - npm install
   build:
     commands:
