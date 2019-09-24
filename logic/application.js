@@ -77,7 +77,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     bitcoind: {
       bitcoinNetwork: 'mainnet',
       bitcoindListen: true,
-      bitcoindTor: false, // Added February 2019
+      bitcoindTor: true, // Added February 2019
     },
     lnd: {
       chain: 'bitcoin',
@@ -85,7 +85,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
       externalIP: '',
-      lndTor: false, // Added February 2019
+      lndTor: true, // Added February 2019
     },
     system: {},
   };
@@ -447,9 +447,7 @@ async function startup() {
           // 3. The user restarts the device
         }
 
-        // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
         await checkYMLs();
-
         await pullAllImages();
 
         try {
