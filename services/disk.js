@@ -83,7 +83,7 @@ function readUtf8File(filePath) {
   return readFile(filePath, 'utf8');
 }
 
-function readJsonFile(filePath) {
+async function readJsonFile(filePath) {
   return readUtf8File(filePath).then(JSON.parse);
 }
 

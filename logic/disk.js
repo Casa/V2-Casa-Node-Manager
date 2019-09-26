@@ -9,6 +9,23 @@ async function deleteFoldersInDir(directory) {
   await diskService.deleteFoldersInDir(directory);
 }
 
+async function getBuildDetails(applications) {
+
+  const details = [];
+
+  for (const application of applications) {
+    application.metadata = await diskService.readJsonFile(constants.WORKING_DIRECTORY + '/' + application.name + '/'
+      + application.version + '/' + constants.METADATA_FILE);
+
+    application.ymlPath = constants.WORKING_DIRECTORY + '/' + application.name + '/' + application.version + '/'
+      + application.name + '.yml';
+
+    details.push(application);
+  }
+
+  return details;
+}
+
 async function moveFoldersToDir(fromDir, toDir) {
   await diskService.moveFoldersToDir(fromDir, toDir);
 }
@@ -65,6 +82,7 @@ module.exports = {
   deleteUserFile,
   deleteFoldersInDir,
   moveFoldersToDir,
+  getBuildDetails,
   readSettingsFile,
   readUserFile,
   writeSettingsFile,

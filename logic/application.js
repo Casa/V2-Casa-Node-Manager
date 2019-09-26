@@ -103,10 +103,15 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     await diskLogic.writeSettingsFile(defaultConfig);
 
     return defaultConfig;
-  } else {
+  } else { // handle existing settings files
     const settings = await diskLogic.readSettingsFile();
 
+    // create bitcoind rpc creds as necessary
     await rpcCredIntegrityCheck(settings);
+
+    // upgrade settings schema as necessary
+    upgradeSettingSchema(settings);
+
     await diskLogic.writeSettingsFile(settings);
 
     return settings;
@@ -123,6 +128,18 @@ async function rpcCredIntegrityCheck(settings) {
   if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcPassword')) {
     settings.bitcoind.rpcPassword = UUID.create();
   }
+}
+
+// Upgrade the settings schema to the most recent schema
+function upgradeSettingSchema(settings) {
+
+  // upgrade to schema version 1.0.0
+  if (!settings.version) {
+    settings.version = '1.0.0';
+
+    // settings.systemSettings.systemApplications = ['manager', 'update-manager', 'lightning-node', ];
+  }
+
 }
 
 // Return true if there was an issue downloading a file otherwise false.
@@ -472,8 +489,78 @@ async function startup() {
       await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
 
       // Clean up old images.
-      await dockerLogic.pruneImages();
+      // await dockerLogic.pruneImages();
       bootPercent = 35;
+
+      // TODO read from settings file
+      const installedApps = [
+        {
+          name: 'manager',
+          ymlVersion: '0.1.0',
+          priority: 'system',
+          services: [
+            {
+              name: 'manager',
+              tagVersion: '0.1.0',
+            }
+          ]
+        }, {
+          name: 'update-manager',
+          ymlVersion: '0.1.0',
+          priority: 'system',
+          services: [
+            {
+              name: 'update-manager',
+              tagVersion: '0.1.0',
+            },
+          ]
+        }, {
+          name: 'logspout',
+          ymlVersion: '0.1.0',
+          priority: 'system',
+          services: [
+            {
+              name: 'syslog',
+              tagVersion: '0.1.0',
+            },
+            {
+              name: 'logspout',
+              tagVersion: '0.1.0',
+            },
+          ]
+        }, {
+          name: 'lightning-node',
+          ymlVersion: '0.1.0',
+          priority: 'user',
+          services: [
+            {
+              name: 'bitcoind',
+              tagVersion: '0.1.0',
+            },
+            {
+              name: 'lnd',
+              tagVersion: '0.1.0',
+            },
+            {
+              name: 'lnapi',
+              tagVersion: '0.1.0',
+            },
+            {
+              name: 'space-fleet',
+              tagVersion: '0.1.0',
+            },
+          ]
+        }];
+
+      // TODO make sure we are not currently pulling build artifacts from supernode-warehouse
+      // get dependencies
+      const buildDetails = await diskLogic.getBuildDetails(installedApps);
+
+      // create depenedency tree
+      const services = getServiceBootOrder(buildDetails); // eslint-disable-line no-unused-vars
+
+      // order dependencies depth first
+      // docker compose up one container at a time
 
       // Ensure tor volumes are created before launching applications.
       await dockerLogic.ensureTorVolumes();
@@ -506,6 +593,59 @@ async function startup() {
   } while (errorThrown);
 
   bootPercent = 100;
+}
+
+function getServiceBootOrder(applicationsDetails) {
+
+  // pull out all services
+  const serviceOrderMap = {};
+  const services = [];
+  const orderedServices = [];
+
+  for (const applicationDetails of applicationsDetails) {
+    for (const service of applicationDetails.metadata.services) {
+      service.priority = applicationDetails.priority;
+      service.ymlPath = applicationDetails.ymlPath;
+
+      services.push(service);
+    }
+  }
+
+  // sort by priority
+  services.sort(comparePriority);
+
+  // for each services
+  while (services.length !== Object.keys(serviceOrderMap).length) {
+    for (const service of services) {
+
+      let allDependenciesMet = true;
+
+      for (const dependency of service.dependencies) {
+        if (!Object.prototype.hasOwnProperty.call(serviceOrderMap, dependency.service)) {
+          allDependenciesMet = false;
+        }
+      }
+
+      // if dependencies are met and we haven't already added this service to the list
+      if (allDependenciesMet && !Object.prototype.hasOwnProperty.call(serviceOrderMap, service.name)) {
+        serviceOrderMap[service.name] = orderedServices.length;
+        orderedServices.push(service);
+      }
+    }
+  }
+
+  return orderedServices;
+}
+
+function comparePriority(serviceA, serviceB) {
+  if (serviceA.priority === 'user' && serviceB.priority === 'system') {
+    return 1;
+  }
+  if (serviceA.priority === 'system' && serviceB.priority === 'user') {
+    return -1;
+  }
+
+  return 0;
 }
 
 /* eslint-enable no-magic-numbers */
@@ -958,6 +1098,7 @@ module.exports = {
   getAddresses,
   getBootPercent,
   getSerial,
+  getServiceBootOrder,
   getSystemStatus,
   getFilteredVersions,
   login,
