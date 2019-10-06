@@ -231,26 +231,32 @@ function dockerComposeRestart(options = {}) {
   return deferred.promise;
 }
 
-const dockerComposeUpSingleService = async options => { // eslint-disable-line id-length
+// Use docker compose to create one service from a yml file. Retrieve the TAG from the .env file and the version from
+// the application version files on device.
+async function dockerComposeUpSingleService(appVersions, options) { // eslint-disable-line id-length
   const file = composeFile(options);
-  const service = options.service;
   addDefaultOptions(options);
   options.env = await injectSettings();
+  options.env.TAG = constants.TAG;
+
+  // Remove all dashes from service names. Dashes do not work with docker env variables. Example, space-fleet becomes
+  // SPACEFLEETVERSION.
+  options.env[options.service.replace('-', '').toUpperCase() + 'VERSION'] = options.version;
 
   // Pass along environmental variables as needed.
-  if (service === constants.SERVICES.PAPERTRAIL || service === constants.SERVICES.LOGSPOUT) {
+  if (options.service === constants.SERVICES.PAPERTRAIL || options.service === constants.SERVICES.LOGSPOUT) {
     options.env.SERIAL = constants.SERIAL;
-  } else if (service === constants.SERVICES.LNAPI) {
+  } else if (options.service === constants.SERVICES.LNAPI) {
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
-  } else if (service === constants.SERVICES.DOWNLOAD) {
+  } else if (options.service === constants.SERVICES.DOWNLOAD) {
     options.env.ARCHIVE_CHAIN = 'bitcoind';
     options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK'];
     options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
-  var composeOptions = ['-f', file, 'up'];
+  let composeOptions = ['-f', file, 'up'];
 
   // By default everything will run in detached mode. However, in some cases we want to want for a container to complete
   // before returning. We pass the attached flag in that instance.
@@ -258,14 +264,14 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     composeOptions.push('-d');
   }
 
-  composeOptions.push('-t', DOCKER_TIMEOUT_SECONDS, '--no-deps', service);
+  composeOptions.push('-t', DOCKER_TIMEOUT_SECONDS, '--no-deps', options.service);
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
   } catch (error) {
-    throw new DockerComposeError('Unable to start service: ' + service, error);
+    throw new DockerComposeError('Unable to start service: ' + options.service, error);
   }
-};
+}
 
 async function dockerLogin(options = {}, username, password) {
 

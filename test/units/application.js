@@ -10,8 +10,8 @@ describe('applicationLogic', function() {
 
     const explorerBuildDetails = { name: 'explorer',
       version: '0.1.0',
-      priority: 'user',
       metadata: {
+        priority: 'user',
         services: [
           {
             name: 'explorer',
@@ -26,8 +26,8 @@ describe('applicationLogic', function() {
 
     const torBuildDetails = { name: 'tor',
       version: '0.1.0',
-      priority: 'user',
       metadata: {
+        priority: 'user',
         services: [
           {
             name: 'tor',
@@ -42,8 +42,8 @@ describe('applicationLogic', function() {
 
     const bitcoindBuildDetails = { name: 'bitcoind',
       version: '0.1.0',
-      priority: 'user',
       metadata: {
+        priority: 'user',
         services: [
           {
             name: 'bitcoind',
@@ -64,8 +64,8 @@ describe('applicationLogic', function() {
 
     const lightningNodeBuildDetails = { name: 'lightning-node',
       version: '0.1.0',
-      priority: 'user',
       metadata: {
+        priority: 'user',
         services: [
           {
             name: 'bitcoind',
@@ -131,8 +131,8 @@ describe('applicationLogic', function() {
 
     const updateManagerBuildDetails = { name: 'update-manager',
       version: '0.1.0',
-      priority: 'system',
       metadata: {
+        priority: 'system',
         services: [
           {
             name: 'update-manager',
@@ -157,39 +157,7 @@ describe('applicationLogic', function() {
       services.length.should.equal(1);
       services[0].name.should.equal(torBuildDetails.name);
       services[0].version.should.equal(torBuildDetails.version);
-      services[0].priority.should.equal(torBuildDetails.priority);
       services[0].ymlPath.should.equal(torBuildDetails.ymlPath);
-
-    });
-
-    it('should respect priority base case', async function() {
-
-      const services = await applicationLogic.getServiceBootOrder([torBuildDetails, updateManagerBuildDetails]);
-
-      services.length.should.equal(2);
-
-      services[0].name.should.equal(updateManagerBuildDetails.name);
-      services[0].version.should.equal(updateManagerBuildDetails.version);
-      services[0].priority.should.equal(updateManagerBuildDetails.priority);
-      services[0].ymlPath.should.equal(updateManagerBuildDetails.ymlPath);
-
-      services[1].name.should.equal(torBuildDetails.name);
-      services[1].version.should.equal(torBuildDetails.version);
-      services[1].priority.should.equal(torBuildDetails.priority);
-      services[1].ymlPath.should.equal(torBuildDetails.ymlPath);
-
-    });
-
-    it('should respect priority multiple', async function() {
-
-      const services = await applicationLogic.getServiceBootOrder([torBuildDetails, updateManagerBuildDetails, explorerBuildDetails]);
-
-      services.length.should.equal(3);
-
-      services[0].name.should.equal(updateManagerBuildDetails.name);
-      services[0].version.should.equal(updateManagerBuildDetails.version);
-      services[0].priority.should.equal(updateManagerBuildDetails.priority);
-      services[0].ymlPath.should.equal(updateManagerBuildDetails.ymlPath);
 
     });
 
@@ -201,12 +169,10 @@ describe('applicationLogic', function() {
 
       services[0].name.should.equal(torBuildDetails.name);
       services[0].version.should.equal(torBuildDetails.version);
-      services[0].priority.should.equal(torBuildDetails.priority);
       services[0].ymlPath.should.equal(torBuildDetails.ymlPath);
 
       services[1].name.should.equal(bitcoindBuildDetails.name);
       services[1].version.should.equal(bitcoindBuildDetails.version);
-      services[1].priority.should.equal(bitcoindBuildDetails.priority);
       services[1].ymlPath.should.equal(bitcoindBuildDetails.ymlPath);
 
     });
@@ -219,27 +185,22 @@ describe('applicationLogic', function() {
 
       services[0].name.should.equal(lightningNodeBuildDetails.metadata.services[3].name);
       services[0].version.should.equal(lightningNodeBuildDetails.metadata.services[3].version);
-      services[0].priority.should.equal(lightningNodeBuildDetails.metadata.services[3].priority);
       services[0].ymlPath.should.equal(lightningNodeBuildDetails.metadata.services[3].ymlPath);
 
       services[1].name.should.equal(torBuildDetails.name);
       services[1].version.should.equal(torBuildDetails.version);
-      services[1].priority.should.equal(torBuildDetails.priority);
       services[1].ymlPath.should.equal(torBuildDetails.ymlPath);
 
       services[2].name.should.equal(lightningNodeBuildDetails.metadata.services[0].name);
       services[2].version.should.equal(lightningNodeBuildDetails.metadata.services[0].version);
-      services[2].priority.should.equal(lightningNodeBuildDetails.metadata.services[0].priority);
       services[2].ymlPath.should.equal(lightningNodeBuildDetails.metadata.services[0].ymlPath);
 
       services[3].name.should.equal(lightningNodeBuildDetails.metadata.services[2].name);
       services[3].version.should.equal(lightningNodeBuildDetails.metadata.services[2].version);
-      services[3].priority.should.equal(lightningNodeBuildDetails.metadata.services[2].priority);
       services[3].ymlPath.should.equal(lightningNodeBuildDetails.metadata.services[2].ymlPath);
 
       services[4].name.should.equal(lightningNodeBuildDetails.metadata.services[1].name);
       services[4].version.should.equal(lightningNodeBuildDetails.metadata.services[1].version);
-      services[4].priority.should.equal(lightningNodeBuildDetails.metadata.services[1].priority);
       services[4].ymlPath.should.equal(lightningNodeBuildDetails.metadata.services[1].ymlPath);
 
     });

@@ -14,7 +14,6 @@ const schemaValidator = require('utils/settingsSchema.js');
 const ipAddressUtil = require('utils/ipAddress.js');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
-const auth = require('logic/auth');
 
 const md5Check = require('md5-file');
 
@@ -116,6 +115,39 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
 
     return settings;
   }
+}
+
+// Checks that a single application has a default version file. It will create a version file if it doesn't exist.
+// Returns the application version.
+async function appVersionIntegrityCheck(appVersionFile) {
+  if (!await diskLogic.fileExists(constants.WORKING_DIRECTORY + '/' + appVersionFile)) {
+    await diskLogic.writeAppVersionFile(appVersionFile, {
+      version: '2.0.0',
+    });
+  }
+
+  return await diskLogic.readAppVersionFile(appVersionFile);
+}
+
+// Checks where all applications have a default version file. It will create a version file if it doesn't exist. Returns
+// all the application versions.
+async function appVersionsIntegrityCheck() {
+
+  const appVersions = {};
+
+  appVersions[constants.APPLICATIONS.DOWNLOAD] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DOWNLOAD);
+  appVersions[constants.APPLICATIONS.LOGSPOUT] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LOGSPOUT);
+  appVersions[constants.APPLICATIONS.MANAGER] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.MANAGER);
+  appVersions[constants.APPLICATIONS.TOR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.TOR);
+  appVersions[constants.APPLICATIONS.WELCOME] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.WELCOME);
+  appVersions[constants.APPLICATIONS.LIGHTNING_NODE]
+    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LIGHTNING_NODE);
+  appVersions[constants.APPLICATIONS.UPDATE_MANAGER]
+    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.UPDATE_MANAGER);
+  appVersions[constants.APPLICATIONS.DEVICE_HOST]
+    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DEVICE_HOST);
+
+  return appVersions;
 }
 
 // Check whether the settings.json file contains rpcUser and rpcPassword. Historically it has not contained this by
@@ -435,7 +467,9 @@ async function startup() {
 
   // keep retrying the startup process if there are any errors
   do {
-    const settings = await settingsFileIntegrityCheck();
+    await settingsFileIntegrityCheck();
+    const appVersions = await appVersionsIntegrityCheck();
+
     try {
       await updateBuildArtifacts();
       await checkAndUpdateLaunchScript();
@@ -448,138 +482,33 @@ async function startup() {
         logger.info('No ipv4 address available. Plug in ethernet.', 'startup');
       }
 
-      // initial setup after a reset or manufacture, force an update.
-      const firstBoot = await auth.isRegistered();
       bootPercent = 10;
-
-      if (!firstBoot.registered) {
-        await dockerComposeLogic.dockerLoginCasaworker();
-        await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
-
-        try {
-          await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
-        } catch (error) {
-          // TODO: figure out a better way to handle this
-          // Ignore errors when welcome doesn't start because space-fleet is already running
-          // This can happen under the following circumstance
-          // 1. The user starts the device the first time
-          // 2. they don't register
-          // 3. The user restarts the device
-        }
-
-        await checkYMLs();
-        await pullAllImages();
-
-        try {
-          await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
-          await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
-        } catch (error) {
-          // TODO: same as above
-          // Ignore error
-        }
-      }
-
-      bootPercent = 20;
-      await checkYMLs();
+      await checkYMLs(appVersions);
 
       bootPercent = 30;
 
-      // Previous releases will have a paused Welcome service, let us be good stewarts.
-      await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
-      await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
+      const appsToLaunch = {};
+      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
+      appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
+      appsToLaunch[constants.APPLICATIONS.MANAGER] = appVersions[constants.APPLICATIONS.MANAGER];
+      appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
-      // Clean up old images.
-      // await dockerLogic.pruneImages();
-      bootPercent = 35;
-
-      // TODO read from settings file
-      const installedApps = [
-        {
-          name: 'manager',
-          ymlVersion: '0.1.0',
-          priority: 'system',
-          services: [
-            {
-              name: 'manager',
-              tagVersion: '0.1.0',
-            }
-          ]
-        }, {
-          name: 'update-manager',
-          ymlVersion: '0.1.0',
-          priority: 'system',
-          services: [
-            {
-              name: 'update-manager',
-              tagVersion: '0.1.0',
-            },
-          ]
-        }, {
-          name: 'logspout',
-          ymlVersion: '0.1.0',
-          priority: 'system',
-          services: [
-            {
-              name: 'syslog',
-              tagVersion: '0.1.0',
-            },
-            {
-              name: 'logspout',
-              tagVersion: '0.1.0',
-            },
-          ]
-        }, {
-          name: 'lightning-node',
-          ymlVersion: '0.1.0',
-          priority: 'user',
-          services: [
-            {
-              name: 'bitcoind',
-              tagVersion: '0.1.0',
-            },
-            {
-              name: 'lnd',
-              tagVersion: '0.1.0',
-            },
-            {
-              name: 'lnapi',
-              tagVersion: '0.1.0',
-            },
-            {
-              name: 'space-fleet',
-              tagVersion: '0.1.0',
-            },
-          ]
-        }];
-
-      // TODO make sure we are not currently pulling build artifacts from supernode-warehouse
-      // get dependencies
-      const buildDetails = await diskLogic.getBuildDetails(installedApps);
+      const buildDetails = await diskLogic.getBuildDetails(appsToLaunch);
 
       // create depenedency tree
-      const services = getServiceBootOrder(buildDetails); // eslint-disable-line no-unused-vars
-
-      // order dependencies depth first
-      // docker compose up one container at a time
+      const services = getServiceBootOrder(buildDetails);
 
       // Ensure tor volumes are created before launching applications.
       await dockerLogic.ensureTorVolumes();
-      bootPercent = 45;
 
-      // Spin up applications
-      await startTorAsNeeded(settings);
-      bootPercent = 55;
-      await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
-      bootPercent = 65;
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-      bootPercent = 75;
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-      bootPercent = 85;
+      for (const service of services) {
+        await dockerComposeLogic.dockerComposeUpSingleService(appVersions, {
+          service: service.name,
+          version: service.version,
+        });
 
-      // Recreate the update-manager if the yml file has changed.
-      await dockerComposeLogic.pullUpdateManager();
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.UPDATE_MANAGER});
-      bootPercent = 95;
+        bootPercent += 10;
+      }
 
       await startIntervalServices();
 
@@ -604,7 +533,6 @@ function getServiceBootOrder(applicationsDetails) {
 
   for (const applicationDetails of applicationsDetails) {
     for (const service of applicationDetails.metadata.services) {
-      service.priority = applicationDetails.priority;
       service.ymlPath = applicationDetails.ymlPath;
 
       services.push(service);
@@ -894,7 +822,7 @@ async function wipeSettingsVolume() {
 
 // Compare known compose files, except manager.yml, with on-device YMLs.
 // The manager should have the latest YMLs.
-async function checkYMLs() {
+async function checkYMLs(appVersions) {
 
   // Return and skip yml updates
   if (process.env.DISABLE_YML_UPDATE === 'true') {
@@ -902,18 +830,26 @@ async function checkYMLs() {
   }
 
   const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
-
   const updatableYMLs = Object.values(knownYMLs);
-
   const outdatedYMLs = [];
 
   for (const knownYMLFile of updatableYMLs) {
     try {
-      const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY.concat('/' + knownYMLFile));
-      const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY.concat('/' + knownYMLFile));
+      // Get the name of the application. Currently convention of yml files are <application name>.yml.
+      const application = knownYMLFile.split('.')[0];
+      const version = appVersions[application].version;
 
+      const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY + '/' + application + '/' + version + '/'
+        + knownYMLFile);
+      const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY + '/' + knownYMLFile);
+
+      // Don't update the manager.yml file on MAC. It requires a special yml.
       if (canonicalMd5 !== ondeviceMd5) {
-        outdatedYMLs.push(knownYMLFile);
+        if (process.env.MAC && knownYMLFile === constants.COMPOSE_FILES.MANAGER) {
+          // no op
+        } else {
+          outdatedYMLs.push(knownYMLFile);
+        }
       }
     } catch (error) {
       outdatedYMLs.push(knownYMLFile);
@@ -921,26 +857,30 @@ async function checkYMLs() {
   }
 
   if (outdatedYMLs.length !== 0) {
-    await updateYMLs(outdatedYMLs);
+    await updateYMLs(appVersions, outdatedYMLs);
   }
 }
 
 // Stop non-persistent containers, and copy over outdated YMLs, restart services.
 // Declared services could be different between the YMLs, so stop everything.
 // Might need to disable for AWS instances with <4 CPUs as we dynamically configure CPU resources.
-async function updateYMLs(outdatedYMLs) {
+async function updateYMLs(appVersions, outdatedYMLs) {
   try {
     systemStatus.updating = true;
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
 
     for (const outdatedYML of outdatedYMLs) {
-      const ymlFile = constants.CANONICAL_YML_DIRECTORY + '/' + outdatedYML;
+
+      // Get the name of the application. Currently convention of yml files are <application name>.yml.
+      const application = outdatedYML.split('.')[0];
+      const version = appVersions[application].version;
+      const ymlFile = constants.CANONICAL_YML_DIRECTORY + '/' + application + '/' + version + '/' + outdatedYML;
+
       await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
     }
 
     stopIntervalServices();
-    await pullAllImages();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -1073,7 +1013,7 @@ async function updateBuildArtifacts() {
   await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
   await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
   await git.clone({});
-  await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.WORKING_DIRECTORY);
+  await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.CANONICAL_YML_DIRECTORY);
 }
 
 async function login(user) {
