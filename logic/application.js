@@ -108,9 +108,6 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     // create bitcoind rpc creds as necessary
     await rpcCredIntegrityCheck(settings);
 
-    // upgrade settings schema as necessary
-    upgradeSettingSchema(settings);
-
     await diskLogic.writeSettingsFile(settings);
 
     return settings;
@@ -160,18 +157,6 @@ async function rpcCredIntegrityCheck(settings) {
   if (!Object.prototype.hasOwnProperty.call(settings.bitcoind, 'rpcPassword')) {
     settings.bitcoind.rpcPassword = UUID.create();
   }
-}
-
-// Upgrade the settings schema to the most recent schema
-function upgradeSettingSchema(settings) {
-
-  // upgrade to schema version 1.0.0
-  if (!settings.version) {
-    settings.version = '1.0.0';
-
-    // settings.systemSettings.systemApplications = ['manager', 'update-manager', 'lightning-node', ];
-  }
-
 }
 
 // Return true if there was an issue downloading a file otherwise false.
@@ -259,18 +244,7 @@ async function getSystemStatus() {
 
 // Save system settings
 async function saveSettings(settings) {
-  const versions = await dockerLogic.getVersions();
-
-  // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
-  // don't want the user to accidentally be updating their system when they are trying to save settings. Therefore, if
-  // a new image exists, we will block the user from saving until they actively choose to update their system.
-  if (versions.bitcoind.updatable) {
-    throw new LNNodeError('Bitcoin needs to be updated before settings can be saved');
-  }
-  if (versions.lnd.updatable) {
-    throw new LNNodeError('Lightning needs to be updated before settings can be saved');
-  }
-
+  const appVersions = await appVersionsIntegrityCheck();
   const currentConfig = await diskLogic.readSettingsFile();
   const newConfig = JSON.parse(JSON.stringify(currentConfig));
 
@@ -280,6 +254,7 @@ async function saveSettings(settings) {
 
   // If Tor is active for Lnd, we erase the manually entered externalIP. This results in Lnd only being available over
   // Tor. This increases privacy by only advertising the onion address.
+  // TODO should we remove externalIP for V2?
   if (lndSettings.tor) {
     lndSettings.externalIP = '';
   }
@@ -296,19 +271,10 @@ async function saveSettings(settings) {
     }
   }
 
-  // Adding some default values. These properties were created after initial release.
-  if (!newConfig['system']) {
-    newConfig['system'] = {};
-  }
-
   for (const key in systemSettings) {
     if (systemSettings[key] !== undefined) {
       newConfig['system'][key] = systemSettings[key];
     }
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(newConfig['system'], 'systemDisplayUnits')) {
-    newConfig['system']['systemDisplayUnits'] = 'btc';
   }
 
   const validation = schemaValidator.validateSettingsSchema(newConfig);
@@ -317,6 +283,8 @@ async function saveSettings(settings) {
   }
 
   // Recreate space-fleet if tor is turned on or tor is turned off for both.
+  // TODO should we remove this since Tor will always be on for V2? Did we have sufficient users issue with Tor to
+  // warrant keeping this?
   const recreateSpaceFleet = (currentConfig.bitcoind.tor || currentConfig.lnd.tor)
     !== (newConfig.bitcoind.tor || newConfig.lnd.tor);
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
@@ -324,23 +292,19 @@ async function saveSettings(settings) {
 
   await diskLogic.writeSettingsFile(newConfig);
 
-  // Spin up applications
+  // TODO do we still need this?
   await startTorAsNeeded(newConfig);
 
-  if (recreateSpaceFleet) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+  // Launch lightning-node application if any recreation is needed.
+  if (recreateSpaceFleet || recreateBitcoind || recreateLnd) {
+    const appsToLaunch = {};
+    appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
+    appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
+    await launchApplications(appsToLaunch);
   }
 
-  if (recreateBitcoind) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
-  }
-
+  // Automatically unlock lnd if we just recreated it.
   if (recreateLnd) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-
     const jwt = await getJwt();
     await unlockLnd(jwt);
   }
@@ -471,6 +435,25 @@ async function setHiddenServiceEnv() {
   } while (!process.env.CASA_NODE_HIDDEN_SERVICE && attempt <= RETRY_ATTEMPTS);
 }
 
+// Launcha set of applications.
+async function launchApplications(appsToLaunch) {
+  const buildDetails = await diskLogic.getBuildDetails(appsToLaunch);
+
+  // Create a boot order for services based on their dependencies.
+  const services = getServiceBootOrder(buildDetails);
+
+  // Ensure tor volumes are created before launching applications.
+  await dockerLogic.ensureTorVolumes();
+
+  // Docker compose up each service one at a time.
+  for (const service of services) {
+    await dockerComposeLogic.dockerComposeUpSingleService({
+      service: service.name,
+      version: service.version,
+    });
+  }
+}
+
 // Run startup functions
 /* eslint-disable no-magic-numbers */
 async function startup() {
@@ -505,23 +488,8 @@ async function startup() {
       appsToLaunch[constants.APPLICATIONS.MANAGER] = appVersions[constants.APPLICATIONS.MANAGER];
       appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
-      const buildDetails = await diskLogic.getBuildDetails(appsToLaunch);
-
-      // create depenedency tree
-      const services = getServiceBootOrder(buildDetails);
-
-      // Ensure tor volumes are created before launching applications.
-      await dockerLogic.ensureTorVolumes();
-
-      for (const service of services) {
-        await dockerComposeLogic.dockerComposeUpSingleService(appVersions, {
-          service: service.name,
-          version: service.version,
-        });
-
-        bootPercent += 10;
-      }
-
+      await launchApplications(appsToLaunch);
+      bootPercent = 80;
       await startIntervalServices();
 
       errorThrown = false;
@@ -837,7 +805,7 @@ async function checkYMLs(appVersions) {
       const application = knownYMLFile.split('.')[0];
       const version = appVersions[application].version;
 
-      const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY + '/' + application + '/' + version + '/'
+      const canonicalMd5 = md5Check.sync(constants.WORKING_DIRECTORY + '/' + application + '/' + version + '/'
         + knownYMLFile);
       const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY + '/' + knownYMLFile);
 
@@ -873,7 +841,7 @@ async function updateYMLs(appVersions, outdatedYMLs) {
       // Get the name of the application. Currently convention of yml files are <application name>.yml.
       const application = outdatedYML.split('.')[0];
       const version = appVersions[application].version;
-      const ymlFile = constants.CANONICAL_YML_DIRECTORY + '/' + application + '/' + version + '/' + outdatedYML;
+      const ymlFile = constants.WORKING_DIRECTORY + '/' + application + '/' + version + '/' + outdatedYML;
 
       await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
     }
@@ -930,6 +898,7 @@ async function startLndIntervalService() {
 async function getJwt() {
   const genericUser = {
     username: 'admin',
+    password: authLogic.getCachedPassword(),
   };
 
   return (await authLogic.login(genericUser)).jwt;

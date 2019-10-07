@@ -15,7 +15,7 @@ router.get('/boot', safeHandler((req, res) =>
     .then(percent => res.json({percent}))
 ));
 
-router.get('/version', safeHandler((req, res) =>
+router.get('/version', auth.jwt, safeHandler((req, res) =>
   applicationLogic.getVersions()
     .then(versions => res.json(versions))
 ));

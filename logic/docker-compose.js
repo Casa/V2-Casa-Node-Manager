@@ -229,7 +229,7 @@ function dockerComposeRestart(options = {}) {
 
 // Use docker compose to create one service from a yml file. Retrieve the TAG from the .env file and the version from
 // the application version files on device.
-async function dockerComposeUpSingleService(appVersions, options) { // eslint-disable-line id-length
+async function dockerComposeUpSingleService(options) { // eslint-disable-line id-length
   const file = composeFile(options);
   addDefaultOptions(options);
   options.env = await injectSettings();
