@@ -4,7 +4,6 @@ const router = express.Router();
 const applicationLogic = require('logic/application.js');
 const auth = require('middlewares/auth.js');
 const safeHandler = require('utils/safeHandler');
-const validator = require('utils/validator.js');
 
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 
@@ -69,19 +68,10 @@ router.post('/shutdown', auth.convertReqBodyToBasicAuth, auth.basic,
       });
   }));
 
-router.post('/update', auth.jwt, safeHandler((req, res, next) => {
-  const services = req.body.services;
+router.post('/update', safeHandler(async(req, res) => {
+  await applicationLogic.update();
 
-  for (const service of services) {
-    try {
-      validator.isUpdatableService(service);
-    } catch (error) {
-      return next(error);
-    }
-  }
-
-  return applicationLogic.update(services)
-    .then(applicationNames => res.json(applicationNames));
+  return res.json({status: 'updating'});
 }));
 
 module.exports = router;

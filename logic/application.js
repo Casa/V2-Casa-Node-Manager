@@ -374,7 +374,7 @@ async function getVersions() {
 
     // Add the current version to the response.
     response.applications[applicationName] = {
-      version: appVersions[applicationName],
+      version: appVersions[applicationName].version,
     };
 
     const newVersionsAvailable = [];
@@ -756,16 +756,33 @@ async function shutdown() {
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
 }
 
-// Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a
-// container or update a container to the newest image.
-async function update(services) {
-  for (const service of services) {
-    const options = {service: service}; // eslint-disable-line object-shorthand
+// Update all applications to the latest version. Then rerun the launch script.
+async function update() {
+  const updatesAvailable = (await getVersions()).applications;
+  const applicationNames = Object.keys(updatesAvailable);
 
-    await dockerComposeLogic.dockerComposeStop(options);
-    await dockerComposeLogic.dockerComposeRemove(options);
-    await dockerComposeLogic.dockerComposeUpSingleService(options);
+  // Iterate through all apps.
+  for (const applicationName of applicationNames) {
+
+    // Get the current version of the application.
+    let latestVersion = updatesAvailable[applicationName].version;
+
+    // Iterate through each new available version of each app.
+    for (const version of updatesAvailable[applicationName].newVersionsAvailable) {
+
+      // Assign the latest version.
+      if (semver.gt(version, latestVersion)) {
+        latestVersion = version;
+      }
+    }
+
+    // TODO don't hard code json
+    const appVersion = await diskLogic.readAppVersionFile(applicationName + '.json');
+    appVersion.version = latestVersion;
+    await diskLogic.writeAppVersionFile(applicationName + '.json', appVersion);
   }
+
+
 }
 
 // Remove the user file.
