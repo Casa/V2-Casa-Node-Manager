@@ -34,6 +34,7 @@
     "q": "^1.5.1",
     "request": "^2.87.0",
     "request-promise": "^4.2.2",
+    "semver": "^6.3.0",
     "validator": "^10.8.0",
     "winston": "^3.0.0-rc5",
     "winston-daily-rotate-file": "^3.1.3"

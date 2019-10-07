@@ -83,6 +83,7 @@ module.exports = {
   CANONICAL_YML_DIRECTORY: process.env.CANONICAL_YML_DIRECTORY || './resources',
   JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE || './resources/jwt.key',
   JWT_PUBLIC_KEY_FILE: process.env.JWT_PUBLIC_KEY_FILE || './resources/jwt.pem',
+  MANAGER_APPLICATION_DIRECTORY: '/usr/src/app',
   NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'node-logs@team.casa',
   DOCKER_ORGANIZATION: 'casanode',
   LAUNCH_SCRIPT: 'launch.sh',

@@ -15,6 +15,7 @@ const ipAddressUtil = require('utils/ipAddress.js');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
 
+const semver = require('semver');
 const md5Check = require('md5-file');
 
 let lanIPManagementInterval = {};
@@ -26,9 +27,8 @@ let lndManagementRunning = false;
 const RETRY_SECONDS = 10;
 const RETRY_ATTEMPTS = 10;
 
-let autoImagePullInterval = {};
-let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
-let pullingImages = false; // Is the manager currently pulling images.
+let updatingArtifactsInterval = {};
+let updatingBuildArtifacts = false; // is the manager currently updating build artifacts
 
 let systemStatus;
 let bootPercent = 0; // An approximate state of where the manager is during boot.
@@ -346,77 +346,89 @@ async function saveSettings(settings) {
   }
 }
 
-// The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
-// a total of 240 processor minutes.
-//
-// If there are no images available, this function will complete in 30 seconds while only using 40% cpu. This equates
-// to 0.2 cpu-minutes or 0.08% of the hourly processing minutes available.
-//
-// Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
-// we release to make sure it does not put over load the pi.
-async function startImageIntervalService() {
-  if (autoImagePullInterval !== {}) {
-    autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+// Update local build artifacts one per hour.
+async function updatingArtifactsService() {
+  if (updatingArtifactsInterval !== {}) {
+    updatingArtifactsInterval = setInterval(updateBuildArtifacts, constants.TIME.ONE_HOUR_IN_MILLIS);
   }
 }
 
-// Pull all docker images from docker hub.
-async function pullAllImages() {
+// Pulls all new images that are available from docker hub.
+async function pullNewImages() {
 
-  // Return and skip downloading images
-  if (process.env.DISABLE_IMAGE_PULL === 'true') {
-    return;
-  }
+  const updatesAvailable = (await getVersions()).applications;
+  const applicationNames = Object.keys(updatesAvailable);
 
-  pullingImages = true;
+  // Iterate through all apps.
+  for (const applicationName of applicationNames) {
 
-  try {
-    const originalImageCount = (await dockerLogic.getImages()).length;
-    await dockerComposeLogic.dockerComposePullAll();
-    const finalImageCount = (await dockerLogic.getImages()).length;
+    // Iterate through each new available version of each app.
+    for (const version of updatesAvailable[applicationName].newVersionsAvailable) {
 
-    if (finalImageCount - originalImageCount !== 0) {
-      lastImagePulled = new Date().getTime();
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    pullingImages = false;
-  }
-}
+      // Get build details for each available new version one at a time.
+      const app = {};
+      app[applicationName] = {
+        version,
+      };
+      const buildDetails = await diskLogic.getBuildDetails(app);
 
-// Display to the user the current versions and a filtered version of what is updatable. We filter out all updatable
-// services if just one image was downloaded in the last 90 minutes.
-//
-// The 90 minute filter ensures that all images have been downloaded for a particular release. Every 60 minutes
-// the node attempts to download the newest images. The download process could take 20 minutes (30 for padding).
-//
-// A node could also start downloading images while only half of the images have been uploaded to the docker source.
-// The 90 minute filter handles this by making sure the node attempts to download images twice and catches any images
-// it might have missed the first time.
-//
-// We also want to filter all versions if the node is currently pulling images. We don't want to only get half of the
-// new images.
-async function getFilteredVersions() {
-  const versions = await dockerLogic.getVersions();
-  const now = new Date().getTime();
-  const elapsedTime = now - lastImagePulled;
+      // There should only be one item in this array.
+      for (const build of buildDetails) {
 
-  for (const version in versions) {
-    if (Object.prototype.hasOwnProperty.call(versions, version)) {
-      let filtered = false;
+        // Iterate through each service of the app. This will try to pull every service in the application regardless
+        // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
+        // locally.
+        for (const service of build.metadata.services) {
 
-      if (elapsedTime < constants.TIME.NINETY_MINUTES_IN_MILLIS || pullingImages) {
-        filtered = true;
-        versions[version].updatable = false;
+          // Pull each service's image.
+          await dockerComposeLogic.dockerComposePull({
+            service,
+            version: service.version,
+            file: build.ymlPath,
+          });
+        }
       }
-
-      // Return the fact that all services are being filtered.
-      versions[version].filtered = filtered;
     }
   }
+}
 
-  return versions;
+// Returns all applications on this device. Each application lists the current version and new versions that are
+// available. We also return a boolean property updatingBuildArtifacts that represents if we are currently updating the
+// build artifacts. If we are, we will block upgrading until updating is complete.
+async function getVersions() {
+  const appVersions = await appVersionsIntegrityCheck();
+
+  const applicationsNames = Object.keys(appVersions);
+
+  const response = {
+    applications: {},
+    updatingBuildArtifacts,
+  };
+
+  // Iterate through all applications.
+  for (const applicationName of applicationsNames) {
+
+    // Add the current version to the response.
+    response.applications[applicationName] = {
+      version: appVersions[applicationName],
+    };
+
+    const newVersionsAvailable = [];
+    const allVersionsList = await diskLogic.listVersionsForApp(applicationName);
+
+    // Iterate from all versions that exists for a given application.
+    for (const version of allVersionsList) {
+
+      // Add the new version if it is greater than the current version
+      if (semver.gt(version, appVersions[applicationName].version)) {
+        newVersionsAvailable.push(version);
+      }
+    }
+
+    response.applications[applicationName].newVersionsAvailable = newVersionsAvailable;
+  }
+
+  return response;
 }
 
 // Start Tor as needed otherwise remove the container if it exists.
@@ -600,21 +612,7 @@ async function lanIPManagement() {
     const newDeviceHost = ipAddressUtil.getLanIPAddress();
 
     if (process.env.DEVICE_HOST !== newDeviceHost) {
-
-      // When we recreate services, they are automatically updated to the most recent image on device. This
-      // could cause compatibility issues if we are auto currently pulling images or we have only pull half of all the
-      // images that are needed for a full update. To get around this, we will only restart and fix the ip problem if
-      // images are not being filtered.
-      //
-      // The consequence of this is that if a node downloads images at the same time the node lan ip address changes,
-      // this service will not resolved the issue until the versions are not being filtered and this service runs again.
-      // Today, versions are filtered for 90 minutes and then it could be an additional hour for this service to run
-      // again.
-      const versions = await getFilteredVersions();
-
-      if (!versions[constants.SERVICES.MANAGER].filtered) {
-        await startup();
-      }
+      await startup();
     }
   } catch (error) {
     throw error;
@@ -685,14 +683,14 @@ async function resyncChain(full, syncFromAWS) {
 async function startIntervalServices() {
   await startLanIPIntervalService();
   await startLndIntervalService();
-  await startImageIntervalService();
+  await updatingArtifactsService();
 }
 
 // Stop scheduling new interval services. Currently running interval services will still complete.
 function stopIntervalServices() {
-  if (autoImagePullInterval !== {}) {
-    clearInterval(autoImagePullInterval);
-    autoImagePullInterval = {};
+  if (updatingArtifactsInterval !== {}) {
+    clearInterval(updatingArtifactsInterval);
+    updatingArtifactsInterval = {};
   }
 
   if (lndManagementInterval !== {}) {
@@ -723,7 +721,7 @@ async function reset(factoryReset) {
 
     if (factoryReset) {
       await dockerLogic.pruneImages(true);
-      await pullAllImages();
+      await updateBuildArtifacts();
     }
     const settings = await settingsFileIntegrityCheck();
 
@@ -781,7 +779,7 @@ async function shutdown() {
   // If docker is pulling and is only partially completed, when the device comes back online, it will install the
   // partial update. This could cause breaking changes. To avoid this, we will stop the user from shutting down the
   // device while docker is pulling.
-  if (pullingImages) {
+  if (updatingBuildArtifacts) {
     throw new DockerPullingError();
   }
 
@@ -1009,11 +1007,21 @@ async function unlockLnd(jwt) {
   } while (errorOccurred && attempt < RETRY_ATTEMPTS);
 }
 
+// Get new build artifacts from remote services. Build artifacts include yml files, images, dependencies and more.
 async function updateBuildArtifacts() {
-  await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
-  await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
-  await git.clone({});
-  await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.CANONICAL_YML_DIRECTORY);
+  try {
+    updatingBuildArtifacts = true;
+
+    await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
+    await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
+    await git.clone({});
+    await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.WORKING_DIRECTORY);
+    await pullNewImages();
+  } catch (error) {
+    throw error;
+  } finally {
+    updatingBuildArtifacts = false;
+  }
 }
 
 async function login(user) {
@@ -1040,7 +1048,7 @@ module.exports = {
   getSerial,
   getServiceBootOrder,
   getSystemStatus,
-  getFilteredVersions,
+  getVersions,
   login,
   saveSettings,
   shutdown,

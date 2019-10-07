@@ -99,26 +99,22 @@ async function dockerComposeUp(options) {
 }
 
 
-function dockerComposePull(options = {}) {
-  var deferred = q.defer();
-
-  const file = composeFile(options);
+async function dockerComposePull(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-  function handleSuccess() {
-    deferred.resolve();
+  // Remove starting ./ if exists. Docker compose does not like this.
+  if (options.file.startsWith('./')) {
+    options.file = options.file.substring(2, options.file.length); // eslint-disable-line no-magic-numbers
   }
 
-  function handleError(error) {
-    deferred.reject(error);
-  }
+  // Remove all dashes from service names. Dashes do not work with docker env variables. Example, space-fleet becomes
+  // SPACEFLEETVERSION.
+  options.env[options.service.name.replace('-', '').toUpperCase() + 'VERSION'] = options.version;
 
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'pull', service], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
+  await dockerLoginCasaworker();
+  await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service.name], options);
+  await dockerLogout();
 }
 
 // Pull newest images. This pulls new images to the device, but does not recreate them. Users will need to call the
@@ -256,7 +252,7 @@ async function dockerComposeUpSingleService(appVersions, options) { // eslint-di
     options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
-  let composeOptions = ['-f', file, 'up'];
+  const composeOptions = ['-f', file, 'up'];
 
   // By default everything will run in detached mode. However, in some cases we want to want for a container to complete
   // before returning. We pass the attached flag in that instance.

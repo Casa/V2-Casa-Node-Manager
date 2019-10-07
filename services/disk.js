@@ -56,6 +56,20 @@ function deleteFolderRecursive(path) {
   }
 }
 
+async function listDirsInDir(dir) {
+  const contents = fs.readdirSync(dir);
+
+  const dirs = [];
+
+  for (const item of contents) {
+    if (fs.statSync(dir + '/' + item).isDirectory()) {
+      dirs.push(item);
+    }
+  }
+
+  return dirs;
+}
+
 async function moveFoldersToDir(fromDir, toDir) {
 
   const contents = fs.readdirSync(fromDir);
@@ -144,6 +158,7 @@ function writeKeyFile(filePath, obj) {
 module.exports = {
   deleteFile,
   deleteFoldersInDir,
+  listDirsInDir,
   moveFoldersToDir,
   readFile,
   readUtf8File,

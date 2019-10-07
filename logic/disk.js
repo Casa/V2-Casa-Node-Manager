@@ -22,14 +22,18 @@ async function getBuildDetails(appsToLaunch) {
   for (const applicationName of Object.keys(appsToLaunch)) {
     const application = {};
     application.name = applicationName;
-    application.metadata = await diskService.readJsonFile(constants.CANONICAL_YML_DIRECTORY + '/'
+    application.metadata = await diskService.readJsonFile(constants.WORKING_DIRECTORY + '/'
       + application.name + '/' + appsToLaunch[application.name].version + '/' + constants.METADATA_FILE);
-    application.ymlPath = constants.CANONICAL_YML_DIRECTORY + '/' + application.name + '/'
+    application.ymlPath = constants.WORKING_DIRECTORY + '/' + application.name + '/'
       + appsToLaunch[application.name].version + '/' + application.name + '.yml';
     details.push(application);
   }
 
   return details;
+}
+
+async function listVersionsForApp(app) {
+  return await diskService.listDirsInDir(constants.WORKING_DIRECTORY + '/' + app);
 }
 
 async function moveFoldersToDir(fromDir, toDir) {
@@ -98,6 +102,7 @@ module.exports = {
   moveFoldersToDir,
   fileExists,
   getBuildDetails,
+  listVersionsForApp,
   readSettingsFile,
   readUserFile,
   writeAppVersionFile,
