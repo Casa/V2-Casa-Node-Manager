@@ -133,14 +133,12 @@ async function appVersionsIntegrityCheck() {
   const appVersions = {};
 
   appVersions[constants.APPLICATIONS.DOWNLOAD] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DOWNLOAD);
+  appVersions[constants.APPLICATIONS.ERROR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.ERROR);
   appVersions[constants.APPLICATIONS.LOGSPOUT] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LOGSPOUT);
   appVersions[constants.APPLICATIONS.MANAGER] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.MANAGER);
   appVersions[constants.APPLICATIONS.TOR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.TOR);
-  appVersions[constants.APPLICATIONS.WELCOME] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.WELCOME);
   appVersions[constants.APPLICATIONS.LIGHTNING_NODE]
     = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LIGHTNING_NODE);
-  appVersions[constants.APPLICATIONS.UPDATE_MANAGER]
-    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.UPDATE_MANAGER);
   appVersions[constants.APPLICATIONS.DEVICE_HOST]
     = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DEVICE_HOST);
 

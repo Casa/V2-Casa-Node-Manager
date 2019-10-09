@@ -7,22 +7,20 @@ module.exports = {
   APP_VERSION_FILES: {
     DEVICE_HOST: 'device-host.json',
     DOWNLOAD: 'download.json',
+    ERROR: 'error.json',
     LIGHTNING_NODE: 'lightning-node.json',
     LOGSPOUT: 'logspout.json',
     MANAGER: 'manager.json',
     TOR: 'tor.json',
-    WELCOME: 'welcome.json',
-    UPDATE_MANAGER: 'update-manager.json',
   },
   APPLICATIONS: {
     DEVICE_HOST: 'device-host',
     DOWNLOAD: 'download',
+    ERROR: 'error',
     LIGHTNING_NODE: 'lightning-node',
     LOGSPOUT: 'logspout',
     MANAGER: 'manager',
     TOR: 'tor',
-    UPDATE_MANAGER: 'update-manager',
-    WELCOME: 'welcome'
   },
   COMPOSE_FILES: {
     DEVICE_HOST: 'device-host.yml',
@@ -31,8 +29,6 @@ module.exports = {
     LOGSPOUT: 'logspout.yml',
     MANAGER: 'manager.yml',
     TOR: 'tor.yml',
-    WELCOME: 'welcome.yml',
-    UPDATE_MANAGER: 'update-manager.yml',
   },
   INJECTION_FILE: 'settings-injection.json',
   WORKING_DIRECTORY: '/usr/local/casa/applications',
@@ -55,9 +51,7 @@ module.exports = {
     PAPERTRAIL: 'papertrail',
     SPACE_FLEET: 'space-fleet',
     SYSLOG: 'syslog',
-    TOR: 'tor',
-    UPDATE_MANAGER: 'update-manager',
-    WELCOME: 'welcome'
+    TOR: 'tor'
   },
   STATUS_CODES: {
     ACCEPTED: 202,

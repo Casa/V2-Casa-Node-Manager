@@ -129,22 +129,6 @@ describe('applicationLogic', function() {
       ymlPath: '/usr/local/casa/applications/lightning-node/0.1.0/lightning-node.yml',
     };
 
-    const updateManagerBuildDetails = { name: 'update-manager',
-      version: '0.1.0',
-      metadata: {
-        priority: 'system',
-        services: [
-          {
-            name: 'update-manager',
-            version: '0.1.0',
-            dependencies: [],
-            env: []
-          }
-        ],
-      },
-      ymlPath: '/usr/local/casa/applications/update-manager/0.1.0/update-manager.yml',
-    };
-
     it('should return no services if no details are passed', async function() {
       const services = await applicationLogic.getServiceBootOrder([]);
       services.length.should.equal(0);
