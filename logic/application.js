@@ -660,7 +660,7 @@ async function reset(factoryReset) {
       await dockerLogic.pruneImages(true);
       await updateBuildArtifacts();
     }
-    const settings = await settingsFileIntegrityCheck();
+    await settingsFileIntegrityCheck();
 
     // Spin up applications
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
@@ -691,7 +691,7 @@ async function userReset() {
     await dockerLogic.removeVolume('applications_channel-data');
     await dockerLogic.removeVolume('applications_lnd-data');
 
-    const settings = await settingsFileIntegrityCheck();
+    await settingsFileIntegrityCheck();
 
     // Spin up applications
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
@@ -967,7 +967,6 @@ async function unlockLnd(jwt) {
 // Get new build artifacts from remote services. Build artifacts include yml files, images, dependencies and more.
 async function updateBuildArtifacts() {
   try {
-    console.log('running updateBuildArtifacts')
     updatingBuildArtifacts = true;
 
     await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
