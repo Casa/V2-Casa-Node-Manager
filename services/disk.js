@@ -164,5 +164,6 @@ module.exports = {
   readUtf8File,
   readJsonFile,
   writeJsonFile,
-  writeKeyFile
+  writeKeyFile,
+  writeFile,
 };

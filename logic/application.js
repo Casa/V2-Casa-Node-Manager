@@ -290,9 +290,6 @@ async function saveSettings(settings) {
 
   await diskLogic.writeSettingsFile(newConfig);
 
-  // TODO do we still need this?
-  await startTorAsNeeded(newConfig);
-
   // Launch lightning-node application if any recreation is needed.
   if (recreateSpaceFleet || recreateBitcoind || recreateLnd) {
     const appsToLaunch = {};
@@ -393,29 +390,11 @@ async function getVersions() {
   return response;
 }
 
-// Start Tor as needed otherwise remove the container if it exists.
-async function startTorAsNeeded(settings) {
-  if (settings.lnd.lndTor || settings.bitcoind.bitcoindTor) {
-
-    // Pull Tor image if needed
-    if (!await dockerLogic.hasImageForService(constants.SERVICES.TOR)) {
-      await dockerComposeLogic.dockerLoginCasaworker();
-      await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.TOR});
-    }
-
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-    await setHiddenServiceEnv();
-
-  } else {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
-    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
-  }
-}
-
 // Set the CASA_NODE_HIDDEN_SERVICE env variable.
 //
 // The Casa Node Hidden Service is created after tor boot. It happens quickly, but it isn't instant. We retry several
 // times to retrieve it. If it cannot be retrieved Casa Node services will not be available via tor.
+// TODO need a better strategy for transferring this to space-fleet.
 async function setHiddenServiceEnv() {
 
   let attempt = 0;
@@ -433,7 +412,7 @@ async function setHiddenServiceEnv() {
   } while (!process.env.CASA_NODE_HIDDEN_SERVICE && attempt <= RETRY_ATTEMPTS);
 }
 
-// Launcha set of applications.
+// Launch set of applications.
 async function launchApplications(appsToLaunch) {
   const buildDetails = await diskLogic.getBuildDetails(appsToLaunch);
 
@@ -460,11 +439,15 @@ async function startup() {
 
   // keep retrying the startup process if there are any errors
   do {
+    bootPercent = 10;
+
     await settingsFileIntegrityCheck();
     const appVersions = await appVersionsIntegrityCheck();
+    await checkYMLs(appVersions);
+
+    bootPercent = 20;
 
     try {
-      await updateBuildArtifacts();
       await checkAndUpdateLaunchScript();
 
       const ipv4 = ipAddressUtil.getLanIPAddress();
@@ -475,9 +458,6 @@ async function startup() {
         logger.info('No ipv4 address available. Plug in ethernet.', 'startup');
       }
 
-      bootPercent = 10;
-      await checkYMLs(appVersions);
-
       bootPercent = 30;
 
       const appsToLaunch = {};
@@ -487,6 +467,8 @@ async function startup() {
       appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
       await launchApplications(appsToLaunch);
+      await setHiddenServiceEnv();
+
       bootPercent = 80;
       await startIntervalServices();
 
@@ -502,6 +484,9 @@ async function startup() {
   bootPercent = 100;
 }
 
+
+// Get all the services from an application list. Then return an ordered list of services. We will boot them in that
+// order.
 function getServiceBootOrder(applicationsDetails) {
 
   // pull out all services
@@ -516,9 +501,6 @@ function getServiceBootOrder(applicationsDetails) {
       services.push(service);
     }
   }
-
-  // sort by priority
-  services.sort(comparePriority);
 
   // for each services
   while (services.length !== Object.keys(serviceOrderMap).length) {
@@ -541,17 +523,6 @@ function getServiceBootOrder(applicationsDetails) {
   }
 
   return orderedServices;
-}
-
-function comparePriority(serviceA, serviceB) {
-  if (serviceA.priority === 'user' && serviceB.priority === 'system') {
-    return 1;
-  }
-  if (serviceA.priority === 'system' && serviceB.priority === 'user') {
-    return -1;
-  }
-
-  return 0;
 }
 
 /* eslint-enable no-magic-numbers */
@@ -692,7 +663,6 @@ async function reset(factoryReset) {
     const settings = await settingsFileIntegrityCheck();
 
     // Spin up applications
-    await startTorAsNeeded(settings);
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -724,7 +694,6 @@ async function userReset() {
     const settings = await settingsFileIntegrityCheck();
 
     // Spin up applications
-    await startTorAsNeeded(settings);
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -752,6 +721,8 @@ async function shutdown() {
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
+
+  await diskLogic.shutdown();
 }
 
 // Update all applications to the latest version. Then rerun the launch script.
@@ -780,7 +751,7 @@ async function update() {
     await diskLogic.writeAppVersionFile(applicationName + '.json', appVersion);
   }
 
-
+  await diskLogic.relaunch();
 }
 
 // Remove the user file.
@@ -801,8 +772,8 @@ async function wipeSettingsVolume() {
   await bashService.exec('rm', ['-f', 'settings.json'], options);
 }
 
-// Compare known compose files, except manager.yml, with on-device YMLs.
-// The manager should have the latest YMLs.
+// Compare known compose files which are pulled on a regular basic from from a public github repo. Compare these with
+// with yml files on the local file system. Replace any that are missing or have changed.
 async function checkYMLs(appVersions) {
 
   // Return and skip yml updates
@@ -870,6 +841,8 @@ async function updateYMLs(appVersions, outdatedYMLs) {
   }
 }
 
+// Compare the launch script that was placed in the manager container at build time with the launch scripts that exists
+// on the file system. Update it if there are any differences.
 async function checkAndUpdateLaunchScript() { // eslint-disable-line id-length
   try {
     systemStatus.updating = true;
@@ -994,6 +967,7 @@ async function unlockLnd(jwt) {
 // Get new build artifacts from remote services. Build artifacts include yml files, images, dependencies and more.
 async function updateBuildArtifacts() {
   try {
+    console.log('running updateBuildArtifacts')
     updatingBuildArtifacts = true;
 
     await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);

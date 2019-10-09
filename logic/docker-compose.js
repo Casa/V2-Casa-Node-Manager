@@ -94,7 +94,7 @@ async function dockerComposeUp(options) {
   }
 }
 
-
+// Pull an individual docker image.
 async function dockerComposePull(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
@@ -110,30 +110,6 @@ async function dockerComposePull(options = {}) {
 
   await dockerLoginCasaworker();
   await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service.name], options);
-  await dockerLogout();
-}
-
-// Pull newest images. This pulls new images to the device, but does not recreate them. Users will need to call the
-// get /update route to recreate specified containers. However, device-host is recreated every time the manager starts
-// up.
-async function dockerComposePullAll() {
-  const casabuilderImagesToPull = [constants.SERVICES.MANAGER];
-  const casaworkerImagesToPull = [constants.SERVICES.DEVICE_HOST, constants.SERVICES.LND, constants.SERVICES.BITCOIND,
-    constants.SERVICES.LNAPI, constants.SERVICES.SPACE_FLEET, constants.SERVICES.SYSLOG, constants.SERVICES.TOR,
-    constants.SERVICES.LOGSPOUT];
-
-  // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
-  // the raspberry pi.
-  await dockerLoginCasabuilder();
-  for (const image of casabuilderImagesToPull) {
-    await dockerComposePull({service: image});
-  }
-
-  await dockerLoginCasaworker();
-  for (const image of casaworkerImagesToPull) {
-    await dockerComposePull({service: image});
-  }
-
   await dockerLogout();
 }
 
@@ -300,7 +276,6 @@ async function dockerLogout(options = {}) {
 module.exports = {
   dockerComposeUp,
   dockerComposePull,
-  dockerComposePullAll,
   dockerComposeStop,
   dockerComposeRemove,
   dockerComposeRestart,

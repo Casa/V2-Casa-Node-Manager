@@ -96,6 +96,17 @@ function writeJWTPublicKeyFile(data) {
   return diskService.writeKeyFile(constants.JWT_PUBLIC_KEY_FILE, data);
 }
 
+
+// Send a signal to shutdown the Casa Node.
+async function shutdown() {
+  await diskService.writeFile(constants.SHUTDOWN_SIGNAL_FILE, 'true');
+}
+
+// Send a signal to relaunch the manager.
+async function relaunch() {
+  await diskService.writeFile(constants.RELAUNCH_SIGNAL_FILE, 'true');
+}
+
 module.exports = {
   deleteUserFile,
   deleteFoldersInDir,
@@ -116,4 +127,6 @@ module.exports = {
   readJWTPublicKeyFile,
   writeJWTPrivateKeyFile,
   writeJWTPublicKeyFile,
+  shutdown,
+  relaunch,
 };
