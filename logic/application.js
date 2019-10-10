@@ -317,18 +317,21 @@ async function pullNewImages() {
   // Iterate through all apps.
   for (const applicationName of applicationNames) {
 
-    // Iterate through each new available version of each app.
-    for (const version of updatesAvailable[applicationName].newVersionsAvailable) {
+    // If there are any new versions available.
+    if (updatesAvailable[applicationName].newVersionsAvailable.length > 0) {
+
+      const mostRecentVersion = updatesAvailable[applicationName].newVersionsAvailable[
+        updatesAvailable[applicationName].newVersionsAvailable.length - 1];
 
       // Get build details for each available new version one at a time.
       const app = {};
       app[applicationName] = {
-        version,
+        version: mostRecentVersion
       };
       const buildDetails = await diskLogic.getBuildDetails(app);
 
       // There should only be one item in this array.
-      for (const build of buildDetails) {
+      if (buildDetails.length > 0) {
 
         // Iterate through each service of the app. This will try to pull every service in the application regardless
         // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
@@ -338,7 +341,7 @@ async function pullNewImages() {
           // Pull each service's image.
           await dockerComposeLogic.dockerComposePull({
             service,
-            file: build.ymlPath,
+            file: buildDetails[0].ymlPath,
           });
         }
       }
