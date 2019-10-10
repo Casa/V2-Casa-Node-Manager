@@ -102,11 +102,6 @@ async function dockerComposePull(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-  // Remove starting ./ if exists. Docker compose does not like this.
-  if (options.file.startsWith('./')) {
-    options.file = options.file.substring(2, options.file.length); // eslint-disable-line no-magic-numbers
-  }
-
   await dockerLoginCasaworker();
   await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service], options);
   await dockerLogout();
