@@ -88,7 +88,9 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       externalIP: '',
       lndTor: true, // Added February 2019
     },
-    system: {},
+    system: {
+      systemDisplayUnits: 'btc',
+    },
   };
 
   const exists = await diskLogic.settingsFileExists();
