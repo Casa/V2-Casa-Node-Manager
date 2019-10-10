@@ -410,9 +410,6 @@ async function launchApplications(appsToLaunch) {
 
   const applicationsNames = Object.keys(appsToLaunch);
 
-  // Ensure tor volumes are created before launching applications.
-  await dockerLogic.ensureTorVolumes();
-
   // Docker compose up each service one at a time.
   for (const applicationName of applicationsNames) {
     await dockerComposeLogic.dockerComposeUp({
