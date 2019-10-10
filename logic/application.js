@@ -446,7 +446,7 @@ async function startup() {
 
       bootPercent = 30;
 
-      let appsToLaunch = {};
+      const appsToLaunch = {};
       appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
 
@@ -459,14 +459,6 @@ async function startup() {
       await setHiddenServiceEnv();
 
       // Launching/Relaunching all remaining apps. This will include recreating space-fleet with the new hidden service.
-      await launchApplications(appsToLaunch);
-      bootPercent = 60;
-
-      // TODO To cannot boot currently without the manager and space-fleet running. However, space-fleet needs tor's
-      // hidden service injected at space-fleet boot time. To get around this we will relaunch just the lightning-node
-      // application again. The long term fix is likely to interact with tor's control port directly.
-      appsToLaunch = {};
-      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       await launchApplications(appsToLaunch);
 
       bootPercent = 80;
