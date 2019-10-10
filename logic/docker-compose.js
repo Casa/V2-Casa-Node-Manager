@@ -34,23 +34,26 @@ const injectSettings = async() => {
   return envData;
 };
 
-
-function composeFile(options) {
+// Get the compose file given an option with a service or application property.
+function getComposeFile(options) {
   if (options !== undefined && options.fileName !== undefined) {
     return WORKING_DIR + '/' + options.fileName;
   }
 
-  if (options.service === constants.SERVICES.DEVICE_HOST) {
+  if (options.service === constants.SERVICES.DEVICE_HOST
+    || options.application === constants.APPLICATIONS.DEVICE_HOST) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DEVICE_HOST;
-  } else if (options.service === constants.SERVICES.DOWNLOAD) {
+  } else if (options.service === constants.SERVICES.DOWNLOAD
+    || options.application === constants.APPLICATIONS.DOWNLOAD) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DOWNLOAD;
   } else if (options.service === constants.SERVICES.LOGSPOUT
     || options.service === constants.SERVICES.PAPERTRAIL
-    || options.service === constants.SERVICES.SYSLOG) {
+    || options.service === constants.SERVICES.SYSLOG
+    || options.application === constants.APPLICATIONS.LOGSPOUT) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LOGSPOUT;
-  } else if (options.service === constants.SERVICES.MANAGER) {
+  } else if (options.service === constants.SERVICES.MANAGER || options.application === constants.APPLICATIONS.MANAGER) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.MANAGER;
-  } else if (options.service === constants.SERVICES.TOR) {
+  } else if (options.service === constants.SERVICES.TOR || options.application === constants.APPLICATIONS.TOR) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.TOR;
   } else {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LIGHTNING_NODE;
@@ -71,7 +74,7 @@ function addDefaultOptions(options) {
 }
 
 async function dockerComposeUp(options) {
-  const file = composeFile(options);
+  const file = getComposeFile(options);
 
   addDefaultOptions(options);
   options.env = await injectSettings();
@@ -104,12 +107,8 @@ async function dockerComposePull(options = {}) {
     options.file = options.file.substring(2, options.file.length); // eslint-disable-line no-magic-numbers
   }
 
-  // Remove all dashes from service names. Dashes do not work with docker env variables. Example, space-fleet becomes
-  // SPACEFLEETVERSION.
-  options.env[options.service.name.replace('-', '').toUpperCase() + 'VERSION'] = options.version;
-
   await dockerLoginCasaworker();
-  await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service.name], options);
+  await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service], options);
   await dockerLogout();
 }
 
@@ -117,7 +116,7 @@ async function dockerComposePull(options = {}) {
 function dockerComposeStop(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -142,7 +141,7 @@ function dockerComposeStop(options = {}) {
 function dockerComposeRemove(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -167,7 +166,7 @@ function dockerComposeRemove(options = {}) {
 function dockerComposeRestart(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -191,14 +190,10 @@ function dockerComposeRestart(options = {}) {
 // Use docker compose to create one service from a yml file. Retrieve the TAG from the .env file and the version from
 // the application version files on device.
 async function dockerComposeUpSingleService(options) { // eslint-disable-line id-length
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   addDefaultOptions(options);
   options.env = await injectSettings();
   options.env.TAG = constants.TAG;
-
-  // Remove all dashes from service names. Dashes do not work with docker env variables. Example, space-fleet becomes
-  // SPACEFLEETVERSION.
-  options.env[options.service.replace('-', '').toUpperCase() + 'VERSION'] = options.version;
 
   // Pass along environmental variables as needed.
   if (options.service === constants.SERVICES.PAPERTRAIL || options.service === constants.SERVICES.LOGSPOUT) {

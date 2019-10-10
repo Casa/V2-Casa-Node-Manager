@@ -2,35 +2,61 @@
 /* eslint-disable no-magic-numbers */
 const UUID = require('utils/UUID');
 
+const APPLICATIONS = {
+  DEVICE_HOST: 'device-host',
+  DOWNLOAD: 'download',
+  ERROR: 'error',
+  LIGHTNING_NODE: 'lightning-node',
+  LOGSPOUT: 'logspout',
+  MANAGER: 'manager',
+  TOR: 'tor',
+};
+
+const SERVICES = {
+  DEVICE_HOST: 'device-host',
+  BITCOIND: 'bitcoind',
+  DOWNLOAD: 'download',
+  LNAPI: 'lnapi',
+  LND: 'lnd',
+  LOGSPOUT: 'logspout',
+  MANAGER: 'manager',
+  PAPERTRAIL: 'papertrail',
+  SPACE_FLEET: 'space-fleet',
+  SYSLOG: 'syslog',
+  TOR: 'tor'
+};
+
+const APPLICATION_TO_SERVICES_MAP = {};
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.DEVICE_HOST] = [SERVICES.DEVICE_HOST];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.DOWNLOAD] = [SERVICES.DOWNLOAD];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.ERROR] = [SERVICES.ERROR];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.TOR] = [SERVICES.TOR];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.MANAGER] = [SERVICES.MANAGER];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.LIGHTNING_NODE] = [SERVICES.SPACE_FLEET, SERVICES.BITCOIND, SERVICES.LND,
+  SERVICES.LNAPI];
+APPLICATION_TO_SERVICES_MAP[APPLICATIONS.LOGSPOUT] = [SERVICES.LOGSPOUT, SERVICES.SYSLOG];
+
 module.exports = {
   CASA_NODE_HIDDEN_SERVICE_FILE: '/var/lib/tor/casa-node/hostname',
   APP_VERSION_FILES: {
-    DEVICE_HOST: 'device-host.json',
-    DOWNLOAD: 'download.json',
-    ERROR: 'error.json',
-    LIGHTNING_NODE: 'lightning-node.json',
-    LOGSPOUT: 'logspout.json',
-    MANAGER: 'manager.json',
-    TOR: 'tor.json',
+    DEVICE_HOST: APPLICATIONS.DEVICE_HOST + '.json',
+    DOWNLOAD: APPLICATIONS.DOWNLOAD + '.json',
+    ERROR: APPLICATIONS.ERROR + '.json',
+    LIGHTNING_NODE: APPLICATIONS.LIGHTNING_NODE + '.json',
+    LOGSPOUT: APPLICATIONS.LOGSPOUT + '.json',
+    MANAGER: APPLICATIONS.MANAGER + '.json',
+    TOR: APPLICATIONS.TOR + '.json',
   },
-  APPLICATIONS: {
-    DEVICE_HOST: 'device-host',
-    DOWNLOAD: 'download',
-    ERROR: 'error',
-    LIGHTNING_NODE: 'lightning-node',
-    LOGSPOUT: 'logspout',
-    MANAGER: 'manager',
-    TOR: 'tor',
-  },
+  APPLICATIONS,
   COMPOSE_FILES: {
-    DEVICE_HOST: 'device-host.yml',
-    DOWNLOAD: 'download.yml',
-    LIGHTNING_NODE: 'lightning-node.yml',
-    LOGSPOUT: 'logspout.yml',
-    MANAGER: 'manager.yml',
-    TOR: 'tor.yml',
+    DEVICE_HOST: APPLICATIONS.DEVICE_HOST + '.yml',
+    DOWNLOAD: APPLICATIONS.DOWNLOAD + '.yml',
+    LIGHTNING_NODE: APPLICATIONS.LIGHTNING_NODE + '.yml',
+    LOGSPOUT: APPLICATIONS.LOGSPOUT + '.yml',
+    MANAGER: APPLICATIONS.MANAGER + '.yml',
+    TOR: APPLICATIONS.TOR + '.yml',
   },
-  INJECTION_FILE: 'settings-injection.json',
+  APPLICATION_TO_SERVICES_MAP,
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
   METADATA_FILE: 'metadata.json',
@@ -40,19 +66,7 @@ module.exports = {
   REQUEST_CORRELATION_ID_KEY: 'reqId',
   SERIAL: process.env.SERIAL || UUID.fetchSerial() || 'UNKNOWN',
   SETTINGS_FILE: process.env.SETTINGS_FILE || '/settings/settings.json',
-  SERVICES: {
-    DEVICE_HOST: 'device-host',
-    BITCOIND: 'bitcoind',
-    DOWNLOAD: 'download',
-    LNAPI: 'lnapi',
-    LND: 'lnd',
-    LOGSPOUT: 'logspout',
-    MANAGER: 'manager',
-    PAPERTRAIL: 'papertrail',
-    SPACE_FLEET: 'space-fleet',
-    SYSLOG: 'syslog',
-    TOR: 'tor'
-  },
+  SERVICES,
   STATUS_CODES: {
     ACCEPTED: 202,
     BAD_GATEWAY: 502,

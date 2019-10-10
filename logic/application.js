@@ -280,20 +280,14 @@ async function saveSettings(settings) {
     throw new LNNodeError(validation.errors);
   }
 
-  // Recreate space-fleet if tor is turned on or tor is turned off for both.
-  // TODO should we remove this since Tor will always be on for V2? Did we have sufficient users issue with Tor to
-  // warrant keeping this?
-  const recreateSpaceFleet = (currentConfig.bitcoind.tor || currentConfig.lnd.tor)
-    !== (newConfig.bitcoind.tor || newConfig.lnd.tor);
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
   const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
 
   await diskLogic.writeSettingsFile(newConfig);
 
   // Launch lightning-node application if any recreation is needed.
-  if (recreateSpaceFleet || recreateBitcoind || recreateLnd) {
+  if (recreateBitcoind || recreateLnd) {
     const appsToLaunch = {};
-    appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
     appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
     await launchApplications(appsToLaunch);
   }
@@ -337,12 +331,11 @@ async function pullNewImages() {
         // Iterate through each service of the app. This will try to pull every service in the application regardless
         // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
         // locally.
-        for (const service of build.metadata.services) {
+        for (const service of constants.APPLICATION_TO_SERVICES_MAP[applicationName]) {
 
           // Pull each service's image.
           await dockerComposeLogic.dockerComposePull({
             service,
-            version: service.version,
             file: build.ymlPath,
           });
         }
@@ -394,7 +387,7 @@ async function getVersions() {
 //
 // The Casa Node Hidden Service is created after tor boot. It happens quickly, but it isn't instant. We retry several
 // times to retrieve it. If it cannot be retrieved Casa Node services will not be available via tor.
-// TODO need a better strategy for transferring this to space-fleet.
+// TODO find a better strategy for creating hidden services.
 async function setHiddenServiceEnv() {
 
   let attempt = 0;
@@ -414,19 +407,16 @@ async function setHiddenServiceEnv() {
 
 // Launch set of applications.
 async function launchApplications(appsToLaunch) {
-  const buildDetails = await diskLogic.getBuildDetails(appsToLaunch);
 
-  // Create a boot order for services based on their dependencies.
-  const services = getServiceBootOrder(buildDetails);
+  const applicationsNames = Object.keys(appsToLaunch);
 
   // Ensure tor volumes are created before launching applications.
   await dockerLogic.ensureTorVolumes();
 
   // Docker compose up each service one at a time.
-  for (const service of services) {
-    await dockerComposeLogic.dockerComposeUpSingleService({
-      service: service.name,
-      version: service.version,
+  for (const applicationName of applicationsNames) {
+    await dockerComposeLogic.dockerComposeUp({
+      application: applicationName,
     });
   }
 }
@@ -440,7 +430,6 @@ async function startup() {
   // keep retrying the startup process if there are any errors
   do {
     bootPercent = 10;
-
     await settingsFileIntegrityCheck();
     const appVersions = await appVersionsIntegrityCheck();
     await checkYMLs(appVersions);
@@ -460,14 +449,28 @@ async function startup() {
 
       bootPercent = 30;
 
-      const appsToLaunch = {};
+      let appsToLaunch = {};
       appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
-      appsToLaunch[constants.APPLICATIONS.MANAGER] = appVersions[constants.APPLICATIONS.MANAGER];
-      appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
-      await launchApplications(appsToLaunch);
+      // Start space-fleet and lnapi before tor. Tor will then be able to create a hidden service.
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.TOR});
+
+      // Wait for tor to create a hidden service.
       await setHiddenServiceEnv();
+
+      // Launching/Relaunching all remaining apps. This will include recreating space-fleet with the new hidden service.
+      await launchApplications(appsToLaunch);
+      bootPercent = 60;
+
+      // TODO To cannot boot currently without the manager and space-fleet running. However, space-fleet needs tor's
+      // hidden service injected at space-fleet boot time. To get around this we will relaunch just the lightning-node
+      // application again. The long term fix is likely to interact with tor's control port directly.
+      appsToLaunch = {};
+      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
+      await launchApplications(appsToLaunch);
 
       bootPercent = 80;
       await startIntervalServices();
@@ -482,47 +485,6 @@ async function startup() {
   } while (errorThrown);
 
   bootPercent = 100;
-}
-
-
-// Get all the services from an application list. Then return an ordered list of services. We will boot them in that
-// order.
-function getServiceBootOrder(applicationsDetails) {
-
-  // pull out all services
-  const serviceOrderMap = {};
-  const services = [];
-  const orderedServices = [];
-
-  for (const applicationDetails of applicationsDetails) {
-    for (const service of applicationDetails.metadata.services) {
-      service.ymlPath = applicationDetails.ymlPath;
-
-      services.push(service);
-    }
-  }
-
-  // for each services
-  while (services.length !== Object.keys(serviceOrderMap).length) {
-    for (const service of services) {
-
-      let allDependenciesMet = true;
-
-      for (const dependency of service.dependencies) {
-        if (!Object.prototype.hasOwnProperty.call(serviceOrderMap, dependency.service)) {
-          allDependenciesMet = false;
-        }
-      }
-
-      // if dependencies are met and we haven't already added this service to the list
-      if (allDependenciesMet && !Object.prototype.hasOwnProperty.call(serviceOrderMap, service.name)) {
-        serviceOrderMap[service.name] = orderedServices.length;
-        orderedServices.push(service);
-      }
-    }
-  }
-
-  return orderedServices;
 }
 
 /* eslint-enable no-magic-numbers */
@@ -968,7 +930,6 @@ async function unlockLnd(jwt) {
 async function updateBuildArtifacts() {
   try {
     updatingBuildArtifacts = true;
-
     await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
     await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
     await git.clone({});
@@ -1003,7 +964,6 @@ module.exports = {
   getAddresses,
   getBootPercent,
   getSerial,
-  getServiceBootOrder,
   getSystemStatus,
   getVersions,
   login,

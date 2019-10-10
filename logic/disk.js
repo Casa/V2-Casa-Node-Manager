@@ -22,8 +22,6 @@ async function getBuildDetails(appsToLaunch) {
   for (const applicationName of Object.keys(appsToLaunch)) {
     const application = {};
     application.name = applicationName;
-    application.metadata = await diskService.readJsonFile(constants.WORKING_DIRECTORY + '/'
-      + application.name + '/' + appsToLaunch[application.name].version + '/' + constants.METADATA_FILE);
     application.ymlPath = constants.WORKING_DIRECTORY + '/' + application.name + '/'
       + appsToLaunch[application.name].version + '/' + application.name + '.yml';
     details.push(application);
