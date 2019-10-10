@@ -1,4 +1,4 @@
-The Casa Node Manager controls the lifecycle of other containers on the Casa Node.
+The Casa Node V2 Manager controls the lifecycle of other containers on the Casa Node.
 
 To run tests: `npm test`
 
