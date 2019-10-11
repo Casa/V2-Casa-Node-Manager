@@ -4,6 +4,7 @@
 
 const logger = require('utils/logger');
 const fs = require('fs');
+const fse = require('fs-extra');
 const crypto = require('crypto');
 const uint32Bytes = 4;
 
@@ -16,6 +17,68 @@ function deleteFile(filePath) {
       resolve(str);
     }
   }));
+}
+
+async function copyFolder(fromFile, toFile) {
+  return new Promise((resolve, reject) => fse.copy(fromFile, toFile, err => {
+    if (err) {
+      reject(err);
+    } else {
+      resolve();
+    }
+  }));
+}
+
+async function deleteFoldersInDir(path) {
+
+  const contents = fs.readdirSync(path);
+
+  for (const item of contents) {
+    if (fs.statSync(path + '/' + item).isDirectory()) {
+      deleteFolderRecursive(path + '/' + item);
+    }
+  }
+}
+
+function deleteFolderRecursive(path) {
+  if (fs.existsSync(path)) {
+    const contents = fs.readdirSync(path);
+
+    for (const file of contents) {
+      const curPath = path + '/' + file;
+      if (fs.statSync(curPath).isDirectory()) {
+        deleteFolderRecursive(curPath);
+      } else {
+        fs.unlinkSync(curPath);
+      }
+    }
+    fs.rmdirSync(path);
+  }
+}
+
+async function listDirsInDir(dir) {
+  const contents = fs.readdirSync(dir);
+
+  const dirs = [];
+
+  for (const item of contents) {
+    if (fs.statSync(dir + '/' + item).isDirectory()) {
+      dirs.push(item);
+    }
+  }
+
+  return dirs;
+}
+
+async function moveFoldersToDir(fromDir, toDir) {
+
+  const contents = fs.readdirSync(fromDir);
+
+  for (const item of contents) {
+    if (item !== '.git' && fs.statSync(fromDir + '/' + item).isDirectory()) {
+      await copyFolder(fromDir + '/' + item, toDir + '/' + item);
+    }
+  }
 }
 
 // Reads a file. Wraps fs.readFile into a native promise
@@ -34,7 +97,7 @@ function readUtf8File(filePath) {
   return readFile(filePath, 'utf8');
 }
 
-function readJsonFile(filePath) {
+async function readJsonFile(filePath) {
   return readUtf8File(filePath).then(JSON.parse);
 }
 
@@ -94,9 +157,13 @@ function writeKeyFile(filePath, obj) {
 
 module.exports = {
   deleteFile,
+  deleteFoldersInDir,
+  listDirsInDir,
+  moveFoldersToDir,
   readFile,
   readUtf8File,
   readJsonFile,
   writeJsonFile,
-  writeKeyFile
+  writeKeyFile,
+  writeFile,
 };

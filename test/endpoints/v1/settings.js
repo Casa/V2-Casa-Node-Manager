@@ -503,7 +503,7 @@ describe('v1/settings endpoints', () => {
         });
     });
 
-    it('should save new settings', done => {
+    xit('should save new settings', done => {
 
       requester
         .post('/v1/settings/save')
@@ -519,7 +519,7 @@ describe('v1/settings endpoints', () => {
         });
     });
 
-    it('should verify that the settings were updated', done => {
+    xit('should verify that the settings were updated', done => {
       requester
         .get('/v1/settings/read')
         .set('authorization', `JWT ${token}`)

@@ -20,13 +20,10 @@ phases:
 
   pre_build:
     commands:
+
       # make a default directory that is required for the manager to start up. Normally this is handled by the install
       # tools.
       - mkdir -p /root/lightning-node
-
-      # Copy the YMLs into the container
-      - git clone https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-warehouse --depth 1 /warehouse
-      - rsync -av /warehouse/lightning-node/*.yml ./resources
 
       # Copy the launch file
       - git clone -b pi-precompiled-software --single-branch https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-install-tools --depth 1 /tools

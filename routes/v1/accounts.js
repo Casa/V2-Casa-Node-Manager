@@ -15,35 +15,36 @@ const COMPLETE = 100;
 
 // Endpoint to change your lnd password. Wallet must exist and be unlocked. This endpoint is authorized with basic auth
 // or the property password from the body.
-router.post('/changePassword', auth.convertReqBodyToBasicAuth, auth.basic, changePasswordAuthHandler, safeHandler(async(req, res, next) => {
+router.post('/changePassword', auth.convertReqBodyToBasicAuth, auth.basic, changePasswordAuthHandler,
+  safeHandler(async(req, res, next) => {
 
-  // Use password from the body by default. Basic auth has issues handling special characters.
-  const currentPassword = req.body.password;
-  const newPassword = req.body.newPassword;
+    // Use password from the body by default. Basic auth has issues handling special characters.
+    const currentPassword = req.body.password;
+    const newPassword = req.body.newPassword;
 
-  const jwt = await authLogic.refresh(req.user);
+    const jwt = await authLogic.refresh(req.user);
 
-  try {
-    validator.isString(currentPassword);
-    validator.isMinPasswordLength(currentPassword);
-    validator.isString(newPassword);
-    validator.isMinPasswordLength(newPassword);
-  } catch (error) {
-    return next(error);
-  }
+    try {
+      validator.isString(currentPassword);
+      validator.isMinPasswordLength(currentPassword);
+      validator.isString(newPassword);
+      validator.isMinPasswordLength(newPassword);
+    } catch (error) {
+      return next(error);
+    }
 
-  const status = await authLogic.getChangePasswordStatus();
+    const status = await authLogic.getChangePasswordStatus();
 
-  // return a conflict if a change password process is already running
-  if (status.percent > 0 && status.percent !== COMPLETE) {
-    return res.status(constants.STATUS_CODES.CONFLICT).json();
-  }
+    // return a conflict if a change password process is already running
+    if (status.percent > 0 && status.percent !== COMPLETE) {
+      return res.status(constants.STATUS_CODES.CONFLICT).json();
+    }
 
-  // start change password process in the background and immediately return
-  authLogic.changePassword(currentPassword, newPassword, jwt.jwt);
+    // start change password process in the background and immediately return
+    authLogic.changePassword(currentPassword, newPassword, jwt.jwt);
 
-  return res.status(constants.STATUS_CODES.ACCEPTED).json();
-}));
+    return res.status(constants.STATUS_CODES.ACCEPTED).json();
+  }));
 
 // Returns the current status of the change password process.
 router.get('/changePassword/status', auth.jwt, safeHandler(async(req, res) => {

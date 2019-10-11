@@ -4,17 +4,19 @@ const authLogic = require('logic/auth.js');
 const dockerComposeLogic = require('logic/docker-compose.js');
 const dockerLogic = require('logic/docker.js');
 const diskLogic = require('logic/disk.js');
+const git = require('logic/git.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
 const lnapiService = require('services/lnapi.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const DockerPullingError = require('models/errors.js').DockerPullingError;
 const schemaValidator = require('utils/settingsSchema.js');
-const md5Check = require('md5-file');
 const ipAddressUtil = require('utils/ipAddress.js');
 const logger = require('utils/logger.js');
 const UUID = require('utils/UUID.js');
-const auth = require('logic/auth');
+
+const semver = require('semver');
+const md5Check = require('md5-file');
 
 let lanIPManagementInterval = {};
 let ipManagementRunning = false;
@@ -25,9 +27,8 @@ let lndManagementRunning = false;
 const RETRY_SECONDS = 10;
 const RETRY_ATTEMPTS = 10;
 
-let autoImagePullInterval = {};
-let lastImagePulled = new Date().getTime(); // The time the last image was successfully pulled.
-let pullingImages = false; // Is the manager currently pulling images.
+let updatingArtifactsInterval = {};
+let updatingBuildArtifacts = false; // is the manager currently updating build artifacts
 
 let systemStatus;
 let bootPercent = 0; // An approximate state of where the manager is during boot.
@@ -77,7 +78,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     bitcoind: {
       bitcoinNetwork: 'mainnet',
       bitcoindListen: true,
-      bitcoindTor: false, // Added February 2019
+      bitcoindTor: true, // Added February 2019
     },
     lnd: {
       chain: 'bitcoin',
@@ -85,9 +86,11 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
       lndNetwork: 'mainnet',
       autopilot: false, // eslint-disable-line object-shorthand
       externalIP: '',
-      lndTor: false, // Added February 2019
+      lndTor: true, // Added February 2019
     },
-    system: {},
+    system: {
+      systemDisplayUnits: 'btc',
+    },
   };
 
   const exists = await diskLogic.settingsFileExists();
@@ -101,14 +104,47 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     await diskLogic.writeSettingsFile(defaultConfig);
 
     return defaultConfig;
-  } else {
+  } else { // handle existing settings files
     const settings = await diskLogic.readSettingsFile();
 
+    // create bitcoind rpc creds as necessary
     await rpcCredIntegrityCheck(settings);
+
     await diskLogic.writeSettingsFile(settings);
 
     return settings;
   }
+}
+
+// Checks that a single application has a default version file. It will create a version file if it doesn't exist.
+// Returns the application version.
+async function appVersionIntegrityCheck(appVersionFile) {
+  if (!await diskLogic.fileExists(constants.WORKING_DIRECTORY + '/' + appVersionFile)) {
+    await diskLogic.writeAppVersionFile(appVersionFile, {
+      version: '2.0.0',
+    });
+  }
+
+  return await diskLogic.readAppVersionFile(appVersionFile);
+}
+
+// Checks where all applications have a default version file. It will create a version file if it doesn't exist. Returns
+// all the application versions.
+async function appVersionsIntegrityCheck() {
+
+  const appVersions = {};
+
+  appVersions[constants.APPLICATIONS.DOWNLOAD] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DOWNLOAD);
+  appVersions[constants.APPLICATIONS.ERROR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.ERROR);
+  appVersions[constants.APPLICATIONS.LOGSPOUT] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LOGSPOUT);
+  appVersions[constants.APPLICATIONS.MANAGER] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.MANAGER);
+  appVersions[constants.APPLICATIONS.TOR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.TOR);
+  appVersions[constants.APPLICATIONS.LIGHTNING_NODE]
+    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LIGHTNING_NODE);
+  appVersions[constants.APPLICATIONS.DEVICE_HOST]
+    = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DEVICE_HOST);
+
+  return appVersions;
 }
 
 // Check whether the settings.json file contains rpcUser and rpcPassword. Historically it has not contained this by
@@ -208,18 +244,7 @@ async function getSystemStatus() {
 
 // Save system settings
 async function saveSettings(settings) {
-  const versions = await dockerLogic.getVersions();
-
-  // Save settings currently performs a docker compose up. This will recreate the container with the new image. We
-  // don't want the user to accidentally be updating their system when they are trying to save settings. Therefore, if
-  // a new image exists, we will block the user from saving until they actively choose to update their system.
-  if (versions.bitcoind.updatable) {
-    throw new LNNodeError('Bitcoin needs to be updated before settings can be saved');
-  }
-  if (versions.lnd.updatable) {
-    throw new LNNodeError('Lightning needs to be updated before settings can be saved');
-  }
-
+  const appVersions = await appVersionsIntegrityCheck();
   const currentConfig = await diskLogic.readSettingsFile();
   const newConfig = JSON.parse(JSON.stringify(currentConfig));
 
@@ -229,6 +254,7 @@ async function saveSettings(settings) {
 
   // If Tor is active for Lnd, we erase the manually entered externalIP. This results in Lnd only being available over
   // Tor. This increases privacy by only advertising the onion address.
+  // TODO should we remove externalIP for V2?
   if (lndSettings.tor) {
     lndSettings.externalIP = '';
   }
@@ -245,19 +271,10 @@ async function saveSettings(settings) {
     }
   }
 
-  // Adding some default values. These properties were created after initial release.
-  if (!newConfig['system']) {
-    newConfig['system'] = {};
-  }
-
   for (const key in systemSettings) {
     if (systemSettings[key] !== undefined) {
       newConfig['system'][key] = systemSettings[key];
     }
-  }
-
-  if (!Object.prototype.hasOwnProperty.call(newConfig['system'], 'systemDisplayUnits')) {
-    newConfig['system']['systemDisplayUnits'] = 'btc';
   }
 
   const validation = schemaValidator.validateSettingsSchema(newConfig);
@@ -265,126 +282,117 @@ async function saveSettings(settings) {
     throw new LNNodeError(validation.errors);
   }
 
-  // Recreate space-fleet if tor is turned on or tor is turned off for both.
-  const recreateSpaceFleet = (currentConfig.bitcoind.tor || currentConfig.lnd.tor)
-    !== (newConfig.bitcoind.tor || newConfig.lnd.tor);
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
   const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
 
   await diskLogic.writeSettingsFile(newConfig);
 
-  // Spin up applications
-  await startTorAsNeeded(newConfig);
-
-  if (recreateSpaceFleet) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+  // Launch lightning-node application if any recreation is needed.
+  if (recreateBitcoind || recreateLnd) {
+    const appsToLaunch = {};
+    appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
+    await launchApplications(appsToLaunch);
   }
 
-  if (recreateBitcoind) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
-  }
-
+  // Automatically unlock lnd if we just recreated it.
   if (recreateLnd) {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
-    await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
-
     const jwt = await getJwt();
     await unlockLnd(jwt);
   }
 }
 
-// The raspberry pi 3b+ has 4 processors that run at 100% each. Every hour there are 60 minutes and four processors for
-// a total of 240 processor minutes.
-//
-// If there are no images available, this function will complete in 30 seconds while only using 40% cpu. This equates
-// to 0.2 cpu-minutes or 0.08% of the hourly processing minutes available.
-//
-// Pulling an image typically uses 100%-120% and takes several minutes. We will have to monitor the number of updates
-// we release to make sure it does not put over load the pi.
-async function startImageIntervalService() {
-  if (autoImagePullInterval !== {}) {
-    autoImagePullInterval = setInterval(pullAllImages, constants.TIME.ONE_HOUR_IN_MILLIS);
+// Update local build artifacts one per hour.
+async function updatingArtifactsService() {
+  if (updatingArtifactsInterval !== {}) {
+    updatingArtifactsInterval = setInterval(updateBuildArtifacts, constants.TIME.ONE_HOUR_IN_MILLIS);
   }
 }
 
-// Pull all docker images from docker hub.
-async function pullAllImages() {
-  pullingImages = true;
+// Pulls all new images that are available from docker hub.
+async function pullNewImages() {
 
-  try {
-    const originalImageCount = (await dockerLogic.getImages()).length;
-    await dockerComposeLogic.dockerComposePullAll();
-    const finalImageCount = (await dockerLogic.getImages()).length;
+  const updatesAvailable = (await getVersions()).applications;
+  const applicationNames = Object.keys(updatesAvailable);
 
-    if (finalImageCount - originalImageCount !== 0) {
-      lastImagePulled = new Date().getTime();
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    pullingImages = false;
-  }
-}
+  // Iterate through all apps.
+  for (const applicationName of applicationNames) {
 
-// Display to the user the current versions and a filtered version of what is updatable. We filter out all updatable
-// services if just one image was downloaded in the last 90 minutes.
-//
-// The 90 minute filter ensures that all images have been downloaded for a particular release. Every 60 minutes
-// the node attempts to download the newest images. The download process could take 20 minutes (30 for padding).
-//
-// A node could also start downloading images while only half of the images have been uploaded to the docker source.
-// The 90 minute filter handles this by making sure the node attempts to download images twice and catches any images
-// it might have missed the first time.
-//
-// We also want to filter all versions if the node is currently pulling images. We don't want to only get half of the
-// new images.
-async function getFilteredVersions() {
-  const versions = await dockerLogic.getVersions();
-  const now = new Date().getTime();
-  const elapsedTime = now - lastImagePulled;
+    // If there are any new versions available.
+    if (updatesAvailable[applicationName].newVersionsAvailable.length > 0) {
 
-  for (const version in versions) {
-    if (Object.prototype.hasOwnProperty.call(versions, version)) {
-      let filtered = false;
+      const mostRecentVersion = updatesAvailable[applicationName].newVersionsAvailable[
+        updatesAvailable[applicationName].newVersionsAvailable.length - 1];
 
-      if (elapsedTime < constants.TIME.NINETY_MINUTES_IN_MILLIS || pullingImages) {
-        filtered = true;
-        versions[version].updatable = false;
+      // Get build details for each available new version one at a time.
+      const app = {};
+      app[applicationName] = {
+        version: mostRecentVersion
+      };
+      const buildDetails = await diskLogic.getBuildDetails(app);
+
+      // There should only be one item in this array.
+      if (buildDetails.length > 0) {
+
+        // Iterate through each service of the app. This will try to pull every service in the application regardless
+        // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
+        // locally.
+        for (const service of constants.APPLICATION_TO_SERVICES_MAP[applicationName]) {
+
+          // Pull each service's image.
+          await dockerComposeLogic.dockerComposePull({
+            service,
+            file: buildDetails[0].ymlPath,
+          });
+        }
       }
-
-      // Return the fact that all services are being filtered.
-      versions[version].filtered = filtered;
     }
   }
-
-  return versions;
 }
 
-// Start Tor as needed otherwise remove the container if it exists.
-async function startTorAsNeeded(settings) {
-  if (settings.lnd.lndTor || settings.bitcoind.bitcoindTor) {
+// Returns all applications on this device. Each application lists the current version and new versions that are
+// available. We also return a boolean property updatingBuildArtifacts that represents if we are currently updating the
+// build artifacts. If we are, we will block upgrading until updating is complete.
+async function getVersions() {
+  const appVersions = await appVersionsIntegrityCheck();
 
-    // Pull Tor image if needed
-    if (!await dockerLogic.hasImageForService(constants.SERVICES.TOR)) {
-      await dockerComposeLogic.dockerLoginCasaworker();
-      await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.TOR});
+  const applicationsNames = Object.keys(appVersions);
+
+  const response = {
+    applications: {},
+    updatingBuildArtifacts,
+  };
+
+  // Iterate through all applications.
+  for (const applicationName of applicationsNames) {
+
+    // Add the current version to the response.
+    response.applications[applicationName] = {
+      version: appVersions[applicationName].version,
+    };
+
+    const newVersionsAvailable = [];
+    const allVersionsList = await diskLogic.listVersionsForApp(applicationName);
+
+    // Iterate from all versions that exists for a given application.
+    for (const version of allVersionsList) {
+
+      // Add the new version if it is greater than the current version
+      if (semver.gt(version, appVersions[applicationName].version)) {
+        newVersionsAvailable.push(version);
+      }
     }
 
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.TOR});
-    await setHiddenServiceEnv();
-
-  } else {
-    await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.TOR});
-    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.TOR});
+    response.applications[applicationName].newVersionsAvailable = newVersionsAvailable;
   }
+
+  return response;
 }
 
 // Set the CASA_NODE_HIDDEN_SERVICE env variable.
 //
 // The Casa Node Hidden Service is created after tor boot. It happens quickly, but it isn't instant. We retry several
 // times to retrieve it. If it cannot be retrieved Casa Node services will not be available via tor.
+// TODO find a better strategy for creating hidden services.
 async function setHiddenServiceEnv() {
 
   let attempt = 0;
@@ -402,6 +410,19 @@ async function setHiddenServiceEnv() {
   } while (!process.env.CASA_NODE_HIDDEN_SERVICE && attempt <= RETRY_ATTEMPTS);
 }
 
+// Launch set of applications.
+async function launchApplications(appsToLaunch) {
+
+  const applicationsNames = Object.keys(appsToLaunch);
+
+  // Docker compose up each service one at a time.
+  for (const applicationName of applicationsNames) {
+    await dockerComposeLogic.dockerComposeUp({
+      application: applicationName,
+    });
+  }
+}
+
 // Run startup functions
 /* eslint-disable no-magic-numbers */
 async function startup() {
@@ -410,7 +431,13 @@ async function startup() {
 
   // keep retrying the startup process if there are any errors
   do {
-    const settings = await settingsFileIntegrityCheck();
+    bootPercent = 10;
+    await settingsFileIntegrityCheck();
+    const appVersions = await appVersionsIntegrityCheck();
+    await checkYMLs(appVersions);
+
+    bootPercent = 20;
+
     try {
       await checkAndUpdateLaunchScript();
 
@@ -422,74 +449,24 @@ async function startup() {
         logger.info('No ipv4 address available. Plug in ethernet.', 'startup');
       }
 
-      // initial setup after a reset or manufacture, force an update.
-      const firstBoot = await auth.isRegistered();
-      bootPercent = 10;
-
-      if (!firstBoot.registered) {
-        await dockerComposeLogic.dockerLoginCasaworker();
-        await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.WELCOME});
-
-        try {
-          await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.WELCOME});
-        } catch (error) {
-          // TODO: figure out a better way to handle this
-          // Ignore errors when welcome doesn't start because space-fleet is already running
-          // This can happen under the following circumstance
-          // 1. The user starts the device the first time
-          // 2. they don't register
-          // 3. The user restarts the device
-        }
-
-        // // TODO: remove before release, this prevents the manager from overriding local changes to YMLs.
-        if (process.env.DISABLE_YML_UPDATE !== 'true') {
-          await checkYMLs();
-        }
-
-        await pullAllImages();
-
-        try {
-          await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
-          await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
-        } catch (error) {
-          // TODO: same as above
-          // Ignore error
-        }
-      }
-
-      bootPercent = 20;
-      if (process.env.DISABLE_YML_UPDATE !== 'true') {
-        await checkYMLs();
-      }
       bootPercent = 30;
 
-      // Previous releases will have a paused Welcome service, let us be good stewarts.
-      await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.WELCOME});
-      await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.WELCOME});
+      const appsToLaunch = {};
+      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
+      appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
 
-      // Clean up old images.
-      await dockerLogic.pruneImages();
-      bootPercent = 35;
+      // Start space-fleet and lnapi before tor. Tor will then be able to create a hidden service.
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.TOR});
 
-      // Ensure tor volumes are created before launching applications.
-      await dockerLogic.ensureTorVolumes();
-      bootPercent = 45;
+      // Wait for tor to create a hidden service.
+      await setHiddenServiceEnv();
 
-      // Spin up applications
-      await startTorAsNeeded(settings);
-      bootPercent = 55;
-      await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
-      bootPercent = 65;
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-      bootPercent = 75;
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-      bootPercent = 85;
+      // Launching/Relaunching all remaining apps. This will include recreating space-fleet with the new hidden service.
+      await launchApplications(appsToLaunch);
 
-      // Recreate the update-manager if the yml file has changed.
-      await dockerComposeLogic.pullUpdateManager();
-      await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.UPDATE_MANAGER});
-      bootPercent = 95;
-
+      bootPercent = 80;
       await startIntervalServices();
 
       errorThrown = false;
@@ -528,21 +505,7 @@ async function lanIPManagement() {
     const newDeviceHost = ipAddressUtil.getLanIPAddress();
 
     if (process.env.DEVICE_HOST !== newDeviceHost) {
-
-      // When we recreate services, they are automatically updated to the most recent image on device. This
-      // could cause compatibility issues if we are auto currently pulling images or we have only pull half of all the
-      // images that are needed for a full update. To get around this, we will only restart and fix the ip problem if
-      // images are not being filtered.
-      //
-      // The consequence of this is that if a node downloads images at the same time the node lan ip address changes,
-      // this service will not resolved the issue until the versions are not being filtered and this service runs again.
-      // Today, versions are filtered for 90 minutes and then it could be an additional hour for this service to run
-      // again.
-      const versions = await getFilteredVersions();
-
-      if (!versions[constants.SERVICES.MANAGER].filtered) {
-        await startup();
-      }
+      await startup();
     }
   } catch (error) {
     throw error;
@@ -613,14 +576,14 @@ async function resyncChain(full, syncFromAWS) {
 async function startIntervalServices() {
   await startLanIPIntervalService();
   await startLndIntervalService();
-  await startImageIntervalService();
+  await updatingArtifactsService();
 }
 
 // Stop scheduling new interval services. Currently running interval services will still complete.
 function stopIntervalServices() {
-  if (autoImagePullInterval !== {}) {
-    clearInterval(autoImagePullInterval);
-    autoImagePullInterval = {};
+  if (updatingArtifactsInterval !== {}) {
+    clearInterval(updatingArtifactsInterval);
+    updatingArtifactsInterval = {};
   }
 
   if (lndManagementInterval !== {}) {
@@ -651,12 +614,11 @@ async function reset(factoryReset) {
 
     if (factoryReset) {
       await dockerLogic.pruneImages(true);
-      await pullAllImages();
+      await updateBuildArtifacts();
     }
-    const settings = await settingsFileIntegrityCheck();
+    await settingsFileIntegrityCheck();
 
     // Spin up applications
-    await startTorAsNeeded(settings);
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -685,10 +647,9 @@ async function userReset() {
     await dockerLogic.removeVolume('applications_channel-data');
     await dockerLogic.removeVolume('applications_lnd-data');
 
-    const settings = await settingsFileIntegrityCheck();
+    await settingsFileIntegrityCheck();
 
     // Spin up applications
-    await startTorAsNeeded(settings);
     await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
     await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
@@ -709,25 +670,44 @@ async function shutdown() {
   // If docker is pulling and is only partially completed, when the device comes back online, it will install the
   // partial update. This could cause breaking changes. To avoid this, we will stop the user from shutting down the
   // device while docker is pulling.
-  if (pullingImages) {
+  if (updatingBuildArtifacts) {
     throw new DockerPullingError();
   }
 
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
+
+  await diskLogic.shutdown();
 }
 
-// Stops, removes, and recreates a docker container based on the docker image on device. This can be used to restart a
-// container or update a container to the newest image.
-async function update(services) {
-  for (const service of services) {
-    const options = {service: service}; // eslint-disable-line object-shorthand
+// Update all applications to the latest version. Then rerun the launch script.
+async function update() {
+  const updatesAvailable = (await getVersions()).applications;
+  const applicationNames = Object.keys(updatesAvailable);
 
-    await dockerComposeLogic.dockerComposeStop(options);
-    await dockerComposeLogic.dockerComposeRemove(options);
-    await dockerComposeLogic.dockerComposeUpSingleService(options);
+  // Iterate through all apps.
+  for (const applicationName of applicationNames) {
+
+    // Get the current version of the application.
+    let latestVersion = updatesAvailable[applicationName].version;
+
+    // Iterate through each new available version of each app.
+    for (const version of updatesAvailable[applicationName].newVersionsAvailable) {
+
+      // Assign the latest version.
+      if (semver.gt(version, latestVersion)) {
+        latestVersion = version;
+      }
+    }
+
+    // TODO don't hard code json
+    const appVersion = await diskLogic.readAppVersionFile(applicationName + '.json');
+    appVersion.version = latestVersion;
+    await diskLogic.writeAppVersionFile(applicationName + '.json', appVersion);
   }
+
+  await diskLogic.relaunch();
 }
 
 // Remove the user file.
@@ -748,22 +728,36 @@ async function wipeSettingsVolume() {
   await bashService.exec('rm', ['-f', 'settings.json'], options);
 }
 
-// Compare known compose files, except manager.yml, with on-device YMLs.
-// The manager should have the latest YMLs.
-async function checkYMLs() {
+// Compare known compose files which are pulled on a regular basic from from a public github repo. Compare these with
+// with yml files on the local file system. Replace any that are missing or have changed.
+async function checkYMLs(appVersions) {
+
+  // Return and skip yml updates
+  if (process.env.DISABLE_YML_UPDATE === 'true') {
+    return;
+  }
+
   const knownYMLs = Object.assign({}, constants.COMPOSE_FILES);
-
   const updatableYMLs = Object.values(knownYMLs);
-
   const outdatedYMLs = [];
 
   for (const knownYMLFile of updatableYMLs) {
     try {
-      const canonicalMd5 = md5Check.sync(constants.CANONICAL_YML_DIRECTORY.concat('/' + knownYMLFile));
-      const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY.concat('/' + knownYMLFile));
+      // Get the name of the application. Currently convention of yml files are <application name>.yml.
+      const application = knownYMLFile.split('.')[0];
+      const version = appVersions[application].version;
 
+      const canonicalMd5 = md5Check.sync(constants.WORKING_DIRECTORY + '/' + application + '/' + version + '/'
+        + knownYMLFile);
+      const ondeviceMd5 = md5Check.sync(constants.WORKING_DIRECTORY + '/' + knownYMLFile);
+
+      // Don't update the manager.yml file on MAC. It requires a special yml.
       if (canonicalMd5 !== ondeviceMd5) {
-        outdatedYMLs.push(knownYMLFile);
+        if (process.env.MAC && knownYMLFile === constants.COMPOSE_FILES.MANAGER) {
+          // no op
+        } else {
+          outdatedYMLs.push(knownYMLFile);
+        }
       }
     } catch (error) {
       outdatedYMLs.push(knownYMLFile);
@@ -771,26 +765,30 @@ async function checkYMLs() {
   }
 
   if (outdatedYMLs.length !== 0) {
-    await updateYMLs(outdatedYMLs);
+    await updateYMLs(appVersions, outdatedYMLs);
   }
 }
 
 // Stop non-persistent containers, and copy over outdated YMLs, restart services.
 // Declared services could be different between the YMLs, so stop everything.
 // Might need to disable for AWS instances with <4 CPUs as we dynamically configure CPU resources.
-async function updateYMLs(outdatedYMLs) {
+async function updateYMLs(appVersions, outdatedYMLs) {
   try {
     systemStatus.updating = true;
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
 
     for (const outdatedYML of outdatedYMLs) {
-      const ymlFile = constants.CANONICAL_YML_DIRECTORY + '/' + outdatedYML;
+
+      // Get the name of the application. Currently convention of yml files are <application name>.yml.
+      const application = outdatedYML.split('.')[0];
+      const version = appVersions[application].version;
+      const ymlFile = constants.WORKING_DIRECTORY + '/' + application + '/' + version + '/' + outdatedYML;
+
       await bashService.exec('cp', [ymlFile, constants.WORKING_DIRECTORY], {});
     }
 
     stopIntervalServices();
-    await pullAllImages();
     systemStatus.error = false;
   } catch (error) {
     systemStatus.error = true;
@@ -799,6 +797,8 @@ async function updateYMLs(outdatedYMLs) {
   }
 }
 
+// Compare the launch script that was placed in the manager container at build time with the launch scripts that exists
+// on the file system. Update it if there are any differences.
 async function checkAndUpdateLaunchScript() { // eslint-disable-line id-length
   try {
     systemStatus.updating = true;
@@ -842,6 +842,7 @@ async function startLndIntervalService() {
 async function getJwt() {
   const genericUser = {
     username: 'admin',
+    password: authLogic.getCachedPassword(),
   };
 
   return (await authLogic.login(genericUser)).jwt;
@@ -919,6 +920,22 @@ async function unlockLnd(jwt) {
   } while (errorOccurred && attempt < RETRY_ATTEMPTS);
 }
 
+// Get new build artifacts from remote services. Build artifacts include yml files, images, dependencies and more.
+async function updateBuildArtifacts() {
+  try {
+    updatingBuildArtifacts = true;
+    await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
+    await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
+    await git.clone({});
+    await diskLogic.moveFoldersToDir(constants.TMP_BUILD_ARTIFACTS_DIRECTORY, constants.WORKING_DIRECTORY);
+    await pullNewImages();
+  } catch (error) {
+    throw error;
+  } finally {
+    updatingBuildArtifacts = false;
+  }
+}
+
 async function login(user) {
   try {
     const jwt = await authLogic.login(user);
@@ -942,7 +959,7 @@ module.exports = {
   getBootPercent,
   getSerial,
   getSystemStatus,
-  getFilteredVersions,
+  getVersions,
   login,
   saveSettings,
   shutdown,

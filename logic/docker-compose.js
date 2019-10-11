@@ -34,28 +34,27 @@ const injectSettings = async() => {
   return envData;
 };
 
-
-function composeFile(options) {
+// Get the compose file given an option with a service or application property.
+function getComposeFile(options) {
   if (options !== undefined && options.fileName !== undefined) {
     return WORKING_DIR + '/' + options.fileName;
   }
 
-  if (options.service === constants.SERVICES.DEVICE_HOST) {
+  if (options.service === constants.SERVICES.DEVICE_HOST
+    || options.application === constants.APPLICATIONS.DEVICE_HOST) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DEVICE_HOST;
-  } else if (options.service === constants.SERVICES.DOWNLOAD) {
+  } else if (options.service === constants.SERVICES.DOWNLOAD
+    || options.application === constants.APPLICATIONS.DOWNLOAD) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DOWNLOAD;
   } else if (options.service === constants.SERVICES.LOGSPOUT
     || options.service === constants.SERVICES.PAPERTRAIL
-    || options.service === constants.SERVICES.SYSLOG) {
+    || options.service === constants.SERVICES.SYSLOG
+    || options.application === constants.APPLICATIONS.LOGSPOUT) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LOGSPOUT;
-  } else if (options.service === constants.SERVICES.MANAGER) {
+  } else if (options.service === constants.SERVICES.MANAGER || options.application === constants.APPLICATIONS.MANAGER) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.MANAGER;
-  } else if (options.service === constants.SERVICES.UPDATE_MANAGER) {
-    return WORKING_DIR + '/' + constants.COMPOSE_FILES.UPDATE_MANAGER;
-  } else if (options.service === constants.SERVICES.TOR) {
+  } else if (options.service === constants.SERVICES.TOR || options.application === constants.APPLICATIONS.TOR) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.TOR;
-  } else if (options.service === constants.SERVICES.WELCOME) {
-    return WORKING_DIR + '/' + constants.COMPOSE_FILES.WELCOME;
   } else {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.LIGHTNING_NODE;
   }
@@ -75,7 +74,7 @@ function addDefaultOptions(options) {
 }
 
 async function dockerComposeUp(options) {
-  const file = composeFile(options);
+  const file = getComposeFile(options);
 
   addDefaultOptions(options);
   options.env = await injectSettings();
@@ -98,61 +97,13 @@ async function dockerComposeUp(options) {
   }
 }
 
-
-function dockerComposePull(options = {}) {
-  var deferred = q.defer();
-
-  const file = composeFile(options);
+// Pull an individual docker image.
+async function dockerComposePull(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-  function handleSuccess() {
-    deferred.resolve();
-  }
-
-  function handleError(error) {
-    deferred.reject(error);
-  }
-
-  bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', file, 'pull', service], options)
-    .then(handleSuccess)
-    .catch(handleError);
-
-  return deferred.promise;
-}
-
-// Pull newest images. This pulls new images to the device, but does not recreate them. Users will need to call the
-// get /update route to recreate specified containers. However, device-host is recreated every time the manager starts
-// up. Notably, update-manager is left out, because there is currently no mechanism build to recreate that container.
-async function dockerComposePullAll() {
-  const casabuilderImagesToPull = [constants.SERVICES.MANAGER, constants.SERVICES.UPDATE_MANAGER];
-  const casaworkerImagesToPull = [constants.SERVICES.DEVICE_HOST, constants.SERVICES.LND, constants.SERVICES.BITCOIND,
-    constants.SERVICES.LNAPI, constants.SERVICES.SPACE_FLEET, constants.SERVICES.SYSLOG, constants.SERVICES.TOR,
-    constants.SERVICES.LOGSPOUT, constants.SERVICES.WELCOME];
-
-  // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
-  // the raspberry pi.
-  await dockerLoginCasabuilder();
-  for (const image of casabuilderImagesToPull) {
-    await dockerComposePull({service: image});
-  }
-
   await dockerLoginCasaworker();
-  for (const image of casaworkerImagesToPull) {
-    await dockerComposePull({service: image});
-  }
-
-  await dockerLogout();
-}
-
-// Pull just the update manager.
-async function pullUpdateManager() {
-
-  // Pull images synchronously. Async pull will take too much processing power. We don't want these pulls to overload
-  // the raspberry pi.
-  await dockerLoginCasabuilder();
-  await dockerComposePull({service: constants.SERVICES.UPDATE_MANAGER});
-
+  await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service], options);
   await dockerLogout();
 }
 
@@ -160,7 +111,7 @@ async function pullUpdateManager() {
 function dockerComposeStop(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -185,7 +136,7 @@ function dockerComposeStop(options = {}) {
 function dockerComposeRemove(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -210,7 +161,7 @@ function dockerComposeRemove(options = {}) {
 function dockerComposeRestart(options = {}) {
   var deferred = q.defer();
 
-  const file = composeFile(options);
+  const file = getComposeFile(options);
   const service = options.service;
   addDefaultOptions(options);
 
@@ -231,26 +182,28 @@ function dockerComposeRestart(options = {}) {
   return deferred.promise;
 }
 
-const dockerComposeUpSingleService = async options => { // eslint-disable-line id-length
-  const file = composeFile(options);
-  const service = options.service;
+// Use docker compose to create one service from a yml file. Retrieve the TAG from the .env file and the version from
+// the application version files on device.
+async function dockerComposeUpSingleService(options) { // eslint-disable-line id-length
+  const file = getComposeFile(options);
   addDefaultOptions(options);
   options.env = await injectSettings();
+  options.env.TAG = constants.TAG;
 
   // Pass along environmental variables as needed.
-  if (service === constants.SERVICES.PAPERTRAIL || service === constants.SERVICES.LOGSPOUT) {
+  if (options.service === constants.SERVICES.PAPERTRAIL || options.service === constants.SERVICES.LOGSPOUT) {
     options.env.SERIAL = constants.SERIAL;
-  } else if (service === constants.SERVICES.LNAPI) {
+  } else if (options.service === constants.SERVICES.LNAPI) {
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
-  } else if (service === constants.SERVICES.DOWNLOAD) {
+  } else if (options.service === constants.SERVICES.DOWNLOAD) {
     options.env.ARCHIVE_CHAIN = 'bitcoind';
     options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK'];
     options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
-  var composeOptions = ['-f', file, 'up'];
+  const composeOptions = ['-f', file, 'up'];
 
   // By default everything will run in detached mode. However, in some cases we want to want for a container to complete
   // before returning. We pass the attached flag in that instance.
@@ -258,14 +211,14 @@ const dockerComposeUpSingleService = async options => { // eslint-disable-line i
     composeOptions.push('-d');
   }
 
-  composeOptions.push('-t', DOCKER_TIMEOUT_SECONDS, '--no-deps', service);
+  composeOptions.push('-t', DOCKER_TIMEOUT_SECONDS, '--no-deps', options.service);
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
   } catch (error) {
-    throw new DockerComposeError('Unable to start service: ' + service, error);
+    throw new DockerComposeError('Unable to start service: ' + options.service, error);
   }
-};
+}
 
 async function dockerLogin(options = {}, username, password) {
 
@@ -279,14 +232,6 @@ async function dockerLogin(options = {}, username, password) {
   } catch (error) {
     throw new DockerComposeError('Unable to login to docker: ', error);
   }
-}
-
-async function dockerLoginCasabuilder() {
-
-  if (process.env.CASABUILDER_PASSWORD) {
-    await dockerLogin({}, 'casabuilder', process.env.CASABUILDER_PASSWORD);
-  }
-
 }
 
 async function dockerLoginCasaworker() {
@@ -313,11 +258,9 @@ async function dockerLogout(options = {}) {
 module.exports = {
   dockerComposeUp,
   dockerComposePull,
-  dockerComposePullAll,
   dockerComposeStop,
   dockerComposeRemove,
   dockerComposeRestart,
   dockerComposeUpSingleService, // eslint-disable-line id-length
   dockerLoginCasaworker,
-  pullUpdateManager,
 };
