@@ -1,5 +1,7 @@
 version: 0.2
 env:
+  variables:
+    IMAGE_VERSION: "0.0.0"
   parameter-store:
     DOCKER_HUB_USER: "/Casanode/DockerHub/User"
     DOCKER_HUB_PASS: "/Casanode/DockerHub/Pass"
@@ -7,6 +9,8 @@ env:
     GITHUB_PASS: "/Casanode/Git/Pass"
 phases:
   install:
+    runtime-versions:
+      docker: 18
     commands:
       - echo Installing Mocha...
       - npm install -g mocha
