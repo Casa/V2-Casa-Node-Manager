@@ -6,6 +6,8 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
+const bitcoinMocks = require('../../mocks/bitcoin.js');
+
 // A random username and password to test with
 const USERNAME = uuidv4();
 const PASSWORD = uuidv4();
@@ -47,13 +49,35 @@ describe('v1/accounts endpoints', () => {
 
   describe('v1/accounts/register POST via basic auth', () => {
 
-    it('should register a new user and return a new JWT', done => {
+    it('should fail to register if lnapi is unavailable', done => {
+      postAxiosStub.restore();
+      postAxiosStub = sinon.stub(require('axios'), 'post').throws();
 
       // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
       clearUsers();
       requester
         .post('/v1/accounts/register')
         .auth(USERNAME, PASSWORD)
+        .send({seed: bitcoinMocks.getSeed()})
+        .end((err, res) => {
+          if (err) {
+            done(err);
+          }
+          res.should.have.status(500);
+          done();
+        });
+    });
+
+    it('should register a new user and return a new JWT', done => {
+      postAxiosStub.restore();
+      postAxiosStub = sinon.stub(require('axios'), 'post');
+
+      // Clear any existing users out of the system otherwise a 'User already exists' error will be returned
+      clearUsers();
+      requester
+        .post('/v1/accounts/register')
+        .auth(USERNAME, PASSWORD)
+        .send({seed: bitcoinMocks.getSeed()})
         .end((err, res) => {
           if (err) {
             done(err);
@@ -98,7 +122,7 @@ describe('v1/accounts endpoints', () => {
       clearUsers();
       requester
         .post('/v1/accounts/register')
-        .send({password: PASSWORD})
+        .send({password: PASSWORD, seed: bitcoinMocks.getSeed()})
         .end((err, res) => {
           if (err) {
             done(err);

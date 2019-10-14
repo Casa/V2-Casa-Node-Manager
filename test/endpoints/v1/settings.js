@@ -6,6 +6,7 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const sinon = require('sinon');
 
+const bitcoinMocks = require('../../mocks/bitcoin.js');
 const dockerodeMocks = require('../../mocks/dockerode.js');
 
 const randomUsername = uuidv4();
@@ -53,6 +54,8 @@ describe('v1/settings endpoints', () => {
 
     const lnapi = `${__dirname}/../../../services/lnapi.js`;
     unlockLndStub = sinon.stub(require(lnapi), 'unlockLnd');
+
+    postAxiosStub = sinon.stub(require('axios'), 'post');
   });
 
   after(() => {
@@ -62,6 +65,7 @@ describe('v1/settings endpoints', () => {
     dockerComposeStopStub.restore();
     dockerComposeRemoveStub.restore();
     unlockLndStub.restore();
+    postAxiosStub.restore();
 
     restoreOriginalSettingsFile();
 
@@ -86,6 +90,7 @@ describe('v1/settings endpoints', () => {
       requester
         .post('/v1/accounts/register')
         .auth(randomUsername, randomPassword)
+        .send({seed: bitcoinMocks.getSeed()})
         .end((err, res) => {
           if (err) {
             done(err);

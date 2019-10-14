@@ -62,10 +62,25 @@ router.get('/registered', safeHandler((req, res) =>
 
 // Endpoint to register a password with the device. Wallet must not exist. This endpoint is authorized with basic auth
 // or the property password from the body.
-router.post('/register', auth.convertReqBodyToBasicAuth, auth.register, safeHandler((req, res) =>
-  authLogic.register(req.user)
-    .then(jwt => res.json(jwt))
-));
+router.post('/register', auth.convertReqBodyToBasicAuth, auth.register, safeHandler(async(req, res, next) => {
+
+  const seed = req.body.seed;
+
+  if (seed.length !== 24) { // eslint-disable-line no-magic-numbers
+    throw new Error('Invalid seed length');
+  }
+
+  try {
+    validator.isString(req.user.password);
+    validator.isMinPasswordLength(req.user.password);
+  } catch (error) {
+    return next(error);
+  }
+
+  const jwt = await authLogic.register(req.user, seed);
+
+  return res.json(jwt);
+}));
 
 router.post('/login', auth.convertReqBodyToBasicAuth, auth.basic, safeHandler((req, res) =>
   applicationLogic.login(req.user)

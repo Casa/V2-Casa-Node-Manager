@@ -134,7 +134,7 @@ async function login(user) {
 }
 
 // Registers the the user to the device. Returns an error if a user already exists.
-async function register(user) {
+async function register(user, seed) {
   if ((await isRegistered()).registered) {
     throw new NodeError('User already exists', 400); // eslint-disable-line no-magic-numbers
   }
@@ -142,17 +142,24 @@ async function register(user) {
   try {
     await diskLogic.writeUserFile({password: user.password});
   } catch (error) {
-
     throw new NodeError('Unable to register');
   }
 
+  let jwt;
   try {
-    const jwt = await JWTHelper.generateJWT(user.username);
-
-    return {jwt: jwt}; // eslint-disable-line object-shorthand
+    jwt = await JWTHelper.generateJWT(user.username);
   } catch (error) {
     throw new NodeError('Unable to generate JWT');
   }
+
+  try {
+    await lnapiService.initializeWallet(user.password, seed, jwt);
+  } catch (error) {
+    await diskLogic.deleteUserFile();
+    throw new NodeError('Unable to generate lnd wallet');
+  }
+
+  return {jwt: jwt}; // eslint-disable-line object-shorthand
 }
 
 // Generate and return a new jwt token.
