@@ -1,5 +1,7 @@
 version: 0.2
 env:
+  variables:
+    IMAGE_VERSION: "0.0.0"
   parameter-store:
     DOCKER_HUB_USER: "/Casanode/DockerHub/User"
     DOCKER_HUB_PASS: "/Casanode/DockerHub/Pass"
@@ -7,6 +9,8 @@ env:
     GITHUB_PASS: "/Casanode/Git/Pass"
 phases:
   install:
+    runtime-versions:
+      docker: 18
     commands:
       - echo Installing Mocha...
       - npm install -g mocha
@@ -48,8 +52,10 @@ phases:
         else
           docker run --rm --privileged multiarch/qemu-user-static:register --reset
         fi
+
+      # Get the version that will be appended to the tag
+      - IMAGE_VERSION=$(cat package.json | jq .version -r)
       - docker build . -f $DOCKERFILE -t $ORGANIZATION/$REPOSITORY:$ARCH
-      - docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
 
       # Hacky way to determine what branch we are in. $CODEBUILD_SOURCE_VERSION is the git commit we are currently
       # building. We search all local branches to get a list of branches that include that git commit. We return all
@@ -70,31 +76,25 @@ phases:
       # exists in master, release, and develop, it really means we want to deploy master. Likewise, if a git commit exists
       # in release and develop, we release want to deploy release.
       #
-      # Public vs Private
-      # Casa Inc releases code publicly for various reasons. We also develop features in private before the public
-      # release. Historically we have used the private casacomputer organization on docker hub. We have since migrated
-      # to casanode for our public releases. We will support legacy nodes running on casacomputer until March 2020.
+      # In order to keep production images immutable, we will only push the master branch if the image doesn't exist in
+      # docker hub. However, for develop and release/stage we are okay with rewriting those images in docker hub.
       - |
-        if [ "$masterBranchText" = "master" ] && [ "$PUBLIC" = "false" ]; then
-          echo "pushing master branch to docker hub"
-          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
-          docker push $ORGANIZATION/$REPOSITORY:$ARCH
-        elif [ "$masterBranchText" = "master" ] && [ "$PUBLIC" = "true" ]; then
-          echo "pushing master branch to docker hub"
-          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH
-          docker push $ORGANIZATION/$REPOSITORY:$ARCH
-
-          echo "pushing master branch to legacy docker hub"
-          docker tag $ORGANIZATION/$REPOSITORY:$ARCH casacomputer/$REPOSITORY:$ARCH
-          docker push casacomputer/$REPOSITORY:$ARCH
-        elif [ "$releaseBranchText" = "release" ] && [ "$PUBLIC" = "false" ]; then
-          echo "pushing release branch to docker hub"
-          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage
-          docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage
-        elif [ "$developBranchText" = "develop" ] && [ "$PUBLIC" = "false" ]; then
+        if [ "$masterBranchText" = "master" ]; then
+          if DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect $ORGANIZATION/$REPOSITORY:$ARCH-develop-$IMAGE_VERSION >/dev/null; then
+            echo "image already exists"
+          else
+            echo "pushing master branch to docker hub"
+            docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-$IMAGE_VERSION
+            docker push $ORGANIZATION/$REPOSITORY:$ARCH-$IMAGE_VERSION
+          fi
+        elif [ "$releaseBranchText" = "release" ]; then
+          echo "pushing release/stage branch to docker hub"
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-stage-$IMAGE_VERSION
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH-stage-$IMAGE_VERSION
+        elif [ "$developBranchText" = "develop" ]; then
           echo "pushing develop branch to docker hub"
-          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop
-          docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop
+          docker tag $ORGANIZATION/$REPOSITORY:$ARCH $ORGANIZATION/$REPOSITORY:$ARCH-develop-$IMAGE_VERSION
+          docker push $ORGANIZATION/$REPOSITORY:$ARCH-develop-$IMAGE_VERSION
         else
            echo "docker image has been built, but not pushed to docker hub"
         fi
