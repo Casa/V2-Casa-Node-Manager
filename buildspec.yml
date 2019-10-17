@@ -30,7 +30,7 @@ phases:
       - mkdir -p /root/lightning-node
 
       # Copy the launch file
-      - git clone -b pi-precompiled-software --single-branch https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-install-tools --depth 1 /tools
+      - git clone -b pi4-precompiled-software --single-branch https://$GITHUB_USER:$GITHUB_PASS@github.com/Casa/home-compute-install-tools --depth 1 /tools
       - rsync -av /tools/launch.sh ./resources
 
       - echo Installing source NPM dependencies...
