@@ -102,7 +102,7 @@ async function dockerComposePull(options = {}) {
   const service = options.service;
   addDefaultOptions(options);
 
-  await dockerLoginCasaworker();
+  await dockerLoginBuilder();
   await bashService.exec(DOCKER_COMPOSE_COMMAND, ['-f', options.file, 'pull', service], options);
   await dockerLogout();
 }
@@ -234,10 +234,10 @@ async function dockerLogin(options = {}, username, password) {
   }
 }
 
-async function dockerLoginCasaworker() {
+async function dockerLoginBuilder() {
 
-  if (process.env.CASAWORKER_PASSWORD) {
-    await dockerLogin({}, 'casaworker', process.env.CASAWORKER_PASSWORD);
+  if (process.env.CASABUILDER_PASSWORD) {
+    await dockerLogin({}, 'casabuilder', process.env.CASABUILDER_PASSWORD);
   }
 
 }
@@ -262,5 +262,5 @@ module.exports = {
   dockerComposeRemove,
   dockerComposeRestart,
   dockerComposeUpSingleService, // eslint-disable-line id-length
-  dockerLoginCasaworker,
+  dockerLoginBuilder,
 };
