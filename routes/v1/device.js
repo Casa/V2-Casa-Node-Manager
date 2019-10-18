@@ -29,18 +29,9 @@ router.post('/factory-reset', auth.accountJWTProtected, safeHandler((req, res) =
 }));
 
 router.post('/resync-chain', auth.accountJWTProtected, safeHandler(async(req, res) => {
+  applicationLogic.resyncChain();
 
-  const full = req.body.full; // optional parameter to fully wipe all bitcoind data
-
-  // TODO come up with unified strategy on handling resets
-  if ((await applicationLogic.getSystemStatus()).resync) {
-    return res.status(PRECONDITION_FAILED).json({status: 'bitcoind-already-resyncing'});
-  } else {
-    // we ignore async call and allow processing to continue in the background
-    applicationLogic.resyncChain(full, true);
-
-    return res.json({status: 'bitcoind-reset'});
-  }
+  return res.json({status: 'bitcoind-reset'});
 }));
 
 router.post('/user-reset', auth.accountJWTProtected, safeHandler((req, res) => {
