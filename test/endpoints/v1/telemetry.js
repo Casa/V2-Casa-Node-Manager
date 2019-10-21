@@ -1,6 +1,7 @@
 /* eslint-disable max-len,id-length,no-magic-numbers,no-empty-function,no-undef */
 /* globals requester, reset */
 const sinon = require('sinon');
+const bitcoinMocks = require('../../mocks/bitcoin.js');
 const dockerodeMocks = require('../../mocks/dockerode.js');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
@@ -9,11 +10,13 @@ describe('v1/telemetry endpoints', () => {
   let token;
 
   before(async() => {
+    postAxiosStub = sinon.stub(require('axios'), 'post');
+
     reset();
   });
 
   after(async() => {
-
+    postAxiosStub.restore();
   });
 
   // Get a JWT
@@ -35,6 +38,7 @@ describe('v1/telemetry endpoints', () => {
       requester
         .post('/v1/accounts/register')
         .auth(randomUsername, randomPassword)
+        .send({seed: bitcoinMocks.getSeed()})
         .end((err, res) => {
           if (err) {
             done(err);
