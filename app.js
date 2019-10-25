@@ -10,6 +10,7 @@ const cors = require('cors');
 // Keep requestCorrelationId middleware as the first middleware. Otherwise we risk losing logs.
 const requestCorrelationMiddleware = require('middlewares/requestCorrelationId.js'); // eslint-disable-line id-length
 const errorHandleMiddleware = require('middlewares/errorHandling.js');
+const onionOriginMiddleware = require('middlewares/onionOrigin.js');
 const corsOptions = require('middlewares/cors.js').corsOptions;
 require('middlewares/auth.js');
 
@@ -25,6 +26,7 @@ const ping = require('routes/ping.js');
 const app = express();
 
 app.use(cors(corsOptions));
+app.use(onionOriginMiddleware);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
