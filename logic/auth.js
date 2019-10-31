@@ -156,7 +156,7 @@ async function register(user, seed) {
     await lnapiService.initializeWallet(user.password, seed, jwt);
   } catch (error) {
     await diskLogic.deleteUserFile();
-    throw new NodeError('Unable to generate lnd wallet');
+    throw new NodeError(error.response.data);
   }
 
   return {jwt: jwt}; // eslint-disable-line object-shorthand
