@@ -61,7 +61,7 @@ function resetSystemStatus() {
 }
 
 async function downloadChain() {
-  await dockerComposeLogic.dockerLoginCasaworker();
+  await dockerComposeLogic.dockerLoginBuilder();
 
   await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.DOWNLOAD});
   systemStatus.details = 'downloading blocks...';
