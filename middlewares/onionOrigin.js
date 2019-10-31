@@ -17,8 +17,8 @@ function onionOrigin(req, res, next) {
 
   // If a hidden service is known and the request has the Tor Browser 9.0.0 bug.
   if (hiddenService
-    && req.headers['host'].includes(hiddenService)
-    && !req.headers['origin']) {
+    && req.headers.host.includes(hiddenService)
+    && !req.headers.origin) {
 
     // Manually add hidden service (with http://) to the response header.
     res.setHeader('Access-Control-Allow-Origin', process.env.CASA_NODE_HIDDEN_SERVICE);

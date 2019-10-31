@@ -25,8 +25,11 @@ const telemetry = require('routes/v1/telemetry.js');
 const ping = require('routes/ping.js');
 const app = express();
 
-app.use(cors(corsOptions));
+// Handle Cors for Tor Browser 9.0.0 bug and options requests
 app.use(onionOriginMiddleware);
+
+// Handles Cors for normal requests
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
