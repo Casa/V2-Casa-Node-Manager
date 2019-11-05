@@ -236,8 +236,9 @@ async function dockerLogin(options = {}, username, password) {
 
 async function dockerLoginBuilder() {
 
+  // Login with casabuilder password if it exists.
   if (process.env.CASABUILDER_PASSWORD) {
-    await dockerLogin({}, 'casabuilder', process.env.CASABUILDER_PASSWORD);
+    await dockerLogin({}, constants.CASABUILDER_USERNAME, process.env.CASABUILDER_PASSWORD);
   }
 
 }
