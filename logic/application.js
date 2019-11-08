@@ -7,6 +7,7 @@ const diskLogic = require('logic/disk.js');
 const git = require('logic/git.js');
 const constants = require('utils/const.js');
 const bashService = require('services/bash.js');
+const dockerHubService = require('services/dockerHub.js');
 const lnapiService = require('services/lnapi.js');
 const LNNodeError = require('models/errors.js').NodeError;
 const DockerPullingError = require('models/errors.js').DockerPullingError;
@@ -29,6 +30,8 @@ const RETRY_ATTEMPTS = 10;
 
 let updatingArtifactsInterval = {};
 let updatingBuildArtifacts = false; // is the manager currently updating build artifacts
+
+let invalidDigestDetected = false;
 
 let systemStatus;
 let bootPercent = 0; // An approximate state of where the manager is during boot.
@@ -308,8 +311,30 @@ async function updatingArtifactsService() {
   }
 }
 
-// Pulls all new images that are available from docker hub.
-async function pullNewImages() {
+// Get the version of a service for a given yml file.
+async function getVersionFromYml(ymlPath, service) {
+  const fileContents = await diskLogic.readUtf8File(ymlPath);
+
+  const lines = fileContents.split('\n');
+
+  for (const line of lines) {
+    if (line.includes('image: casanode${REPOSITORY_ADDENDUM}/' + service)) {
+      const parts = line.split('-');
+
+      // Grab the last part because the service itself could have zero or more dashes.
+      // ex
+      // image: casanode${REPOSITORY_ADDENDUM}/lnd:${TAG}-2.0.0
+      // image: casanode${REPOSITORY_ADDENDUM}/space-fleet:${TAG}-2.0.0
+      return parts[parts.length - 1];
+    }
+  }
+
+  throw new Error('Could node find version for service ' + service + 'in yml.');
+}
+
+async function getNewestServices() {
+
+  const services = [];
 
   const updatesAvailable = (await getVersions()).applications;
   const applicationNames = Object.keys(updatesAvailable);
@@ -318,35 +343,97 @@ async function pullNewImages() {
   for (const applicationName of applicationNames) {
 
     // If there are any new versions available.
-    if (updatesAvailable[applicationName].newVersionsAvailable.length > 0) {
+    if (updatesAvailable[applicationName].newVersionsAvailable.length === 0) {
+      continue;
+    }
 
-      const mostRecentVersion = updatesAvailable[applicationName].newVersionsAvailable[
-        updatesAvailable[applicationName].newVersionsAvailable.length - 1];
+    const applicationVersion = updatesAvailable[applicationName].newVersionsAvailable[
+      updatesAvailable[applicationName].newVersionsAvailable.length - 1];
 
-      // Get build details for each available new version one at a time.
-      const app = {};
-      app[applicationName] = {
-        version: mostRecentVersion
-      };
-      const buildDetails = await diskLogic.getBuildDetails(app);
+    // Get build details for each available new version one at a time.
+    const app = {};
+    app[applicationName] = {
+      version: applicationVersion,
+    };
+    const buildDetails = await diskLogic.getBuildDetails(app);
 
-      // There should only be one item in this array.
-      if (buildDetails.length > 0) {
+    // There should only be one item in this array.
+    if (buildDetails.length !== 1) {
+      throw new Error('Build details are not the expected length' + buildDetails.length);
+    }
 
-        // Iterate through each service of the app. This will try to pull every service in the application regardless
-        // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
-        // locally.
-        for (const service of constants.APPLICATION_TO_SERVICES_MAP[applicationName]) {
+    // Iterate through each service of the app. This will try to pull every service in the application regardless
+    // of if it is needed. We could speed this up by checking if the image about to be pulled already exists
+    // locally.
+    for (const service of constants.APPLICATION_TO_SERVICES_MAP[applicationName]) {
 
-          // Pull each service's image.
-          await dockerComposeLogic.dockerComposePull({
-            service,
+      // Only verify images on production or pre-production.
+      if (process.env.TAG === 'arm' || process.env.TAG === 'x86') {
+
+        // Get Docker Hub auth token.
+        const version = await getVersionFromYml(buildDetails[0].ymlPath, service);
+        const dockerHubBearer = await dockerHubService.getAuthenticationToken(service);
+
+        const dockerHubServiceManifest = await dockerHubService.getDigest(dockerHubBearer.data.token, service,
+          process.env.TAG + '-' + version);
+        const digests = await diskLogic.readJsonFile(buildDetails[0].digestsPath);
+
+        // Compare the digest in docker hub with the expected digest.
+        if (dockerHubServiceManifest.data.config.digest === digests[service]) {
+
+          // Add each service.
+          services.push({
+            applicationName,
+            applicationVersion,
+            serviceName: service,
+            serviceVersion: version,
             file: buildDetails[0].ymlPath,
           });
+        } else {
+
+          // Turn on this flag. It will remain on and block all updates and pull until Dockerhub manifest and the node
+          // warehouse have digests that match.
+          invalidDigestDetected = true;
+          throw new Error('Unknown image detected, expected ' + service + ' digest to be ' + digests[service]
+            + ' but found ' + dockerHubServiceManifest.data.config.digest);
         }
+      } else {
+
+        const version = await getVersionFromYml(buildDetails[0].ymlPath, service);
+
+        // Add each service.
+        services.push({
+          applicationName,
+          applicationVersion,
+          serviceName: service,
+          serviceVersion: version,
+          file: buildDetails[0].ymlPath,
+        });
       }
+
     }
   }
+
+  return services;
+}
+
+// Pulls all new images that are available from docker hub.
+async function pullNewImages() {
+
+  const services = await getNewestServices();
+
+  // For each service path pair.
+  for (const service of services) {
+
+    // Pull each service's image.
+    await dockerComposeLogic.dockerComposePull({
+      service: service.serviceName,
+      file: service.file,
+    });
+  }
+
+  // Set this to true if no invalid digests were found.
+  invalidDigestDetected = false;
 }
 
 // Returns all applications on this device. Each application lists the current version and new versions that are
@@ -360,6 +447,7 @@ async function getVersions() {
   const response = {
     applications: {},
     updatingBuildArtifacts,
+    invalidDigestDetected,
   };
 
   // Iterate through all applications.
@@ -681,30 +769,65 @@ async function shutdown() {
   await diskLogic.shutdown();
 }
 
+// Do we have an image for the given service on device.
+function hasImage(images, service, version) {
+
+  // Iterate through all images.
+  for (const image of images) {
+
+    // RepoTags is a nullable array. We have to null check and then loop over each tag.
+    if (image.RepoTags) {
+
+      // Iterate through all repo tags
+      for (const tag of image.RepoTags) {
+
+        // example tag 'casanode/manager:arm-2.0.0'
+        if (tag
+          === 'casanode' + process.env.REPOSITORY_ADDENDUM + '/' + service + ':' + process.env.TAG + '-' + version) {
+
+          // Return immediately if tag is found.
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 // Update all applications to the latest version. Then rerun the launch script.
 async function update() {
-  const updatesAvailable = (await getVersions()).applications;
-  const applicationNames = Object.keys(updatesAvailable);
 
-  // Iterate through all apps.
-  for (const applicationName of applicationNames) {
+  const images = await dockerLogic.getImages();
 
-    // Get the current version of the application.
-    let latestVersion = updatesAvailable[applicationName].version;
+  // Block the user from updating if the invalid digest flag is set to true.
+  if (invalidDigestDetected) {
+    throw new Error('Cannot update, an invalid digest has been detected');
+  }
 
-    // Iterate through each new available version of each app.
-    for (const version of updatesAvailable[applicationName].newVersionsAvailable) {
+  // Block updates if the node is currently pulling new images.
+  if (updatingBuildArtifacts) {
+    throw new Error('Currently downloading build artifacts');
+  }
 
-      // Assign the latest version.
-      if (semver.gt(version, latestVersion)) {
-        latestVersion = version;
-      }
+  // TODO handle case when auto download fails because of internet failure or power failure.
+
+  const services = await getNewestServices();
+
+  // For each service.
+  for (const service of services) {
+
+    // If the image does not exist on device, throw an error. This likely means that this service's digest was
+    // rejected and then the device was physically restarted. Upon restart the user then tried to update.
+    if (!hasImage(images, service.serviceName, service.serviceVersion)) {
+      throw new Error('Cannot update, ' + service.serviceName + ' version ' + service.serviceVersion
+        + ' does not exist on device.');
     }
 
     // TODO don't hard code json
-    const appVersion = await diskLogic.readAppVersionFile(applicationName + '.json');
-    appVersion.version = latestVersion;
-    await diskLogic.writeAppVersionFile(applicationName + '.json', appVersion);
+    const appVersion = await diskLogic.readAppVersionFile(service.applicationName + '.json');
+    appVersion.version = service.applicationVersion;
+    await diskLogic.writeAppVersionFile(service.applicationName + '.json', appVersion);
   }
 
   await diskLogic.relaunch();
@@ -923,6 +1046,11 @@ async function unlockLnd(jwt) {
 // Get new build artifacts from remote services. Build artifacts include yml files, images, dependencies and more.
 async function updateBuildArtifacts() {
   try {
+    // Return immediately if we are already pulling.
+    if (updatingBuildArtifacts) {
+      return;
+    }
+
     updatingBuildArtifacts = true;
     await diskLogic.deleteFoldersInDir(constants.TMP_DIRECTORY);
     await diskLogic.deleteFoldersInDir(constants.WORKING_DIRECTORY);
@@ -971,4 +1099,5 @@ module.exports = {
   refresh,
   userReset,
   update,
+  updateBuildArtifacts,
 };

@@ -22,8 +22,10 @@ async function getBuildDetails(appsToLaunch) {
   for (const applicationName of Object.keys(appsToLaunch)) {
     const application = {};
     application.name = applicationName;
-    application.ymlPath = constants.WORKING_DIRECTORY + '/' + application.name + '/'
-      + appsToLaunch[application.name].version + '/' + application.name + '.yml';
+    const path = constants.WORKING_DIRECTORY + '/' + application.name + '/'
+      + appsToLaunch[application.name].version + '/';
+    application.ymlPath = path + application.name + '.yml';
+    application.digestsPath = path + 'digests.json';
     details.push(application);
   }
 
@@ -94,7 +96,6 @@ function writeJWTPublicKeyFile(data) {
   return diskService.writeKeyFile(constants.JWT_PUBLIC_KEY_FILE, data);
 }
 
-
 // Send a signal to shutdown the Casa Node.
 async function shutdown() {
   await diskService.writeFile(constants.SHUTDOWN_SIGNAL_FILE, 'true');
@@ -103,6 +104,16 @@ async function shutdown() {
 // Send a signal to relaunch the manager.
 async function relaunch() {
   await diskService.writeFile(constants.RELAUNCH_SIGNAL_FILE, 'true');
+}
+
+// Read the contends of a file.
+async function readUtf8File(path) {
+  return await diskService.readUtf8File(path);
+}
+
+// Read the contents of a file and return a json object.
+async function readJsonFile(path) {
+  return await diskService.readJsonFile(path);
 }
 
 module.exports = {
@@ -127,4 +138,6 @@ module.exports = {
   writeJWTPublicKeyFile,
   shutdown,
   relaunch,
+  readUtf8File,
+  readJsonFile,
 };

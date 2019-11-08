@@ -16,6 +16,7 @@ const SERVICES = {
   DEVICE_HOST: 'device-host',
   BITCOIND: 'bitcoind',
   DOWNLOAD: 'download',
+  ERROR: 'error',
   LNAPI: 'lnapi',
   LND: 'lnd',
   LOGSPOUT: 'logspout',
@@ -37,7 +38,6 @@ APPLICATION_TO_SERVICES_MAP[APPLICATIONS.LIGHTNING_NODE] = [SERVICES.SPACE_FLEET
 APPLICATION_TO_SERVICES_MAP[APPLICATIONS.LOGSPOUT] = [SERVICES.LOGSPOUT, SERVICES.SYSLOG];
 
 module.exports = {
-  CASA_NODE_HIDDEN_SERVICE_FILE: '/var/lib/tor/casa-node/hostname',
   APP_VERSION_FILES: {
     DEVICE_HOST: APPLICATIONS.DEVICE_HOST + '.json',
     DOWNLOAD: APPLICATIONS.DOWNLOAD + '.json',
@@ -48,6 +48,9 @@ module.exports = {
     TOR: APPLICATIONS.TOR + '.json',
   },
   APPLICATIONS,
+  APPLICATION_TO_SERVICES_MAP,
+  CASA_NODE_HIDDEN_SERVICE_FILE: '/var/lib/tor/casa-node/hostname',
+  CASABUILDER_USERNAME: 'casabuilder',
   COMPOSE_FILES: {
     DEVICE_HOST: APPLICATIONS.DEVICE_HOST + '.yml',
     DOWNLOAD: APPLICATIONS.DOWNLOAD + '.yml',
@@ -56,7 +59,6 @@ module.exports = {
     MANAGER: APPLICATIONS.MANAGER + '.yml',
     TOR: APPLICATIONS.TOR + '.yml',
   },
-  APPLICATION_TO_SERVICES_MAP,
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
   METADATA_FILE: 'metadata.json',
