@@ -97,7 +97,7 @@ module.exports = {
   NODE_LOG_ARCHIVE_GPG_RECIPIENT: 'node-logs@team.casa',
   DOCKER_ORGANIZATION: 'casanode',
   LAUNCH_SCRIPT: 'launch.sh',
-  LAUNCH_DIRECTORY: '/usr/local/casa',
+  LAUNCH_DIRECTORY: '/usr/local/casa/service-scripts',
   SHUTDOWN_SIGNAL_FILE: '/var/run/shutdown_signal',
   RELAUNCH_SIGNAL_FILE: '/var/run/relaunch_signal',
 };
