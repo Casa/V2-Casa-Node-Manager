@@ -25,6 +25,9 @@ let ipManagementRunning = false;
 let lndManagementInterval = {};
 let lndManagementRunning = false;
 
+let restartLndInterval = {};
+let restartLndRunning = false;
+
 const RETRY_SECONDS = 10;
 const RETRY_ATTEMPTS = 10;
 
@@ -795,6 +798,49 @@ function hasImage(images, service, version) {
   return false;
 }
 
+// Performs a migration for V1 node to this device.
+async function migration() {
+  await diskLogic.migration();
+
+  // Start migration status service
+  if (restartLndInterval !== {}) {
+    restartLndInterval = setInterval(restartLnd, constants.TIME.ONE_SECOND_IN_MILLIS);
+  }
+}
+
+// Check the migration status and restart lnd as necessary..
+async function restartLnd() {
+
+  // Return if this this service is already running
+  if (restartLndRunning) {
+    return;
+  }
+
+  restartLndRunning = true;
+
+  try {
+    const migrationStatus = await diskLogic.readMigrationStatusFile();
+
+    if (migrationStatus.details === 'completed') {
+      await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
+      clearInterval(restartLndInterval);
+    } else if (migrationStatus.error) {
+      clearInterval(restartLndInterval);
+    }
+  } catch (error) {
+    logger.error(error.message, 'restartLnd', error.stack);
+  } finally {
+    restartLndRunning = false;
+  }
+}
+
+// Return the status of migration
+async function getMigrationStatus() {
+  const migrationStatus = await diskLogic.readMigrationStatusFile();
+
+  return migrationStatus;
+}
+
 // Update all applications to the latest version. Then rerun the launch script.
 async function update() {
 
@@ -1080,18 +1126,6 @@ async function login(user) {
 
 async function refresh(user) {
   return await authLogic.refresh(user);
-}
-
-// Performs a migration for V1 node to this device.
-async function migration() {
-  await diskLogic.migration();
-}
-
-// Return the status of migration
-async function getMigrationStatus() {
-  const migrationStatus = await diskLogic.readMigrationStatusFile();
-
-  return migrationStatus;
 }
 
 module.exports = {
