@@ -808,10 +808,10 @@ async function migration() {
   }
 }
 
-// Check the migration status and restart lnd as necessary..
+// Check the migration status and restart lnd as necessary.
 async function restartLnd() {
 
-  // Return if this this background process is already running
+  // Return if this this background process is already running.
   if (restartLndRunning) {
     return;
   }
