@@ -116,6 +116,15 @@ async function readJsonFile(path) {
   return await diskService.readJsonFile(path);
 }
 
+// Send a signal to perform a migration.
+async function migration() {
+  await diskService.writeFile(constants.MIGRATION_SIGNAL_FILE, 'true');
+}
+
+function readMigrationStatusFile() {
+  return diskService.readJsonFile(constants.MIGRATION_STATUS_FILE);
+}
+
 module.exports = {
   deleteUserFile,
   deleteFoldersInDir,
@@ -140,4 +149,6 @@ module.exports = {
   relaunch,
   readUtf8File,
   readJsonFile,
+  readMigrationStatusFile,
+  migration
 };

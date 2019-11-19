@@ -98,6 +98,8 @@ module.exports = {
   DOCKER_ORGANIZATION: 'casanode',
   LAUNCH_SCRIPT: 'launch.sh',
   LAUNCH_DIRECTORY: '/usr/local/casa/service-scripts',
-  SHUTDOWN_SIGNAL_FILE: '/var/run/shutdown_signal',
-  RELAUNCH_SIGNAL_FILE: '/var/run/relaunch_signal',
+  SHUTDOWN_SIGNAL_FILE: '/usr/local/casa/signals/shutdown_signal',
+  RELAUNCH_SIGNAL_FILE: '/usr/local/casa/signals/relaunch_signal',
+  MIGRATION_SIGNAL_FILE: '/usr/local/casa/signals/migration_signal',
+  MIGRATION_STATUS_FILE: '/usr/local/casa/service-scripts/migration-status.json'
 };
