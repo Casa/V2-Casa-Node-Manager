@@ -74,4 +74,15 @@ router.post('/update', safeHandler(async(req, res) => {
   return res.json({status: 'updating'});
 }));
 
+router.post('/migration', safeHandler(async(req, res) => {
+  await applicationLogic.migration();
+
+  return res.json({status: 'migrating'});
+}));
+
+router.get('/migration/status', safeHandler((req, res) =>
+  applicationLogic.getMigrationStatus()
+    .then(status => res.json({status}))
+));
+
 module.exports = router;

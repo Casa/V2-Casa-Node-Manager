@@ -1082,6 +1082,18 @@ async function refresh(user) {
   return await authLogic.refresh(user);
 }
 
+// Performs a migration for V1 node to this device.
+async function migration() {
+  await diskLogic.migration();
+}
+
+// Return the status of migration
+async function getMigrationStatus() {
+  const migrationStatus = await diskLogic.readMigrationStatusFile();
+
+  return migrationStatus;
+}
+
 module.exports = {
   getAddresses,
   getBootPercent,
@@ -1100,4 +1112,6 @@ module.exports = {
   userReset,
   update,
   updateBuildArtifacts,
+  migration,
+  getMigrationStatus
 };
