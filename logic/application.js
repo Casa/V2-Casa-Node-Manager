@@ -802,7 +802,7 @@ function hasImage(images, service, version) {
 async function migration() {
   await diskLogic.migration();
 
-  // Start migration status service
+  // Start restart lnd background process.
   if (restartLndInterval !== {}) {
     restartLndInterval = setInterval(restartLnd, constants.TIME.ONE_SECOND_IN_MILLIS);
   }
@@ -811,7 +811,7 @@ async function migration() {
 // Check the migration status and restart lnd as necessary..
 async function restartLnd() {
 
-  // Return if this this service is already running
+  // Return if this this background process is already running
   if (restartLndRunning) {
     return;
   }
@@ -821,7 +821,7 @@ async function restartLnd() {
   try {
     const migrationStatus = await diskLogic.readMigrationStatusFile();
 
-    if (migrationStatus.details === 'completed') {
+    if (migrationStatus.error === false && migrationStatus.details === 'completed') {
       await dockerComposeLogic.dockerComposeRestart({service: constants.SERVICES.LND});
       clearInterval(restartLndInterval);
     } else if (migrationStatus.error) {
