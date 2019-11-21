@@ -127,7 +127,7 @@ async function login(user) {
     const jwt = await JWTHelper.generateJWT(user.username);
 
     // Cache plain text password
-    cachePassword(user.password);
+    cachePassword(user.plainTextPassword);
 
     return {jwt: jwt}; // eslint-disable-line object-shorthand
   } catch (error) {
