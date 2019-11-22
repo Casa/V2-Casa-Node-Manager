@@ -107,7 +107,7 @@ function getChangePasswordStatus() {
 function hashCredentials(username, password) {
   const hash = bcrypt.hashSync(password, saltRounds);
 
-  return {password: hash, username};
+  return {password: hash, username, plainTextPassword: password};
 }
 
 // Returns true if the user is registered otherwise false.
@@ -125,7 +125,9 @@ async function isRegistered() {
 async function login(user) {
   try {
     const jwt = await JWTHelper.generateJWT(user.username);
-    cachePassword(user.password);
+
+    // Cache plain text password
+    cachePassword(user.plainTextPassword);
 
     return {jwt: jwt}; // eslint-disable-line object-shorthand
   } catch (error) {
@@ -153,7 +155,7 @@ async function register(user, seed) {
   }
 
   try {
-    await lnapiService.initializeWallet(user.password, seed, jwt);
+    await lnapiService.initializeWallet(user.plainTextPassword, seed, jwt);
   } catch (error) {
     await diskLogic.deleteUserFile();
     throw new NodeError(error.response.data);

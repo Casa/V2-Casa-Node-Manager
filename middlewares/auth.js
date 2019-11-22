@@ -44,7 +44,7 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.use(BASIC_AUTH, new BasicStrategy(function(username, password, next) {
-  return next(null, {password: password, username: SYSTEM_USER}); // eslint-disable-line object-shorthand
+  return next(null, {password, username: SYSTEM_USER, plainTextPassword: password});
 }));
 
 createJwtOptions().then(function(data) {
