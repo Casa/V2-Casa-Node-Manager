@@ -5,6 +5,10 @@ async function deleteUserFile() {
   return await diskService.deleteFile(constants.USER_PASSWORD_FILE);
 }
 
+async function deleteItemsInDir(directory) {
+  return await diskService.deleteItemsInDir(directory);
+}
+
 async function deleteFoldersInDir(directory) {
   await diskService.deleteFoldersInDir(directory);
 }
@@ -131,6 +135,7 @@ async function enableSsh(state) {
 }
 
 module.exports = {
+  deleteItemsInDir,
   deleteUserFile,
   deleteFoldersInDir,
   moveFoldersToDir,

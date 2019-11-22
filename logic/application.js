@@ -696,38 +696,34 @@ function stopIntervalServices() {
   }
 }
 
-// Stops all services and removes artifacts that aren't labeled with 'casa=persist'.
-// Remove docker images and pull then again if factory reset.
-async function reset(factoryReset) {
+// Stops all services and removes artifacts that aren't labeled with 'casa=persist'. Remove all data in volumes that
+// relate to lnd, tor, settings, or logs.
+async function reset() {
   try {
-    resetSystemStatus();
-    systemStatus.resetting = true;
-    systemStatus.error = false;
+    bootPercent = 1;
+
     stopIntervalServices();
+
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
-    await dockerLogic.pruneNetworks();
-    await dockerLogic.pruneVolumes();
+
+    // Delete volumes
     await wipeSettingsVolume();
     await wipeAccountsVolume();
+    await dockerLogic.removeVolume('applications_channel-data');
+    await dockerLogic.removeVolume('applications_lnd-data');
+    await dockerLogic.removeVolume('applications_logs');
 
-    if (factoryReset) {
-      await dockerLogic.pruneImages(true);
-      await updateBuildArtifacts();
-    }
-    await settingsFileIntegrityCheck();
-
-    // Spin up applications
-    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.BITCOIND}); // Launching all services
-    await dockerComposeLogic.dockerComposeUp({service: constants.SERVICES.LOGSPOUT}); // Launching all services
-    await startIntervalServices();
-    systemStatus.error = false;
+    // Delete tor data from the existing volumes. The volumes can't be deleted because the manager is dependant on it.
+    await diskLogic.deleteItemsInDir('/root/.tor');
+    await diskLogic.deleteItemsInDir('/var/lib/tor/');
   } catch (error) {
-    systemStatus.error = true;
-    await dockerComposeLogic.dockerComposeUpSingleService({service: 'space-fleet'});
+    logger.error(error.message, 'factory-reset', error);
   } finally {
-    systemStatus.resetting = false;
+
+    // Start up all applications.
+    await startup();
+    bootPercent = 100; // eslint-disable-line no-magic-numbers
   }
 }
 

@@ -29,6 +29,22 @@ async function copyFolder(fromFile, toFile) {
   }));
 }
 
+// Delete all items in a directory.
+async function deleteItemsInDir(path) {
+
+  const contents = fs.readdirSync(path);
+
+  for (const item of contents) {
+
+    const curPath = path + '/' + item;
+    if (fs.statSync(curPath).isDirectory()) {
+      deleteFolderRecursive(curPath);
+    } else {
+      fs.unlinkSync(curPath);
+    }
+  }
+}
+
 async function deleteFoldersInDir(path) {
 
   const contents = fs.readdirSync(path);
@@ -156,6 +172,7 @@ function writeKeyFile(filePath, obj) {
 }
 
 module.exports = {
+  deleteItemsInDir,
   deleteFile,
   deleteFoldersInDir,
   listDirsInDir,
