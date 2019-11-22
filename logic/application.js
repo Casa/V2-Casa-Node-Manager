@@ -1136,6 +1136,7 @@ async function refresh(user) {
   return await authLogic.refresh(user);
 }
 
+
 module.exports = {
   getAddresses,
   getBootPercent,

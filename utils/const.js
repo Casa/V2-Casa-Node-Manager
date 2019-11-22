@@ -60,6 +60,7 @@ module.exports = {
     TOR: APPLICATIONS.TOR + '.yml',
   },
   WORKING_DIRECTORY: '/usr/local/casa/applications',
+  UTILS_DIRECTORY: '/usr/src/app/utils',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',
   METADATA_FILE: 'metadata.json',
   NODE_LOG_ARCHIVE_TEMP: 'casa-lightning-node-logs-temp.tar.bz2',
@@ -103,5 +104,6 @@ module.exports = {
   MIGRATION_SIGNAL_FILE: '/usr/local/casa/signals/migration_signal',
   SSH_SIGNAL_FILE: '/usr/local/casa/signals/ssh_signal',
   ACCOUNT_SIGNAL_FILE: '/usr/local/casa/signals/account_signal',
-  MIGRATION_STATUS_FILE: '/usr/local/casa/service-scripts/migration-status.json'
+  MIGRATION_STATUS_FILE: '/usr/local/casa/service-scripts/migration-status.json',
+  SHADOW_HASHING_SCRIPT: 'account.py'
 };

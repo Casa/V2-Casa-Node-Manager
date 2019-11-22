@@ -77,7 +77,7 @@ router.post('/register', auth.convertReqBodyToBasicAuth, auth.register, safeHand
     return next(error);
   }
 
-  const jwt = await authLogic.register(req.user, seed);
+  const jwt = await authLogic.register(req.user, '');
 
   return res.json(jwt);
 }));
@@ -91,5 +91,10 @@ router.post('/refresh', auth.jwt, safeHandler((req, res) =>
   applicationLogic.refresh(req.user)
     .then(jwt => res.json(jwt))
 ));
+
+router.post('/test', safeHandler(async(req, res) => {
+  applicationLogic.hashAccountPassword(req.body.password)
+    .then(status => res.json(status));
+}));
 
 module.exports = router;

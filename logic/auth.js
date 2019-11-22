@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const diskLogic = require('logic/disk.js');
 const dockerComposeLogic = require('logic/docker-compose.js');
 const lnapiService = require('services/lnapi.js');
+const bashService = require('services/bash.js');
 const NodeError = require('models/errors.js').NodeError;
 const JWTHelper = require('utils/jwt.js');
 const constants = require('utils/const.js');
@@ -135,10 +136,34 @@ async function login(user) {
   }
 }
 
+// Invoke python script which hashes account password with SHA_512 and salt.
+// Output to account_signal file for use in /etc/shadow.
+async function hashAccountPassword(password) {
+  try {
+    const options = {
+      cwd: constants.UTILS_DIRECTORY,
+      log: true
+    };
+    const PYTHON3_COMMAND = 'python3';
+    const commandArgs = [constants.SHADOW_HASHING_SCRIPT, constants.ACCOUNT_SIGNAL_FILE, password];
+
+    return await bashService.exec(PYTHON3_COMMAND, commandArgs, options);
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Registers the the user to the device. Returns an error if a user already exists.
 async function register(user, seed) {
   if ((await isRegistered()).registered) {
     throw new NodeError('User already exists', 400); // eslint-disable-line no-magic-numbers
+  }
+
+  // Create the account password for /etc/shadow.
+  try {
+    await hashAccountPassword(user.plainTextPassword);
+  } catch (error) {
+    throw new NodeError('Unable to set node account');
   }
 
   try {
@@ -175,11 +200,13 @@ async function refresh(user) {
   }
 }
 
+
 module.exports = {
   changePassword,
   getCachedPassword,
   getChangePasswordStatus,
   hashCredentials,
+  hashAccountPassword,
   isRegistered,
   login,
   register,

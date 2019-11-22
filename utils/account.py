@@ -1,8 +1,10 @@
-import crypt, sys
+import crypt, sys, json
 
 def generate_hashed_password(password):
     return crypt.crypt(password, crypt.mksalt(crypt.METHOD_SHA512))
 
-f = open("/usr/local/casa/signals/account_signal", "w")
-f.write(generate_hashed_password(sys.argv[1]))
-f.close()
+data = {'password': generate_hashed_password(sys.argv[2])}
+
+account_signal_file = sys.argv[1]
+with open(account_signal_file, 'w') as asf:
+    json.dump(data, asf)
