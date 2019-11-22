@@ -77,7 +77,7 @@ router.post('/register', auth.convertReqBodyToBasicAuth, auth.register, safeHand
     return next(error);
   }
 
-  const jwt = await authLogic.register(req.user, '');
+  const jwt = await authLogic.register(req.user, seed);
 
   return res.json(jwt);
 }));
