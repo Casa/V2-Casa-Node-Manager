@@ -96,6 +96,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     },
     system: {
       systemDisplayUnits: 'btc',
+      sshEnabled: true
     },
   };
 
@@ -290,6 +291,7 @@ async function saveSettings(settings) {
 
   const recreateBitcoind = JSON.stringify(currentConfig.bitcoind) !== JSON.stringify(newConfig.bitcoind);
   const recreateLnd = JSON.stringify(currentConfig.lnd) !== JSON.stringify(newConfig.lnd);
+  const toggleSsh = JSON.stringify(currentConfig.system.sshEnabled) !== JSON.stringify(newConfig.system.sshEnabled);
 
   await diskLogic.writeSettingsFile(newConfig);
 
@@ -304,6 +306,12 @@ async function saveSettings(settings) {
   if (recreateLnd) {
     const jwt = await getJwt();
     await unlockLnd(jwt);
+  }
+
+  // Toggle SSH if needed.
+  if (toggleSsh) {
+    const state = newConfig.system.sshEnabled;
+    await diskLogic.enableSsh(state);
   }
 }
 

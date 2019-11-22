@@ -107,6 +107,7 @@ const systemSchema = {
   type: 'object',
   properties: {
     systemDisplayUnits: {$ref: '/displayUnits'},
+    sshEnabled: {type: 'boolean'}
   },
   required: [],
   additionalProperties: false,
@@ -201,6 +202,7 @@ const sparseSystemSchema = {
   type: 'object',
   properties: {
     systemDisplayUnits: {$ref: '/displayUnits'},
+    sshEnabled: {type: 'boolean'}
   },
   required: [],
   additionalProperties: false,

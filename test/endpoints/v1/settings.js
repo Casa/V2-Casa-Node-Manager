@@ -144,6 +144,8 @@ describe('v1/settings endpoints', () => {
           res.body.lnd.should.have.property('nickName'); // nodeAlias gets converted to nickName
           res.body.lnd.nickName.should.equal('unit-test-node');
 
+          res.body.system.sshEnabled.should.equal(false);
+
           done();
         });
     });

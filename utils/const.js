@@ -101,5 +101,7 @@ module.exports = {
   SHUTDOWN_SIGNAL_FILE: '/usr/local/casa/signals/shutdown_signal',
   RELAUNCH_SIGNAL_FILE: '/usr/local/casa/signals/relaunch_signal',
   MIGRATION_SIGNAL_FILE: '/usr/local/casa/signals/migration_signal',
+  SSH_SIGNAL_FILE: '/usr/local/casa/signals/ssh_signal',
+  ACCOUNT_SIGNAL_FILE: '/usr/local/casa/signals/account_signal',
   MIGRATION_STATUS_FILE: '/usr/local/casa/service-scripts/migration-status.json'
 };
