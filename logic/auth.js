@@ -163,7 +163,7 @@ async function register(user, seed) {
   try {
     await hashAccountPassword(user.plainTextPassword);
   } catch (error) {
-    throw new NodeError('Unable to set node account');
+    throw new NodeError('Unable to set device account');
   }
 
   try {

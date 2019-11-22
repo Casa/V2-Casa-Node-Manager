@@ -92,9 +92,4 @@ router.post('/refresh', auth.jwt, safeHandler((req, res) =>
     .then(jwt => res.json(jwt))
 ));
 
-router.post('/test', safeHandler(async(req, res) => {
-  applicationLogic.hashAccountPassword(req.body.password)
-    .then(status => res.json(status));
-}));
-
 module.exports = router;
