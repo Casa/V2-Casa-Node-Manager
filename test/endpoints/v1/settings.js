@@ -55,7 +55,12 @@ describe('v1/settings endpoints', () => {
     const lnapi = `${__dirname}/../../../services/lnapi.js`;
     unlockLndStub = sinon.stub(require(lnapi), 'unlockLnd');
 
+    const bash = `${__dirname}/../../../services/bash.js`;
+    bashExec = sinon.stub(require(bash), 'exec');
+
     postAxiosStub = sinon.stub(require('axios'), 'post');
+
+
   });
 
   after(() => {
@@ -65,6 +70,7 @@ describe('v1/settings endpoints', () => {
     dockerComposeStopStub.restore();
     dockerComposeRemoveStub.restore();
     unlockLndStub.restore();
+    bashExec.restore();
     postAxiosStub.restore();
 
     restoreOriginalSettingsFile();

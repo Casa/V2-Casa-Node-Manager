@@ -10,12 +10,16 @@ describe('v1/telemetry endpoints', () => {
   let token;
 
   before(async() => {
+    const bash = `${__dirname}/../../../services/bash.js`;
+    bashExec = sinon.stub(require(bash), 'exec');
+
     postAxiosStub = sinon.stub(require('axios'), 'post');
 
     reset();
   });
 
   after(async() => {
+    bashExec.restore();
     postAxiosStub.restore();
   });
 
