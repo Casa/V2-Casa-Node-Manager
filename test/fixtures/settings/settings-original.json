@@ -15,5 +15,8 @@
     "autopilot":false,
     "externalIP":"",
     "lndNodeAlias":"unit-test-node"
+  },
+  "system":{
+    "sshEnabled":false
   }
 }

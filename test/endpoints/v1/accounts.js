@@ -33,6 +33,10 @@ describe('v1/accounts endpoints', () => {
 
     const application = `${__dirname}/../../../logic/application.js`;
     startLndManagementStub = sinon.stub(require(application), 'startLndIntervalService');
+
+    const bash = `${__dirname}/../../../services/bash.js`;
+    bashExec = sinon.stub(require(bash), 'exec');
+
     postAxiosStub = sinon.stub(require('axios'), 'post');
 
     reset();
@@ -40,6 +44,7 @@ describe('v1/accounts endpoints', () => {
 
   after(() => {
     startLndManagementStub.restore();
+    bashExec.restore();
     postAxiosStub.restore();
 
     // Stop all interval services. Otherwise npm test will not exit.
