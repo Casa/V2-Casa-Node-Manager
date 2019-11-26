@@ -707,6 +707,12 @@ async function reset() {
     await dockerLogic.stopNonPersistentContainers();
     await dockerLogic.pruneContainers();
 
+    // Turn SSH on and resets SSH password
+    const currentConfig = await diskLogic.readSettingsFile();
+    currentConfig.system.sshEnabled = false;
+    await saveSettings(currentConfig);
+    await authLogic.hashAccountPassword(constants.DEFAULT_SSH_PASSWORD);
+
     // Delete volumes
     await wipeSettingsVolume();
     await wipeAccountsVolume();

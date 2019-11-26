@@ -59,6 +59,7 @@ module.exports = {
     MANAGER: APPLICATIONS.MANAGER + '.yml',
     TOR: APPLICATIONS.TOR + '.yml',
   },
+  DEFAULT_SSH_PASSWORD: 'casa',
   WORKING_DIRECTORY: '/usr/local/casa/applications',
   UTILS_DIRECTORY: '/usr/src/app/utils',
   LOGGING_DOCKER_COMPOSE_FILE: 'logspout.yml',

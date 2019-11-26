@@ -22,7 +22,7 @@ router.post('/chain-reset', auth.jwt, safeHandler(async(req, res) => {
   }
 }));
 
-router.post('/factory-reset', auth.jwt, safeHandler((req, res) => {
+router.post('/factory-reset', auth.accountJWTProtected, safeHandler((req, res) => {
   applicationLogic.reset();
 
   return res.json({status: 'factory-reset'});
