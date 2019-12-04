@@ -63,7 +63,10 @@ async function changePassword(currentPassword, newPassword, jwt) {
 
       // replace user file
       await diskLogic.deleteUserFile();
-      await diskLogic.writeUserFile(credentials);
+      await diskLogic.writeUserFile({password: credentials.password});
+
+      // update ssh password
+      await hashAccountPassword(newPassword);
 
       complete = true;
 
