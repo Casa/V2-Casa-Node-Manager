@@ -16,7 +16,7 @@ router.post('/chain-reset', auth.jwt, safeHandler(async(req, res) => {
   } else {
 
     // we ignore async call and allow processing to continue in the background
-    applicationLogic.resyncChain(true, false);
+    applicationLogic.resyncChain();
 
     return res.json({status: 'chain-reset'});
   }
@@ -26,12 +26,6 @@ router.post('/factory-reset', auth.accountJWTProtected, safeHandler((req, res) =
   applicationLogic.reset();
 
   return res.json({status: 'factory-reset'});
-}));
-
-router.post('/resync-chain', auth.accountJWTProtected, safeHandler(async(req, res) => {
-  applicationLogic.resyncChain();
-
-  return res.json({status: 'bitcoind-reset'});
 }));
 
 router.post('/user-reset', auth.accountJWTProtected, safeHandler((req, res) => {
