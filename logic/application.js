@@ -85,7 +85,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     },
     system: {
       systemDisplayUnits: 'btc',
-      sshEnabled: true
+      sshEnabled: false
     },
   };
 
@@ -105,6 +105,12 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
 
     // create bitcoind rpc creds as necessary
     await rpcCredIntegrityCheck(settings);
+
+    // On boot of the device SSH is guaranteed not be running, where as boot of the manager container SSH maybe running.
+    const sshEnabledStatus = await diskLogic.readSshSignalFile();
+    if (sshEnabledStatus !== 'started') {
+      settings['system']['sshEnabled'] = false;
+    }
 
     await diskLogic.writeSettingsFile(settings);
 
