@@ -134,6 +134,10 @@ async function enableSsh(state) {
   await diskService.writeFile(constants.SSH_SIGNAL_FILE, state);
 }
 
+function readSshSignalFile() {
+  return diskService.readFile(constants.SSH_SIGNAL_FILE);
+}
+
 module.exports = {
   deleteItemsInDir,
   deleteUserFile,
@@ -161,5 +165,6 @@ module.exports = {
   readJsonFile,
   readMigrationStatusFile,
   migration,
-  enableSsh
+  enableSsh,
+  readSshSignalFile
 };
