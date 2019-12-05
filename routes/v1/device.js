@@ -10,13 +10,13 @@ const DockerPullingError = require('models/errors.js').DockerPullingError;
 const PRECONDITION_FAILED = 412;
 
 router.post('/chain-reset', auth.jwt, safeHandler(async(req, res) => {
+
   // TODO come up with unified strategy on handling resets
   if ((await applicationLogic.getSystemStatus()).resync) {
     return res.status(PRECONDITION_FAILED).json({status: 'bitcoind-already-resetting'});
   } else {
 
-    // we ignore async call and allow processing to continue in the background
-    applicationLogic.resyncChain(true, false);
+    await applicationLogic.resyncChain();
 
     return res.json({status: 'chain-reset'});
   }
@@ -26,21 +26,6 @@ router.post('/factory-reset', auth.accountJWTProtected, safeHandler((req, res) =
   applicationLogic.reset();
 
   return res.json({status: 'factory-reset'});
-}));
-
-router.post('/resync-chain', auth.accountJWTProtected, safeHandler(async(req, res) => {
-
-  const full = req.body.full; // optional parameter to fully wipe all bitcoind data
-
-  // TODO come up with unified strategy on handling resets
-  if ((await applicationLogic.getSystemStatus()).resync) {
-    return res.status(PRECONDITION_FAILED).json({status: 'bitcoind-already-resyncing'});
-  } else {
-    // we ignore async call and allow processing to continue in the background
-    applicationLogic.resyncChain(full, true);
-
-    return res.json({status: 'bitcoind-reset'});
-  }
 }));
 
 router.post('/user-reset', auth.accountJWTProtected, safeHandler((req, res) => {

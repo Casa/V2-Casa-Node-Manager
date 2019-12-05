@@ -66,17 +66,6 @@ function resetSystemStatus() {
   systemStatus = {};
 }
 
-async function downloadChain() {
-  await dockerComposeLogic.dockerLoginBuilder();
-
-  await dockerComposeLogic.dockerComposePull({service: constants.SERVICES.DOWNLOAD});
-  systemStatus.details = 'downloading blocks...';
-  await dockerComposeLogic.dockerComposeUpSingleService({
-    service: constants.SERVICES.DOWNLOAD,
-    attached: true,
-  });
-}
-
 // Checks whether the settings.json file exists, and attempts to create it with default value should it not. Returns
 // the settings.
 async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
@@ -166,72 +155,6 @@ async function rpcCredIntegrityCheck(settings) {
   }
 }
 
-// Return true if there was an issue downloading a file otherwise false.
-async function getResyncFailed() {
-  const options = {};
-
-  const logs = await bashService.exec('docker', ['logs', 'download'], options);
-
-  if (logs.out.includes('failed') || logs.out.includes('Failed')) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/* eslint-disable no-magic-numbers */
-async function setResyncDetails() {
-  try {
-    const options = {};
-
-    // Use the last 20 logs to save time by avoiding the entire logs
-    const logs = await bashService.exec('docker', ['logs', 'download', '--tail', '5'], options);
-
-    const list = logs.out.split('\r');
-
-    for (let index = list.length - 1; index > -1; index--) {
-      // Make sure text contains both Completed and file(s). This is because docker logs for the download container does
-      // not produce clean logs. Sometimes lines overwrite each other at the ends. By ensuring both words exist, we
-      // ensure a clean log.
-      if (list[index].includes('Completed') && list[index].includes('file(s)')) {
-
-        // return and remove extra text
-        const details = list[index].split(' remaining')[0];
-
-        // sample details 'Completed 95.2 MiB/~7.7 GiB (12.2 MiB/s) with ~62 file(s)'
-        // sample details 'Completed 95.2 MiB/7.7 GiB (12.2 MiB/s) with ~62 file(s)'
-        const parts = details.split(' ');
-        const downloadedAmount = parts[1];
-        const downloadedAmountUnit = parts[2].split('/')[0];
-        let totalAmount = parts[2].split('/')[1].replace('~', '');
-        let totalAmountUnit = parts[3];
-        const speed = (parts[4] + ' ' + parts[5]).replace('(', '').replace(')', '');
-
-        // The download container only gives a 10 GiB lead on downloading. Because of this, we will estimate the total
-        // amount until it gets closer to the end.
-        if (systemStatus.full && (downloadedAmount < 210 && downloadedAmountUnit === 'GiB'
-          || downloadedAmountUnit === 'MiB')) {
-
-          totalAmount = '220';
-          totalAmountUnit = 'GiB';
-        }
-
-        systemStatus.downloadedAmount = downloadedAmount;
-        systemStatus.downloadedAmountUnit = downloadedAmountUnit;
-        systemStatus.totalAmount = totalAmount;
-        systemStatus.totalAmountUnit = totalAmountUnit;
-        systemStatus.speed = speed;
-
-        // short circuit loop
-        index = -1;
-      }
-    }
-  } catch (error) {
-    // If the download container does not exist, it will throw an error. In that case, we will just return the
-    // details as is.
-  }
-}
-
 /* eslint-enable no-magic-numbers */
 
 // Return the serial id of the device.
@@ -241,11 +164,6 @@ async function getSerial() {
 
 // Return info device reset state, in-progress and/or it has encountered errors.
 async function getSystemStatus() {
-
-  if (systemStatus.resync) {
-    await setResyncDetails();
-  }
-
   return systemStatus;
 }
 
@@ -614,12 +532,11 @@ async function lanIPManagement() {
 }
 
 // Removes the bitcoind chain if full is true and optionally resync it from Casa's aws server.
-async function resyncChain(full, syncFromAWS) {
+async function resyncChain() {
 
   try {
     resetSystemStatus();
 
-    systemStatus.full = !!full;
     systemStatus.resync = true;
     systemStatus.error = false;
 
@@ -628,34 +545,9 @@ async function resyncChain(full, syncFromAWS) {
     systemStatus.details = 'stopping bitcoind...';
     await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
 
-    if (full) {
-      systemStatus.details = 'wiping existing bitcoin chain...';
-      await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.BITCOIND});
-      await dockerLogic.removeVolume('applications_bitcoind-data');
-    } else {
-      systemStatus.details = 'cleaning existing bitcoin chain...';
-
-      // TODO do we really need to wipe index and chainstate?
-    }
-
-    if (syncFromAWS) {
-      let attempt = 0;
-      let failed = false;
-      do {
-        attempt++;
-
-        systemStatus.details = 'trying attempt ' + attempt + '...';
-        await downloadChain();
-        failed = await getResyncFailed();
-
-        // removing download container to erase logs from previous attempts
-        await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.DOWNLOAD});
-
-      } while (failed && attempt <= RETRY_ATTEMPTS);
-    }
-
-    systemStatus.details = 'removing excess images...';
-    await dockerLogic.pruneImages();
+    systemStatus.details = 'wiping existing bitcoin chain...';
+    await dockerComposeLogic.dockerComposeRemove({service: constants.SERVICES.BITCOIND});
+    await dockerLogic.removeVolume('applications_bitcoind-data');
 
     systemStatus.details = 'starting bitcoind...';
     await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
@@ -666,8 +558,6 @@ async function resyncChain(full, syncFromAWS) {
   } catch (error) {
     systemStatus.error = true;
     systemStatus.details = 'see logs for more details...';
-
-    // TODO what to do with lnd and bitcoind in the event of an error?
   }
 }
 
