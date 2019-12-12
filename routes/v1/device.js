@@ -53,11 +53,18 @@ router.post('/shutdown', auth.convertReqBodyToBasicAuth, auth.basic,
       });
   }));
 
-router.post('/update', safeHandler(async(req, res) => {
+router.post('/update', auth.accountJWTProtected, safeHandler(async(req, res) => {
   await applicationLogic.update();
 
   return res.json({status: 'updating'});
 }));
+
+router.post('/update-build-artifacts', safeHandler(async(req, res) => {
+  applicationLogic.updateBuildArtifacts();
+
+  return res.json({status: 'updating'});
+}));
+
 
 router.post('/migration', safeHandler(async(req, res) => {
   await applicationLogic.migration();

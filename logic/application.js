@@ -749,6 +749,7 @@ async function getMigrationStatus() {
 // Update all applications to the latest version. Then rerun the launch script.
 async function update() {
 
+  let managerUpdate = false;
   const images = await dockerLogic.getImages();
 
   // Block the user from updating if the invalid digest flag is set to true.
@@ -775,13 +776,28 @@ async function update() {
         + ' does not exist on device.');
     }
 
+    if (service.serviceName === constants.SERVICES.MANAGER) {
+      managerUpdate = true;
+    }
+
     // TODO don't hard code json
     const appVersion = await diskLogic.readAppVersionFile(service.applicationName + '.json');
     appVersion.version = service.applicationVersion;
     await diskLogic.writeAppVersionFile(service.applicationName + '.json', appVersion);
   }
 
-  await diskLogic.relaunch();
+  // Update ymls appropriately.
+  const appVersions = await appVersionsIntegrityCheck();
+  await checkYMLs(appVersions);
+
+  // Relaunch the manager if it was updated. Otherwise just run the startup function.
+  if (managerUpdate) {
+    await diskLogic.relaunch();
+  } else {
+
+    // Let the startup function run async.
+    startup();
+  }
 }
 
 // Remove the user file.
