@@ -313,7 +313,7 @@ async function getNewestServices() {
         const digests = await diskLogic.readJsonFile(buildDetails[0].digestsPath);
 
         // Compare the digest in docker hub with the expected digest.
-        if (dockerHubServiceManifest.data.config.digest === digests[service]) {
+        if (dockerHubServiceManifest.data.config.digest === digests[service][process.env.TAG]) {
 
           // Add each service.
           services.push({
@@ -328,8 +328,8 @@ async function getNewestServices() {
           // Turn on this flag. It will remain on and block all updates and pull until Dockerhub manifest and the node
           // warehouse have digests that match.
           invalidDigestDetected = true;
-          throw new Error('Unknown image detected, expected ' + service + ' digest to be ' + digests[service]
-            + ' but found ' + dockerHubServiceManifest.data.config.digest);
+          throw new Error('Unknown image detected, expected ' + service + ' digest to be '
+            + digests[service][process.env.TAG] + ' but found ' + dockerHubServiceManifest.data.config.digest);
         }
       } else {
 
