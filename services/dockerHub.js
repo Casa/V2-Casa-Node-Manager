@@ -16,8 +16,16 @@ function getAuthenticationToken(repository) {
       + process.env.CASABUILDER_PASSWORD).toString('base64');
   }
 
-  return axios.get(authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:casanode'
-    + process.env.REPOSITORY_ADDENDUM + '/' + repository + ':pull', config);
+  let url = authenticationBaseUrl + '/token?service=registry.docker.io&scope=repository:casanode';
+
+  // Add addendum if it exists.
+  if (process.env.REPOSITORY_ADDENDUM) {
+    url += process.env.REPOSITORY_ADDENDUM;
+  }
+
+  url += '/' + repository + ':pull';
+
+  return axios.get(url, config);
 }
 
 function getDigest(token, repository, tagVersion) {
@@ -28,8 +36,16 @@ function getDigest(token, repository, tagVersion) {
     }
   };
 
-  return axios.get(registryBaseUrl + '/v2/casanode' + process.env.REPOSITORY_ADDENDUM + '/' + repository + '/manifests/'
-    + tagVersion, config);
+  let url = registryBaseUrl + '/v2/casanode';
+
+  // Add addendum if it exists.
+  if (process.env.REPOSITORY_ADDENDUM) {
+    url += process.env.REPOSITORY_ADDENDUM;
+  }
+
+  url += '/' + repository + '/manifests/' + tagVersion;
+
+  return axios.get(url, config);
 }
 
 module.exports = {
