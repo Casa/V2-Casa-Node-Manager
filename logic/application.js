@@ -136,7 +136,6 @@ async function appVersionsIntegrityCheck() {
 
   const appVersions = {};
 
-  appVersions[constants.APPLICATIONS.DOWNLOAD] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.DOWNLOAD);
   appVersions[constants.APPLICATIONS.ERROR] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.ERROR);
   appVersions[constants.APPLICATIONS.LOGSPOUT] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.LOGSPOUT);
   appVersions[constants.APPLICATIONS.MANAGER] = await appVersionIntegrityCheck(constants.APP_VERSION_FILES.MANAGER);
@@ -314,7 +313,7 @@ async function getNewestServices() {
         const digests = await diskLogic.readJsonFile(buildDetails[0].digestsPath);
 
         // Compare the digest in docker hub with the expected digest.
-        if (dockerHubServiceManifest.data.config.digest === digests[service]) {
+        if (dockerHubServiceManifest.data.config.digest === digests[service][process.env.TAG]) {
 
           // Add each service.
           services.push({
@@ -329,8 +328,8 @@ async function getNewestServices() {
           // Turn on this flag. It will remain on and block all updates and pull until Dockerhub manifest and the node
           // warehouse have digests that match.
           invalidDigestDetected = true;
-          throw new Error('Unknown image detected, expected ' + service + ' digest to be ' + digests[service]
-            + ' but found ' + dockerHubServiceManifest.data.config.digest);
+          throw new Error('Unknown image detected, expected ' + service + ' digest to be '
+            + digests[service][process.env.TAG] + ' but found ' + dockerHubServiceManifest.data.config.digest);
         }
       } else {
 
@@ -691,8 +690,15 @@ function hasImage(images, service, version) {
       for (const tag of image.RepoTags) {
 
         // example tag 'casanode/manager:arm-2.0.0'
-        if (tag
-          === 'casanode' + process.env.REPOSITORY_ADDENDUM + '/' + service + ':' + process.env.TAG + '-' + version) {
+        let fullTag = 'casanode';
+
+        if (process.env.REPOSITORY_ADDENDUM) {
+          fullTag += process.env.REPOSITORY_ADDENDUM;
+        }
+
+        fullTag += '/' + service + ':' + process.env.TAG + '-' + version;
+
+        if (tag === fullTag) {
 
           // Return immediately if tag is found.
           return true;
@@ -750,6 +756,7 @@ async function getMigrationStatus() {
 // Update all applications to the latest version. Then rerun the launch script.
 async function update() {
 
+  let managerUpdate = false;
   const images = await dockerLogic.getImages();
 
   // Block the user from updating if the invalid digest flag is set to true.
@@ -776,13 +783,28 @@ async function update() {
         + ' does not exist on device.');
     }
 
+    if (service.serviceName === constants.SERVICES.MANAGER) {
+      managerUpdate = true;
+    }
+
     // TODO don't hard code json
     const appVersion = await diskLogic.readAppVersionFile(service.applicationName + '.json');
     appVersion.version = service.applicationVersion;
     await diskLogic.writeAppVersionFile(service.applicationName + '.json', appVersion);
   }
 
-  await diskLogic.relaunch();
+  // Update ymls appropriately.
+  const appVersions = await appVersionsIntegrityCheck();
+  await checkYMLs(appVersions);
+
+  // Relaunch the manager if it was updated. Otherwise just run the startup function.
+  if (managerUpdate) {
+    await diskLogic.relaunch();
+  } else {
+
+    // Let the startup function run async.
+    startup();
+  }
 }
 
 // Remove the user file.

@@ -1,6 +1,6 @@
 {
   "name": "manager",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Manages Casa Node system",
   "author": "Casa, INC.",
   "scripts": {
