@@ -690,8 +690,15 @@ function hasImage(images, service, version) {
       for (const tag of image.RepoTags) {
 
         // example tag 'casanode/manager:arm-2.0.0'
-        if (tag
-          === 'casanode' + process.env.REPOSITORY_ADDENDUM + '/' + service + ':' + process.env.TAG + '-' + version) {
+        let fullTag = 'casanode';
+
+        if (process.env.REPOSITORY_ADDENDUM) {
+          fullTag += process.env.REPOSITORY_ADDENDUM;
+        }
+
+        fullTag += '/' + service + ':' + process.env.TAG + '-' + version;
+
+        if (tag === fullTag) {
 
           // Return immediately if tag is found.
           return true;
