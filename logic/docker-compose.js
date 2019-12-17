@@ -43,9 +43,6 @@ function getComposeFile(options) {
   if (options.service === constants.SERVICES.DEVICE_HOST
     || options.application === constants.APPLICATIONS.DEVICE_HOST) {
     return WORKING_DIR + '/' + constants.COMPOSE_FILES.DEVICE_HOST;
-  } else if (options.service === constants.SERVICES.DOWNLOAD
-    || options.application === constants.APPLICATIONS.DOWNLOAD) {
-    return WORKING_DIR + '/' + constants.COMPOSE_FILES.DOWNLOAD;
   } else if (options.service === constants.SERVICES.LOGSPOUT
     || options.service === constants.SERVICES.PAPERTRAIL
     || options.service === constants.SERVICES.SYSLOG
