@@ -476,16 +476,23 @@ async function startup() {
       const appsToLaunch = {};
       appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
+      appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
-      // Start space-fleet and lnapi before tor. Tor will then be able to create a hidden service.
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.TOR});
+      // If a hidden service doesn't exist for the user interface we need to create it.
+      if (!process.env.CASA_NODE_HIDDEN_SERVICE) {
+
+        // Start space-fleet and lnapi before tor. Tor will then be able to create a hidden service for them.
+        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
+        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
+        await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.TOR});
+      }
 
       // Wait for tor to create a hidden service.
       await setHiddenServiceEnv();
 
-      // Launching/Relaunching all remaining apps. This will include recreating space-fleet with the new hidden service.
+      // Launching/Relaunching all remaining apps. This will include recreating space-fleet and lnapi with the new
+      // hidden service. It will also recreate tor because space-fleet and lnapi have to be online before tor is
+      // started.
       await launchApplications(appsToLaunch);
 
       bootPercent = 80;
@@ -536,7 +543,7 @@ async function lanIPManagement() {
   }
 }
 
-// Removes the bitcoind chain if full is true and optionally resync it from Casa's aws server.
+// Removes the bitcoind chain.
 async function resyncChain() {
 
   try {
@@ -618,6 +625,13 @@ async function reset() {
     // Delete tor data from the existing volumes. The volumes can't be deleted because the manager is dependant on it.
     await diskLogic.deleteItemsInDir('/root/.tor');
     await diskLogic.deleteItemsInDir('/var/lib/tor/');
+
+    // Erase any details of a previous migration.
+    await diskLogic.writeMigrationStatusFile({details: '', error: false});
+
+    // Reset the user interface hidden service in memory.
+    process.env.CASA_NODE_HIDDEN_SERVICE = undefined;
+
   } catch (error) {
     logger.error(error.message, 'factory-reset', error);
   } finally {
