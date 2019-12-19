@@ -129,6 +129,10 @@ function readMigrationStatusFile() {
   return diskService.readJsonFile(constants.MIGRATION_STATUS_FILE);
 }
 
+async function writeMigrationStatusFile(json) {
+  return diskService.writeJsonFile(constants.MIGRATION_STATUS_FILE, json);
+}
+
 // Send a signal to enable/disable SSH.
 async function enableSsh(state) {
   await diskService.writeFile(constants.SSH_SIGNAL_FILE, state);
@@ -163,6 +167,7 @@ module.exports = {
   relaunch,
   readUtf8File,
   readJsonFile,
+  writeMigrationStatusFile,
   readMigrationStatusFile,
   migration,
   enableSsh,
