@@ -543,7 +543,7 @@ async function lanIPManagement() {
   }
 }
 
-// Removes the bitcoind chain if full is true and optionally resync it from Casa's aws server.
+// Removes the bitcoind chain.
 async function resyncChain() {
 
   try {
@@ -625,6 +625,13 @@ async function reset() {
     // Delete tor data from the existing volumes. The volumes can't be deleted because the manager is dependant on it.
     await diskLogic.deleteItemsInDir('/root/.tor');
     await diskLogic.deleteItemsInDir('/var/lib/tor/');
+
+    // Erase any details of a previous migration.
+    await diskLogic.writeMigrationStatusFile({details: '', error: false});
+
+    // Reset the user interface hidden service in memory.
+    process.env.CASA_NODE_HIDDEN_SERVICE = undefined;
+
   } catch (error) {
     logger.error(error.message, 'factory-reset', error);
   } finally {
