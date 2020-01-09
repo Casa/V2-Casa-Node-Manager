@@ -451,6 +451,11 @@ async function startup() {
 
       bootPercent = 30;
 
+      // Stop all containers. This will guarentee that they always boot in the same order. If they don't boot in the
+      // correct order, Tor will not work.
+      await dockerLogic.stopNonPersistentContainers();
+      bootPercent = 40;
+
       const appsToLaunch = {};
       appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
@@ -467,7 +472,9 @@ async function startup() {
       await launchApplications(appsToLaunch);
 
       bootPercent = 80;
-      await startIntervalServices();
+
+      // Let the interval services run async.
+      startIntervalServices();
 
       errorThrown = false;
     } catch (error) {
