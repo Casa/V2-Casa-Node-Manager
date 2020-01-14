@@ -85,7 +85,7 @@ async function dockerComposeUp(options) {
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
   }
 
-  const composeOptions = ['-f', file, 'up', '-d', '-t', DOCKER_TIMEOUT_SECONDS];
+  const composeOptions = ['-f', file, 'up', '-d', '-t', DOCKER_TIMEOUT_SECONDS, '--force-recreate'];
 
   try {
     await bashService.exec(DOCKER_COMPOSE_COMMAND, composeOptions, options);
