@@ -479,7 +479,6 @@ async function startup() {
       bootPercent = 40;
 
       const appsToLaunch = {};
-      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
       appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
 
@@ -499,6 +498,10 @@ async function startup() {
       // hidden service. It will also recreate tor because space-fleet and lnapi have to be online before tor is
       // started.
       await launchApplications(appsToLaunch);
+
+      // Then we start bitcoind and lnd, because they need tor online.
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
 
       bootPercent = 80;
 
