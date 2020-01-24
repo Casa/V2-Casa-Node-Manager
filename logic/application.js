@@ -46,12 +46,8 @@ async function getAddresses() {
   // Get ip address.
   const addresses = [ipAddressUtil.getLanIPAddress()];
 
-  const currentConfig = await diskLogic.readSettingsFile();
-
-  // Check to see if tor is turned on and add onion address if Tor has created a new hidden service.
-  if (process.env.CASA_NODE_HIDDEN_SERVICE
-    && (currentConfig.lnd.lndTor || currentConfig.bitcoind.bitcoindTor)) {
-
+  // Check to see if tor is turned on.
+  if (process.env.CASA_NODE_HIDDEN_SERVICE) {
     addresses.push(process.env.CASA_NODE_HIDDEN_SERVICE);
   }
 
