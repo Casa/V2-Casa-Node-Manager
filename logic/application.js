@@ -429,6 +429,7 @@ async function setHiddenServiceEnv() {
     } else {
       await sleepSeconds(RETRY_SECONDS);
     }
+
   } while (!process.env.CASA_NODE_HIDDEN_SERVICE && attempt <= RETRY_ATTEMPTS);
 }
 
@@ -481,6 +482,7 @@ async function startup() {
       const appsToLaunch = {};
       appsToLaunch[constants.APPLICATIONS.LOGSPOUT] = appVersions[constants.APPLICATIONS.LOGSPOUT];
       appsToLaunch[constants.APPLICATIONS.TOR] = appVersions[constants.APPLICATIONS.TOR];
+      appsToLaunch[constants.APPLICATIONS.LIGHTNING_NODE] = appVersions[constants.APPLICATIONS.LIGHTNING_NODE];
 
       // If a hidden service doesn't exist for the user interface we need to create it.
       if (!process.env.CASA_NODE_HIDDEN_SERVICE) {
@@ -498,10 +500,6 @@ async function startup() {
       // hidden service. It will also recreate tor because space-fleet and lnapi have to be online before tor is
       // started.
       await launchApplications(appsToLaunch);
-
-      // Then we start bitcoind and lnd, because they need tor online.
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
-      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
 
       bootPercent = 80;
 
