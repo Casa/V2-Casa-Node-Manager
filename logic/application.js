@@ -496,9 +496,10 @@ async function startup() {
       // started.
       await launchApplications(appsToLaunch);
 
-      // Then we start bitcoind, lnd and space-fleet, because they need tor online.
+      // Then we the services that depend on tor.
       await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.BITCOIND});
       await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LND});
+      await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
       await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
 
       bootPercent = 80;
