@@ -34,7 +34,7 @@ router.post('/save', auth.jwt, safeHandler((req, res, next) => {
     },
     system: {
       systemDisplayUnits: req.body.systemDisplayUnits,
-      sshEnabled: req.body.sshEnabled
+      sshEnabled: req.body.sshEnabled,
     }
   };
 
