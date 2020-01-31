@@ -30,10 +30,6 @@ describe('v1/accounts endpoints', () => {
   let token;
 
   before(async() => {
-
-    const application = `${__dirname}/../../../logic/application.js`;
-    startLndManagementStub = sinon.stub(require(application), 'startLndIntervalService');
-
     const bash = `${__dirname}/../../../services/bash.js`;
     bashExec = sinon.stub(require(bash), 'exec');
 
@@ -43,7 +39,6 @@ describe('v1/accounts endpoints', () => {
   });
 
   after(() => {
-    startLndManagementStub.restore();
     bashExec.restore();
     postAxiosStub.restore();
 
