@@ -22,9 +22,6 @@ const md5Check = require('md5-file');
 let lanIPManagementInterval = {};
 let ipManagementRunning = false;
 
-let lndManagementInterval = {};
-let lndManagementRunning = false;
-
 let restartLndInterval = {};
 let restartLndRunning = false;
 
@@ -81,7 +78,7 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
     },
     system: {
       systemDisplayUnits: 'btc',
-      sshEnabled: false
+      sshEnabled: false,
     },
   };
 
@@ -101,13 +98,6 @@ async function settingsFileIntegrityCheck() { // eslint-disable-line id-length
 
     // create bitcoind rpc creds as necessary
     await rpcCredIntegrityCheck(settings);
-
-    // On boot of the device SSH is guaranteed not be running, where as boot of the manager container SSH maybe running.
-    const sshEnabledStatus = await diskLogic.readSshSignalFile();
-    if (sshEnabledStatus !== 'started') {
-      settings['system']['sshEnabled'] = false;
-    }
-
     await diskLogic.writeSettingsFile(settings);
 
     return settings;
@@ -224,7 +214,7 @@ async function saveSettings(settings) {
   // Automatically unlock lnd if we just recreated it.
   if (recreateLnd) {
     const jwt = await getJwt();
-    await unlockLnd(jwt);
+    unlockLnd(jwt);
   }
 
   // Toggle SSH if needed.
@@ -502,6 +492,13 @@ async function startup() {
       await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.LNAPI});
       await dockerComposeLogic.dockerComposeUpSingleService({service: constants.SERVICES.SPACE_FLEET});
 
+      bootPercent = 70;
+
+      if (authLogic.getCachedPassword()) {
+        const jwt = await getJwt();
+        unlockLnd(jwt);
+      }
+
       bootPercent = 80;
 
       // Let the interval services run async.
@@ -585,7 +582,6 @@ async function resyncChain() {
 // Start all interval services.
 async function startIntervalServices() {
   await startLanIPIntervalService();
-  await startLndIntervalService();
   await updatingArtifactsService();
 }
 
@@ -594,11 +590,6 @@ function stopIntervalServices() {
   if (updatingArtifactsInterval !== {}) {
     clearInterval(updatingArtifactsInterval);
     updatingArtifactsInterval = {};
-  }
-
-  if (lndManagementInterval !== {}) {
-    clearInterval(lndManagementInterval);
-    lndManagementInterval = {};
   }
 
   if (lanIPManagementInterval !== {}) {
@@ -695,7 +686,6 @@ async function shutdown() {
 
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.LND});
   await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.BITCOIND});
-  await dockerComposeLogic.dockerComposeStop({service: constants.SERVICES.SPACE_FLEET});
 
   await diskLogic.shutdown();
 }
@@ -778,7 +768,6 @@ async function getMigrationStatus() {
 
 // Update all applications to the latest version. Then rerun the launch script.
 async function update() {
-
   let managerUpdate = false;
   const images = await dockerLogic.getImages();
 
@@ -793,7 +782,6 @@ async function update() {
   }
 
   // TODO handle case when auto download fails because of internet failure or power failure.
-
   const services = await getNewestServices();
 
   // For each service.
@@ -945,76 +933,15 @@ function sleepSeconds(seconds) {
   });
 }
 
-// Start the Lnd Management interval service.
-async function startLndIntervalService() {
-
-  // Only start lnd management if another instance is not already running.
-  if (lndManagementInterval !== {} || lndManagementRunning) {
-
-    // Run lnd management immediately and then rerun every hour. This makes it more likely that the user skips the
-    // initial login modal for lnd.
-    await lndManagement();
-    lndManagementInterval = setInterval(lndManagement, constants.TIME.ONE_HOUR_IN_MILLIS);
-  }
-}
-
 // Get a new valid jwt token.
 async function getJwt() {
   const genericUser = {
     username: 'admin',
     password: authLogic.getCachedPassword(),
+    plainTextPassword: authLogic.getCachedPassword(),
   };
 
   return (await authLogic.login(genericUser)).jwt;
-}
-
-// Keeps lnd unlocked and up to date with the most accurate external ip.
-async function lndManagement() {
-
-  // If this service is already running, do not run a second instance.
-  if (lndManagementRunning) {
-    return;
-  }
-
-  if (!authLogic.getCachedPassword()) {
-    return;
-  }
-
-  lndManagementRunning = true;
-  try {
-
-    // Check to see if lnd is currently running.
-    if (await dockerLogic.isRunningService(constants.SERVICES.LND)) {
-
-      // Make sure we have a valid auth token.
-      const jwt = await getJwt();
-
-      const currentConfig = await diskLogic.readSettingsFile();
-      const addresses = (await lnapiService.getBitcoindAddresses(jwt)).data;
-
-      let externalIP;
-      for (const address of addresses) {
-        if (!address.includes('onion')) {
-          externalIP = address;
-        }
-      }
-
-      // If an external ip has been set and is not equal to the current external ip and tor is not active. Tor handles
-      // external address on its own.
-      if (currentConfig.externalIP !== ''
-        && currentConfig.externalIP !== externalIP
-        && !currentConfig.lnd.tor) {
-
-        currentConfig.externalIP = externalIP;
-        await saveSettings(currentConfig);
-      }
-    }
-
-  } catch (error) {
-    throw error;
-  } finally {
-    lndManagementRunning = false;
-  }
 }
 
 async function unlockLnd(jwt) {
@@ -1088,7 +1015,6 @@ module.exports = {
   login,
   saveSettings,
   shutdown,
-  startLndIntervalService,
   startup,
   stopIntervalServices,
   reset,
