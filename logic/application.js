@@ -460,7 +460,7 @@ async function startup() {
 
       bootPercent = 30;
 
-      // Stop all containers. This will guarentee that they always boot in the same order. If they don't boot in the
+      // Stop all containers. This will guarantee that they always boot in the same order. If they don't boot in the
       // correct order, Tor will not work.
       await dockerLogic.stopNonPersistentContainers();
       bootPercent = 40;
@@ -630,7 +630,7 @@ async function reset() {
     await diskLogic.writeMigrationStatusFile({details: '', error: false});
 
     // Reset the user interface hidden service in memory.
-    process.env.CASA_NODE_HIDDEN_SERVICE = undefined;
+    delete process.env.CASA_NODE_HIDDEN_SERVICE;
 
   } catch (error) {
     logger.error(error.message, 'factory-reset', error);
