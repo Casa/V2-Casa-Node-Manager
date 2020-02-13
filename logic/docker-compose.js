@@ -194,10 +194,6 @@ async function dockerComposeUpSingleService(options) { // eslint-disable-line id
     // `lnapi` expects the JWT_PUBLIC_KEY value to be in hex.
     const jwtPubKey = await diskLogic.readJWTPublicKeyFile();
     options.env.JWT_PUBLIC_KEY = jwtPubKey.toString('hex');
-  } else if (options.service === constants.SERVICES.DOWNLOAD) {
-    options.env.ARCHIVE_CHAIN = 'bitcoind';
-    options.env.ARCHIVE_NETWORK = options.env['BITCOIN_NETWORK'];
-    options.env.AWS_DEFAULT_REGION = 'us-east-2';
   }
 
   const composeOptions = ['-f', file, 'up'];
